@@ -16,32 +16,179 @@ internal sealed partial class AssetLibrary
 {
     private void DrawLibContent()
     {
-        var iconCount = 1;
+        var iconCount = 2;
         _state.TreeHandler.Update();
 
         CustomComponents.DrawInputFieldWithPlaceholder("Search Assets...",
                                                        ref _state.Filter.SearchString,
-                                                       -ImGui.GetFrameHeight() * iconCount + 16);
+                                                       -ImGui.GetFrameHeight() * iconCount + 18 * T3Ui.UiScaleFactor);
 
-        ImGui.SameLine();
-
-        var collapseIconState = _state.TreeHandler.NoFolderOpen 
-                               ? CustomComponents.ButtonStates.Dimmed 
-                               : CustomComponents.ButtonStates.Normal;
-
-
-        if (CustomComponents.IconButton(Icon.TreeCollapse, Vector2.Zero, collapseIconState))
+        // Collapse icon
         {
-            //_state.CollapseTreeTriggered = true; // Will be updated next frame
-            _state.TreeHandler.CollapseAll();
+            ImGui.SameLine();
+            var collapseIconState = _state.TreeHandler.NoFolderOpen
+                                        ? CustomComponents.ButtonStates.Dimmed
+                                        : CustomComponents.ButtonStates.Normal;
+
+            if (CustomComponents.IconButton(Icon.TreeCollapse, Vector2.Zero, collapseIconState))
+            {
+                _state.TreeHandler.CollapseAll();
+            }
         }
 
+        // Tools and settings
+        {
+            ImGui.SameLine();
+            var toolItemState = _state.ActiveTypeFilters.Count >0
+                                        ? CustomComponents.ButtonStates.NeedsAttention
+                                        : CustomComponents.ButtonStates.Normal;
+
+            var settingsPopUpID = "_AssetTools";
+            if (CustomComponents.IconButton(Icon.Settings2, Vector2.Zero, toolItemState))
+            {
+                ImGui.OpenPopup(settingsPopUpID);
+            }
+
+            
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10 * T3Ui.UiScaleFactor));
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(10, 10) * T3Ui.UiScaleFactor);
+            if (ImGui.BeginPopupContextWindow(settingsPopUpID))
+            {
+                CustomComponents.SmallGroupHeader("2 selected...");
+                ImGui.MenuItem("Delete files", null, false, false);
+                CustomComponents.TooltipForLastItem("Not implemented yet :-(");
+
+                ImGui.MenuItem("Find References", null, false, false);
+                CustomComponents.TooltipForLastItem("Not implemented yet :-(");
+                
+                ImGui.MenuItem("Open Externally", null, false, false);
+                CustomComponents.TooltipForLastItem("Not implemented yet :-(");
+                
+                CustomComponents.SeparatorLine();
+                
+                CustomComponents.SmallGroupHeader("Options");
+
+                ImGui.MenuItem("Sync with Selection", null, ref UserSettings.Config.SyncWithOperatorSelection);
+                ImGui.MenuItem("Scroll to Active", null, ref UserSettings.Config.ScrollAssetLibToActive);
+                
+                CustomComponents.SeparatorLine();
+
+                //CustomComponents.SmallGroupHeader("Filter");
+
+                var showAllTypes = _state.ActiveTypeFilters.Count== 0;
+                if (DrawAssetFilterOption(10, Icon.Stack, UiColors.Text, "All", AssetTypeRegistry.TotalAssetCount, ref showAllTypes))
+                {
+                    _state.ActiveTypeFilters.Clear();
+                    _state.CompatibleExtensionIds.Clear();
+                    _state.FilteringNeedsUpdate = true;
+                }
+                
+                Input.FormInputs.AddVerticalSpace();
+                
+                for (var index = 0; index < AssetTypeRegistry.AssetTypes.Count; index++)
+                {
+                    var assetType = AssetTypeRegistry.AssetTypes[index];
+                    var count = assetType.MatchingFileCount;
+                    var xIcon = assetType.Icon;
+                    var readOnlySpan = assetType.Name;
+                    var iconColor = ColorVariations.OperatorLabel.Apply(assetType.Color);
+
+                    var isActive = _state.ActiveTypeFilters.Contains(assetType);
+                    if (DrawAssetFilterOption(index, xIcon, iconColor, readOnlySpan, count, ref isActive))
+                    {
+                        if (isActive)
+                        {
+                            if (!ImGui.GetIO().KeyCtrl && !ImGui.GetIO().KeyShift)
+                            {
+                                _state.ActiveTypeFilters.Clear();
+                                _state.CompatibleExtensionIds.Clear();
+                            }
+                            
+                            _state.ActiveTypeFilters.Add(assetType);
+                            foreach (var extId in assetType.ExtensionIds)
+                            {
+                                _state.CompatibleExtensionIds.Add(extId);
+                            }
+                        }
+                        else
+                        {
+                            _state.ActiveTypeFilters.Remove(assetType);
+                        }
+
+                        _state.FilteringNeedsUpdate = true;
+                    }
+                }
+
+                ImGui.End();
+            }
+
+            ImGui.PopStyleVar(2);
+        }
         
+        
+
         ImGui.BeginChild("scrolling", Vector2.Zero, false, ImGuiWindowFlags.NoBackground);
         {
+            ImGui.PushStyleVar(ImGuiStyleVar.IndentSpacing, 10);
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0));
+            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0));
             DrawFolder(_state.RootFolder);
+            ImGui.PopStyleVar(3);
         }
         ImGui.EndChild();
+    }
+
+    private static bool DrawAssetFilterOption(int id, Icon xIcon, Color iconColor, string readOnlySpan, int count, ref bool isActive)
+    {
+        ImGui.PushID(id);
+        var clicked = ImGui.Selectable(string.Empty);
+        ImGui.PopID();
+
+        var fade = isActive ? 1 : 0.7f;
+        
+        var min = ImGui.GetItemRectMin();
+        var max = ImGui.GetItemRectMax();
+        var drawList = ImGui.GetWindowDrawList();
+        var h = ImGui.GetItemRectSize().Y;
+        
+        var paddingFactor = 1.2f;
+        var w = Icons.FontSize * paddingFactor;
+        
+        if (isActive)
+        {
+            Icons.DrawIconCenter(Icon.Checkmark, UiColors.Text.Fade(fade), 0);
+        }
+
+        Icons.DrawIconAtScreenPosition(xIcon,
+                                       (min + new Vector2(w * 1,
+                                                          h / 2 - Icons.FontSize / 2)).Floor(),
+                                       drawList, iconColor.Fade(fade));
+
+        var textHeight = ImGui.GetFontSize();
+        drawList.AddText(min + new Vector2(w * 2,
+                                           h / 2 - textHeight / 2), 
+                         UiColors.Text.Fade(fade), 
+                         readOnlySpan);
+
+        if (count > 0)
+        {
+            var countLabel = $"{count}";
+            var countLabelWidth = ImGui.CalcTextSize(countLabel).X;
+            var windowWidth = ImGui.GetColumnWidth();
+
+            drawList.AddText(min
+                             + new Vector2(windowWidth - countLabelWidth,
+                                           h / 2 - textHeight / 2),
+                             UiColors.TextMuted.Fade(fade), 
+                             countLabel);
+        }
+
+        if (clicked)
+        {
+            isActive = !isActive;
+        }
+
+        return clicked;
     }
 
     private bool _expandToFileTriggered;
@@ -115,7 +262,7 @@ internal sealed partial class AssetLibrary
 
                     var timeSinceChange = (float)(ImGui.GetTime() - _state.TimeActiveInstanceChanged);
                     var fadeProgress = (timeSinceChange / 0.5f).Clamp(0, 1);
-                    var blinkFade = MathF.Cos(timeSinceChange * 15f) * (1f - fadeProgress) * 0.5f + 0.5f;
+                    var blinkFade = -MathF.Cos(timeSinceChange * 15f) * (1f - fadeProgress) * 0.7f + 0.75f;
                     var color = UiColors.StatusActivated.Fade(blinkFade);
                     Icons.DrawIconCenter(Icon.Aim, color);
 
@@ -165,18 +312,17 @@ internal sealed partial class AssetLibrary
     private void DrawAssetItem(AssetItem asset)
     {
         var isSelected = asset.AbsolutePath == _state.ActiveAbsolutePath;
-        
+
         var fileConsumerOpSelected = _state.CompatibleExtensionIds.Count > 0;
-        var fileConsumerOpIsCompatible =  fileConsumerOpSelected 
-                                          && _state.CompatibleExtensionIds.Contains(asset.FileExtensionId);
+        var fileConsumerOpIsCompatible = fileConsumerOpSelected
+                                         && _state.CompatibleExtensionIds.Contains(asset.FileExtensionId);
 
         // Skip not matching asset
         if (fileConsumerOpSelected && !fileConsumerOpIsCompatible)
             return;
-        
+
         ImGui.PushID(RuntimeHelpers.GetHashCode(asset));
         {
-            
             var fade = !fileConsumerOpSelected
                            ? 0.8f
                            : fileConsumerOpIsCompatible
@@ -203,7 +349,7 @@ internal sealed partial class AssetLibrary
                 }
             }
 
-            if (isSelected && !ImGui.IsItemVisible() && _state.HasActiveInstanceChanged) 
+            if (isSelected && !ImGui.IsItemVisible() && _state.HasActiveInstanceChanged)
             {
                 ImGui.SetScrollHereY();
             }
