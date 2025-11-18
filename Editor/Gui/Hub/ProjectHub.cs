@@ -8,7 +8,7 @@ using T3.Editor.UiModel.ProjectHandling;
 
 namespace T3.Editor.Gui.Hub;
 
-internal sealed class ProjectHub
+internal static class ProjectHub
 {
     public static void DrawProjectList(GraphWindow window)
     {

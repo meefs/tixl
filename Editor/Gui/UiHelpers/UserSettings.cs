@@ -15,7 +15,7 @@ namespace T3.Editor.Gui.UiHelpers;
 /// <summary>
 /// Saves view layout, currently open node and other user settings 
 /// </summary>
-///  todo - make internal, make extendable by external packaages
+///  todo - make internal, make extendable by external packages
 public sealed class UserSettings : Settings<UserSettings.ConfigData>
 {
     internal UserSettings(bool saveOnQuit) : base("userSettings.json", saveOnQuit: saveOnQuit)

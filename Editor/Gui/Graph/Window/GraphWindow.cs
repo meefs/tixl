@@ -3,6 +3,7 @@ using ImGuiNET;
 using T3.Core.Animation;
 using T3.Editor.Gui.Graph.Dialogs;
 using T3.Editor.Gui.Graph.Interaction;
+using T3.Editor.Gui.Hub;
 using T3.Editor.Gui.Interaction;
 using T3.Editor.Gui.Interaction.TransformGizmos;
 using T3.Editor.Gui.MagGraph.Ui;
@@ -149,7 +150,7 @@ internal sealed class GraphWindow : Windows.Window
     {
         if (ProjectView == null)
         {
-            UiElements.DrawProjectList(this);
+            ProjectHub.DrawProjectList(this);
             return;
         }
 
