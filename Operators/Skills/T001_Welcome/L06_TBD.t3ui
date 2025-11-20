@@ -87,7 +87,7 @@
     {
       "Id": "2d74cde3-b4c4-419d-9368-78160d2bbd6a",
       "ChildId": "c560820f-fc83-4026-8966-65ab12e90d4b",
-      "Title": "Is [RoundedRect] is rotating. Maybe... It's sooo slow that it's barely noticable.\nThat's because TiXL uses degrees for angles and wait 360 seconds for one turn takes a looong time."
+      "Title": "Is this [RoundedRect] is rotating?! It's sooo slow that it's barely noticable.\nThat's because TiXL uses degrees for angles and wait 360 seconds for one turn takes a looong time."
     },
     {
       "Id": "c131274a-b1a9-4585-867a-0bf10acf2b79",
