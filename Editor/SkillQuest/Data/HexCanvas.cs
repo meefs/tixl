@@ -3,34 +3,40 @@ using T3.Editor.Gui.Interaction;
 
 namespace T3.Editor.SkillQuest.Data;
 
-internal sealed class HexCanvas : ScalableCanvas
+public sealed class HexCanvas : ScalableCanvas
 {
     internal float GridSize = 100;
 
-    public float HexRadiusOnScreen => GridSize * Scale.X;
+    internal float HexRadiusOnScreen => GridSize * Scale.X;
 
     public struct Cell : IEquatable<Cell>
     {
-        public Cell(int x, int y)
+        internal Cell(int x, int y)
         {
             X = x;
             Y = y;
         }
 
-        public Cell(Vector2 vec)
+        internal Cell(Vector2 vec)
         {
             X = (int)vec.X;
             Y = (int)vec.Y;
         }
 
-        public int X;
-        public int Y;
-
+        internal int X;
+        internal int Y;
+        
         public static bool operator ==(Cell left, Cell right)
         {
             return left.X == right.X && left.Y == right.Y;
         }
-
+        
+        public static Cell operator +(Cell left, Cell delta)
+        {
+            return new Cell(left.X + delta.X, left.Y + delta.Y);
+        }
+        
+        
         public static bool operator !=(Cell left, Cell right)
         {
             return !(left == right);
@@ -48,11 +54,11 @@ internal sealed class HexCanvas : ScalableCanvas
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(X, Y);
+            return Y * 16384 + X;
         }
     }
 
-    public Cell CellFromScreenPos(Vector2 screenPos)
+    internal Cell CellFromScreenPos(Vector2 screenPos)
     {
         var posOnCanvas = InverseTransformPositionFloat(screenPos);
         return CellFromCanvasPos(posOnCanvas);
@@ -72,12 +78,12 @@ internal sealed class HexCanvas : ScalableCanvas
 
         // 2) axial (q, r) -> odd-r row-offset (X = column, Y = row)
         // rows with (Y % 2 == 1) are shifted by half a hex width
-        var col = q + (row - (row & 1)) / 2; // odd-r
+        var col = q; //  (row - (row & 1)) / 2; // odd-r
 
         return new Cell(col, row);
     }
 
-    public Vector2 ScreenPosFromCell(Cell cell)
+    internal Vector2 ScreenPosFromCell(Cell cell)
     {
         var canvasPos = CellToCanvasPos(cell);
         return TransformPositionFloat(canvasPos);
@@ -86,13 +92,13 @@ internal sealed class HexCanvas : ScalableCanvas
     /// <summary>
     /// To simplify serialization, we can store cells as Vec2.
     /// </summary>
-    public Vector2 MapCoordsToScreenPos(Vector2 mapCoords)
+    internal Vector2 MapCoordsToScreenPos(Vector2 mapCoords)
     {
         var canvasPos = CellToCanvasPos(new Cell((int)mapCoords.X, (int)mapCoords.Y));
         return TransformPositionFloat(canvasPos);
     }
 
-    internal Vector2 CellToCanvasPos(Cell cell)
+    private Vector2 CellToCanvasPos(Cell cell)
     {
         const float sqrt3 = 1.7320508075688772f;
 
@@ -101,7 +107,7 @@ internal sealed class HexCanvas : ScalableCanvas
 
         // odd-r offset -> axial (q, r)
         // rows with (row % 2 == 1) are shifted by half a hex width
-        var q = col - (row - (row & 1)) / 2;
+        var q = col; //  (row - (row & 1)) / 2;
         var r = row;
 
         // axial (q, r) -> canvas position of the *cell center*

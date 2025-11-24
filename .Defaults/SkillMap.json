@@ -108,11 +108,31 @@
             {
               "Title": "Speed it up!",
               "SymbolId": "4f9eb54f-1b81-4a6b-a842-f80c423e5843"
+            },
+            {
+              "Title": "Welcome to the Skill Quest",
+              "SymbolId": "c0065a1d-091a-4fc4-ad36-4430b90d29d4"
+            },
+            {
+              "Title": "Stack Attack",
+              "SymbolId": "bd3f2fa7-48f7-4ca3-8c32-92fe0d9e3fff"
+            },
+            {
+              "Title": "Get outta there!",
+              "SymbolId": "468cafa2-d5ef-46f3-b0b7-626cdb0322cf"
+            },
+            {
+              "Title": "Take that value!",
+              "SymbolId": "123a1ff1-2935-4d9a-880f-897a7f8885ad"
+            },
+            {
+              "Title": "Speed it up!",
+              "SymbolId": "4f9eb54f-1b81-4a6b-a842-f80c423e5843"
             }
           ],
           "MapCoordinate": {
-            "X": 0.0,
-            "Y": 0.0
+            "X": -2.0,
+            "Y": 1.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
@@ -131,8 +151,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 13.0,
-            "Y": -4.0
+            "X": 15.0,
+            "Y": -6.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -163,8 +183,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 11.0,
-            "Y": -4.0
+            "X": 13.0,
+            "Y": -6.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -179,8 +199,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 12.0,
-            "Y": -4.0
+            "X": 14.0,
+            "Y": -6.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -247,8 +267,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 1.0,
-            "Y": -3.0
+            "X": -2.0,
+            "Y": -2.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
@@ -256,7 +276,8 @@
             "6e4d1aee-2cdd-431c-ae5e-028c483ec267",
             "2dec2fcf-3466-4b3b-aee7-07127354d9cd",
             "4d512889-dbed-4b50-97c9-47f077cbf34f",
-            "f15f35fe-a482-45b2-a909-4e88f529e71e"
+            "f15f35fe-a482-45b2-a909-4e88f529e71e",
+            "71d6f1eb-7b02-4635-b840-45082fb9b102"
           ],
           "Namespace": null,
           "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
@@ -269,7 +290,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 1.0,
+            "X": -1.0,
             "Y": -4.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -289,7 +310,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 0.0,
+            "X": -2.0,
             "Y": -4.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -307,13 +328,11 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 2.0,
-            "Y": -3.0
+            "X": -4.0,
+            "Y": -2.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
-          "UnlocksTopics": [
-            "71d6f1eb-7b02-4635-b840-45082fb9b102"
-          ],
+          "UnlocksTopics": [],
           "Namespace": null,
           "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
           "Status": 1,
@@ -325,8 +344,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -3.0,
-            "Y": -2.0
+            "X": -6.0,
+            "Y": 0.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
@@ -351,7 +370,8 @@
           "UnlocksTopics": [
             "67b8faed-1e62-4518-8f71-bb9000a97c5d",
             "516a848e-a526-4e52-8342-f4c5fef3f057",
-            "8a27a6a7-c8c7-4012-916f-f7ecdfebae8e"
+            "8a27a6a7-c8c7-4012-916f-f7ecdfebae8e",
+            "d400abe2-0113-4793-a289-da3515646082"
           ],
           "Namespace": null,
           "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
@@ -382,7 +402,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 2.0,
+            "X": 0.0,
             "Y": -5.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -400,7 +420,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 3.0,
+            "X": 1.0,
             "Y": -5.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -416,12 +436,13 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 2.0,
+            "X": 0.0,
             "Y": -4.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
-            "1e754305-9bdd-4eb8-a5ea-4bf32103f4d2"
+            "1e754305-9bdd-4eb8-a5ea-4bf32103f4d2",
+            "61925b47-4bc3-4fb4-ac94-dd1dedea8159"
           ],
           "Namespace": null,
           "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
@@ -434,7 +455,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 1.0,
+            "X": -1.0,
             "Y": -5.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -450,12 +471,13 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 3.0,
+            "X": -5.0,
             "Y": -3.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
-            "ad5ea28a-834a-423f-bf39-0f882c34791c"
+            "ad5ea28a-834a-423f-bf39-0f882c34791c",
+            "c8e74ea9-e0a0-4fb7-a20e-6da6316a12e5"
           ],
           "Namespace": null,
           "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
@@ -468,8 +490,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -2.0,
-            "Y": -6.0
+            "X": -6.0,
+            "Y": -5.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
@@ -488,8 +510,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -2.0,
-            "Y": -7.0
+            "X": -6.0,
+            "Y": -6.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -504,8 +526,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -1.0,
-            "Y": -7.0
+            "X": -5.0,
+            "Y": -6.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -520,8 +542,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -3.0,
-            "Y": -6.0
+            "X": -7.0,
+            "Y": -5.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
@@ -538,8 +560,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -5.0,
-            "Y": -2.0
+            "X": -7.0,
+            "Y": 0.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -554,8 +576,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -4.0,
-            "Y": 2.0
+            "X": -7.0,
+            "Y": 1.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
@@ -578,7 +600,6 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
             "6c3dff36-9aee-4849-bf0b-0d2a13d57956",
-            "d400abe2-0113-4793-a289-da3515646082",
             "a096e1b9-3a73-4271-8f4e-96ed5855b112"
           ],
           "Namespace": null,
@@ -735,8 +756,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 1.0,
-            "Y": -2.0
+            "X": -1.0,
+            "Y": -3.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
@@ -753,8 +774,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 2.0,
-            "Y": -2.0
+            "X": 0.0,
+            "Y": -3.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -769,8 +790,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 2.0,
-            "Y": -1.0
+            "X": 0.0,
+            "Y": -2.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -801,8 +822,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -4.0,
-            "Y": -6.0
+            "X": -8.0,
+            "Y": -5.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -1038,7 +1059,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 14.0,
+            "X": 15.0,
             "Y": 3.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -1128,7 +1149,9 @@
             "Y": 3.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
-          "UnlocksTopics": [],
+          "UnlocksTopics": [
+            "a096e1b9-3a73-4271-8f4e-96ed5855b112"
+          ],
           "Namespace": null,
           "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
           "Status": 1,
@@ -1140,7 +1163,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 2.0,
+            "X": 1.0,
             "Y": 4.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -1162,7 +1185,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 3.0,
+            "X": 2.0,
             "Y": 5.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -1212,7 +1235,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 2.0,
+            "X": 1.0,
             "Y": 5.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -1300,7 +1323,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 16.0,
+            "X": 17.0,
             "Y": 3.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -1316,7 +1339,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 15.0,
+            "X": 16.0,
             "Y": 2.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -1334,8 +1357,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 15.0,
-            "Y": 1.0
+            "X": 16.0,
+            "Y": 3.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
@@ -1352,7 +1375,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 16.0,
+            "X": 17.0,
             "Y": 2.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -1388,12 +1411,12 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 1.0,
+            "X": 0.0,
             "Y": 4.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
-            "e81bac72-c60e-49ca-8880-0be823b60ce8"
+            "f5fbbfab-3bd9-4c05-be32-f4af0ec21f35"
           ],
           "Namespace": null,
           "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
@@ -1406,7 +1429,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 1.0,
+            "X": 0.0,
             "Y": 5.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -1424,7 +1447,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 1.0,
+            "X": 0.0,
             "Y": 6.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -1490,8 +1513,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 11.0,
-            "Y": 12.0
+            "X": 10.0,
+            "Y": 13.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [
@@ -1508,8 +1531,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 11.0,
-            "Y": 13.0
+            "X": 10.0,
+            "Y": 14.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -1588,8 +1611,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 4.0,
-            "Y": -3.0
+            "X": -6.0,
+            "Y": 3.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -1604,7 +1627,7 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 3.0,
+            "X": 2.0,
             "Y": 4.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
@@ -1764,8 +1787,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 6.0,
-            "Y": -4.0
+            "X": -4.0,
+            "Y": 0.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -1780,8 +1803,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -6.0,
-            "Y": -4.0
+            "X": -9.0,
+            "Y": -3.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -1796,8 +1819,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 3.0,
-            "Y": -2.0
+            "X": 1.0,
+            "Y": -4.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -1812,8 +1835,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 5.0,
-            "Y": -4.0
+            "X": -3.0,
+            "Y": 0.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -1844,8 +1867,8 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": 6.0,
-            "Y": -3.0
+            "X": -4.0,
+            "Y": -4.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
@@ -1993,10 +2016,12 @@
           "Levels": [],
           "MapCoordinate": {
             "X": -1.0,
-            "Y": 7.0
+            "Y": 4.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
-          "UnlocksTopics": [],
+          "UnlocksTopics": [
+            "e81bac72-c60e-49ca-8880-0be823b60ce8"
+          ],
           "Namespace": null,
           "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
           "Status": 1,

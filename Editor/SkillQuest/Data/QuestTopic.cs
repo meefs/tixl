@@ -1,8 +1,10 @@
-﻿using Newtonsoft.Json;
+﻿using System.Diagnostics.CodeAnalysis;
+using Newtonsoft.Json;
 using T3.Serialization;
 
 namespace T3.Editor.SkillQuest.Data;
 
+[SuppressMessage("ReSharper", "MemberCanBeInternal")]
 public sealed class QuestTopic
 {
     // TODO: Color, style, etc. 
@@ -35,9 +37,6 @@ public sealed class QuestTopic
     [JsonIgnore]
     public List<SkillProgression.LevelResult> ResultsForTopic = [];
     
-    [JsonIgnore]
-    public int MapCellHash =>  (int)MapCoordinate.Y * 16384 + (int)MapCoordinate.X;
-    
     public enum Requirements
     {
         None,
@@ -52,5 +51,12 @@ public sealed class QuestTopic
         Locked,
         Unlocked,
         Completed,
+    }
+
+    [JsonIgnore]
+    internal HexCanvas.Cell Cell
+    {
+        get => new((int)MapCoordinate.X, (int)MapCoordinate.Y);
+        set => MapCoordinate = new Vector2(value.X, value.Y);
     }
 }
