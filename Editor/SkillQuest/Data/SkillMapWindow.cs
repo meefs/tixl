@@ -5,7 +5,6 @@ using T3.Core.DataTypes;
 using T3.Core.Utils;
 using T3.Editor.Gui;
 using T3.Editor.Gui.Input;
-using T3.Editor.Gui.MagGraph.Model;
 using T3.Editor.Gui.Styling;
 using T3.Editor.Gui.UiHelpers;
 using T3.Editor.UiModel.InputsAndTypes;
@@ -216,15 +215,7 @@ internal static class SkillMapPopup
         FormInputs.AddStringInput("##Topic", ref topic.Title, autoFocus: autoFocus);
         FormInputs.AddVerticalSpace();
 
-        if (FormInputs.AddDropdown<Type>(ref topic.Type,
-                [
-                    typeof(Texture2D),
-                    typeof(float),
-                    typeof(Command),
-                    typeof(string),
-                    typeof(BufferWithViews),
-                    typeof(ShaderGraphNode),
-                ], "##Type", x => x.Name))
+        if (FormInputs.AddEnumDropdown(ref topic.TopicType , "##Type"))
         {
         }
 
@@ -320,7 +311,7 @@ internal static class SkillMapPopup
                                    MapCoordinate = new Vector2(cell.X, cell.Y),
                                    Title = "New topic" + SkillMap.AllTopics.Count(),
                                    ZoneId = activeTopic?.ZoneId ?? Guid.Empty,
-                                   Type = _lastType,
+                                   TopicType = _lastType,
                                    Status = activeTopic?.Status ?? QuestTopic.Statuses.Locked,
                                    Requirement = activeTopic?.Requirement ?? QuestTopic.Requirements.AllInputPaths,
                                };
@@ -350,7 +341,18 @@ internal static class SkillMapPopup
         var posOnScreen = _canvas.MapCoordsToScreenPos(topic.MapCoordinate);
         var radius = _canvas.HexRadiusOnScreen;
 
-        var typeColor = TypeUiRegistry.GetTypeOrDefaultColor(topic.Type);
+        var type = topic.TopicType switch
+                       {
+                           QuestTopic.TopicTypes.Image       => typeof(Texture2D),
+                           QuestTopic.TopicTypes.Numbers     => typeof(float),
+                           QuestTopic.TopicTypes.Command     => typeof(Command),
+                           QuestTopic.TopicTypes.String      => typeof(string),
+                           QuestTopic.TopicTypes.Gpu         => typeof(BufferWithViews),
+                           QuestTopic.TopicTypes.ShaderGraph => typeof(ShaderGraphNode),
+                           _                                 => throw new ArgumentOutOfRangeException()
+                       };
+        
+        var typeColor = TypeUiRegistry.GetTypeOrDefaultColor(type);
         dl.AddNgonRotated(posOnScreen, radius * 0.95f, typeColor.Fade(isHovered ? 0.3f : 0.15f));
 
         var isSelected = _selectedTopics.Contains(topic);
@@ -432,7 +434,7 @@ internal static class SkillMapPopup
                     }
 
                     _selectedTopics.Add(topic);
-                    _lastType = topic.Type;
+                    _lastType = topic.TopicType;
                 }
                 
                 // Start Dragging
@@ -504,7 +506,7 @@ internal static class SkillMapPopup
     }
 
     private static bool _focusTopicNameInput;
-    private static Type _lastType = typeof(float);
+    private static QuestTopic.TopicTypes _lastType = QuestTopic.TopicTypes.Numbers;
     private static States _state;
     private static readonly HexCanvas _canvas = new();
     private static readonly SelectionFence _fence = new ();

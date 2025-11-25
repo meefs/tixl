@@ -148,6 +148,46 @@
             {
               "Title": "Speed it up!",
               "SymbolId": "4f9eb54f-1b81-4a6b-a842-f80c423e5843"
+            },
+            {
+              "Title": "Welcome to the Skill Quest",
+              "SymbolId": "c0065a1d-091a-4fc4-ad36-4430b90d29d4"
+            },
+            {
+              "Title": "Stack Attack",
+              "SymbolId": "bd3f2fa7-48f7-4ca3-8c32-92fe0d9e3fff"
+            },
+            {
+              "Title": "Get outta there!",
+              "SymbolId": "468cafa2-d5ef-46f3-b0b7-626cdb0322cf"
+            },
+            {
+              "Title": "Take that value!",
+              "SymbolId": "123a1ff1-2935-4d9a-880f-897a7f8885ad"
+            },
+            {
+              "Title": "Speed it up!",
+              "SymbolId": "4f9eb54f-1b81-4a6b-a842-f80c423e5843"
+            },
+            {
+              "Title": "Welcome to the Skill Quest",
+              "SymbolId": "c0065a1d-091a-4fc4-ad36-4430b90d29d4"
+            },
+            {
+              "Title": "Stack Attack",
+              "SymbolId": "bd3f2fa7-48f7-4ca3-8c32-92fe0d9e3fff"
+            },
+            {
+              "Title": "Get outta there!",
+              "SymbolId": "468cafa2-d5ef-46f3-b0b7-626cdb0322cf"
+            },
+            {
+              "Title": "Take that value!",
+              "SymbolId": "123a1ff1-2935-4d9a-880f-897a7f8885ad"
+            },
+            {
+              "Title": "Speed it up!",
+              "SymbolId": "4f9eb54f-1b81-4a6b-a842-f80c423e5843"
             }
           ],
           "MapCoordinate": {
@@ -161,8 +201,8 @@
             "7f093d8e-9d75-46a0-ac61-4a829b70358d"
           ],
           "Namespace": "Skills.T001_Welcome",
-          "Type": null,
-          "Status": 0,
+          "TopicType": "Image",
+          "Status": "None",
           "Requirement": "None"
         },
         {
@@ -177,8 +217,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -193,8 +233,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -209,8 +249,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -225,8 +265,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -243,8 +283,8 @@
             "59419077-5868-421b-bcb0-39361ba2ecc9"
           ],
           "Namespace": null,
-          "Type": "System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "String",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -261,8 +301,8 @@
             "f6000b6e-27a2-4c78-a34e-d4ad11f09f18"
           ],
           "Namespace": null,
-          "Type": "System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "String",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -277,8 +317,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -300,8 +340,8 @@
             "71d6f1eb-7b02-4635-b840-45082fb9b102"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -320,8 +360,8 @@
             "d92192de-a78f-4b08-bad0-77eb171d1bcc"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -338,8 +378,8 @@
             "42bc1ea6-b0c3-47d4-b427-cd9e09389f71"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -354,8 +394,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -373,8 +413,8 @@
             "6c3dff36-9aee-4849-bf0b-0d2a13d57956"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -394,8 +434,8 @@
             "d400abe2-0113-4793-a289-da3515646082"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -413,8 +453,8 @@
             "2024f276-6c13-4a72-bf7c-70c64e006c6d"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -431,8 +471,8 @@
             "1e754305-9bdd-4eb8-a5ea-4bf32103f4d2"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -447,8 +487,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -466,8 +506,8 @@
             "61925b47-4bc3-4fb4-ac94-dd1dedea8159"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -482,8 +522,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -501,8 +541,8 @@
             "c8e74ea9-e0a0-4fb7-a20e-6da6316a12e5"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -521,8 +561,8 @@
             "320cb1e3-5713-45aa-92d0-cf4031a3fef3"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -537,8 +577,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -553,8 +593,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -571,8 +611,8 @@
             "b6b8c4c4-abfe-4071-8465-b9cdb784bc45"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -587,8 +627,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -605,8 +645,8 @@
             "a7c48f91-ec65-4de6-9cad-c6ead24e10e6"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -624,8 +664,8 @@
             "a096e1b9-3a73-4271-8f4e-96ed5855b112"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -642,8 +682,8 @@
             "c6784323-b93b-4702-9a96-9bbd3f279218"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -658,8 +698,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "String",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -679,8 +719,8 @@
             "9f4b6aa3-6af6-40a1-b44a-0a1908155364"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -699,8 +739,8 @@
             "47fa588a-67ff-4972-b42f-7fccc4505793"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -715,8 +755,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -731,8 +771,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -749,8 +789,8 @@
             "659aa498-27cd-4aeb-a271-8aaccba9bf44"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -765,8 +805,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -784,8 +824,8 @@
             "50f09b3a-39f0-48a6-bc83-6bc0c1aff185"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -800,8 +840,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -816,8 +856,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -832,8 +872,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -848,8 +888,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -867,8 +907,8 @@
             "82d5a04b-d556-4bde-a583-596b29142691"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -889,8 +929,8 @@
             "af08df40-a878-408f-a5b2-e1be361e50e5"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -909,8 +949,8 @@
             "6bd3c94c-f01f-4fc4-94e4-8f28442decc6"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -925,8 +965,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -941,8 +981,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -962,8 +1002,8 @@
             "10611e2a-3051-4586-8562-f216cf1869cb"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -980,8 +1020,8 @@
             "77aa1875-1e24-45ce-bc7d-6069ac118cca"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -996,8 +1036,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1012,8 +1052,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1031,8 +1071,8 @@
             "54bc1906-9c55-4b54-b66d-888c4e0039c0"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1047,8 +1087,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1063,8 +1103,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.ShaderGraphNode, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "ShaderGraph",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1081,8 +1121,8 @@
             "fcbb987c-39e8-4a17-a586-ec013fc50899"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1099,8 +1139,8 @@
             "42dfd850-f882-4081-8990-41e8be1b02fb"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1118,8 +1158,8 @@
             "af08df40-a878-408f-a5b2-e1be361e50e5"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1134,8 +1174,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1152,8 +1192,8 @@
             "2024f276-6c13-4a72-bf7c-70c64e006c6d"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1170,8 +1210,8 @@
             "8a158eb4-f7b0-48e7-bc96-9c7d3a086b47"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1188,8 +1228,8 @@
             "a096e1b9-3a73-4271-8f4e-96ed5855b112"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1210,8 +1250,8 @@
             "42dc539d-8c5b-4325-b07c-46ababa5bdd2"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1226,8 +1266,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1245,8 +1285,8 @@
             "bf3851da-604a-4a12-b202-f15ae75cc52a"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1263,8 +1303,8 @@
             "ad5ea28a-834a-423f-bf39-0f882c34791c"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1279,8 +1319,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1299,8 +1339,8 @@
             "54bc1906-9c55-4b54-b66d-888c4e0039c0"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.ShaderGraphNode, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "ShaderGraph",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1317,8 +1357,8 @@
             "4e4e1319-c33a-44d3-8839-e1f8f3458a1a"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.ShaderGraphNode, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "ShaderGraph",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1336,8 +1376,8 @@
             "2823b5ff-185f-4a3d-b965-2865ca27f29e"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1352,8 +1392,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1368,8 +1408,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.ShaderGraphNode, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "ShaderGraph",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1386,8 +1426,8 @@
             "ba469861-722e-43bb-b19d-2796b8fa98a6"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1404,8 +1444,8 @@
             "d6b6d4d4-b263-43b7-9dd3-e248d4d3142f"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1422,8 +1462,8 @@
             "95b48443-841c-44c1-8c1f-38e8e040775a"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1440,8 +1480,8 @@
             "f37f0fa5-2b34-4b82-a379-a32748f77725"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1458,8 +1498,8 @@
             "f5fbbfab-3bd9-4c05-be32-f4af0ec21f35"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1476,8 +1516,8 @@
             "09228c4c-70cf-48f0-a1db-54e53865e8cf"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1492,8 +1532,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1510,8 +1550,8 @@
             "f37f0fa5-2b34-4b82-a379-a32748f77725"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1526,8 +1566,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1544,8 +1584,8 @@
             "6598e00e-e262-47a4-9743-12e08ba1f683"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.ShaderGraphNode, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "ShaderGraph",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1562,8 +1602,8 @@
             "ac6e4399-10e5-43ba-8e60-e7149e282803"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.ShaderGraphNode, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "ShaderGraph",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1578,8 +1618,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.ShaderGraphNode, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "ShaderGraph",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1594,8 +1634,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1612,8 +1652,8 @@
             "a3ec7723-c516-489c-8ee2-5518d679c026"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1630,8 +1670,8 @@
             "a3ec7723-c516-489c-8ee2-5518d679c026"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1646,8 +1686,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1662,8 +1702,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1678,8 +1718,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1694,8 +1734,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1712,8 +1752,8 @@
             "d0b5bf6a-93b1-49bb-8930-2be362e08082"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1730,8 +1770,8 @@
             "a9ee9be3-b939-4279-bc02-c997a04460b5"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1748,8 +1788,8 @@
             "a9ee9be3-b939-4279-bc02-c997a04460b5"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1766,8 +1806,8 @@
             "2b59770b-2037-47c5-a868-9b18dc1843b5"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1776,14 +1816,14 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -4.0,
-            "Y": 2.0
+            "X": -2.0,
+            "Y": 1.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1800,8 +1840,8 @@
             "4c2be92b-b340-4122-a010-14c0bdfa941c"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1816,8 +1856,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1832,8 +1872,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "String",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1848,8 +1888,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1864,8 +1904,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1880,8 +1920,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1896,8 +1936,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1912,8 +1952,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1928,8 +1968,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1946,8 +1986,8 @@
             "45bcf72c-7d55-4daf-b0ce-aeed78495226"
           ],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1962,8 +2002,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "System.Single, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e",
-          "Status": 1,
+          "TopicType": "Numbers",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1980,8 +2020,8 @@
             "7c6a884e-e09a-4263-816e-c8c3800d47a9"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -1996,8 +2036,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -2012,8 +2052,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -2028,8 +2068,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -2047,8 +2087,8 @@
             "b05772ee-cd9b-4317-8ca3-aa65a943c1c7"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -2057,14 +2097,14 @@
           "Description": "",
           "Levels": [],
           "MapCoordinate": {
-            "X": -1.0,
+            "X": 0.0,
             "Y": 0.0
           },
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -2081,8 +2121,8 @@
             "e81bac72-c60e-49ca-8880-0be823b60ce8"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -2097,8 +2137,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -2115,8 +2155,8 @@
             "a3ec7723-c516-489c-8ee2-5518d679c026"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.BufferWithViews, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Gpu",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -2134,8 +2174,8 @@
             "aae0bdfa-b86f-4368-8160-7be3d0a8b5ec"
           ],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Texture2D, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Image",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -2150,8 +2190,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.ShaderGraphNode, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "ShaderGraph",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         },
         {
@@ -2166,8 +2206,8 @@
           "ZoneId": "717505b4-0c6e-4708-85d8-54e202f9bbdf",
           "UnlocksTopics": [],
           "Namespace": null,
-          "Type": "T3.Core.DataTypes.Command, Core, Version=4.1.0.4, Culture=neutral, PublicKeyToken=null",
-          "Status": 1,
+          "TopicType": "Command",
+          "Status": "Locked",
           "Requirement": "AllInputPaths"
         }
       ]

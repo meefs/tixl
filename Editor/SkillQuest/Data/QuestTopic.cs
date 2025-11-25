@@ -24,11 +24,11 @@ public sealed class QuestTopic
     /// </summary>
     public string Namespace;
 
-    /// <summary>
-    /// For formatting map
-    /// </summary>
-    public Type Type;
-
+    [JsonConverter(typeof(SafeEnumConverter<TopicTypes>))]
+    public TopicTypes TopicType;
+    
+    
+    [JsonConverter(typeof(SafeEnumConverter<Statuses>))]
     public Statuses Status;
 
     [JsonConverter(typeof(SafeEnumConverter<Requirements>))]
@@ -51,6 +51,19 @@ public sealed class QuestTopic
         Locked,
         Unlocked,
         Completed,
+    }
+
+    /// <remarks>
+    /// We use an enum to avoid types in serialization
+    /// </remarks>
+    public enum TopicTypes
+    {
+        Image,
+        Numbers,
+        Command,
+        String,
+        Gpu,
+        ShaderGraph,
     }
 
     [JsonIgnore]
