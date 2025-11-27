@@ -66,14 +66,28 @@ internal sealed partial class MagGraphView
             var labelPos = positionInScreen; // - new Vector2(2, Fonts.FontNormal.FontSize + 8);
             ImGui.SetCursorScreenPos(labelPos);
             bool isCollapsed = annotation.Collapsed;
-            if (CustomComponents.ToggleTwoIconsButton(ref isCollapsed, Icon.ChevronDown,
+            if (CustomComponents.ToggleTwoIconsButton(ref isCollapsed, 
+                                                      Icon.ChevronDown,
                                                       Icon.ChevronRight,
-                                                      CustomComponents.ButtonStates.Activated,
-                                                      CustomComponents.ButtonStates.Activated,
-                                                      false, 
+                                                      CustomComponents.ButtonStates.Normal,
+                                                      CustomComponents.ButtonStates.Normal,
+                                                      true, 
                                                       true))
             {
                 if (isCollapsed)
+                {
+                    // Flag children as collapsed...
+                    foreach (var item in context.Layout.Items.Values)
+                    {
+                        if (item.Variant != MagGraphItem.Variants.Operator || item.ChildUi == null)
+                            continue;
+
+                        
+                        if(area.Contains(item.Area))
+                            item.ChildUi.CollapsedIntoAnnotationFrameId = magAnnotation.Id;
+                    }
+                }
+                else
                 {
                     // Reveal all children...
                     foreach (var item in context.Layout.Items.Values)
@@ -87,19 +101,7 @@ internal sealed partial class MagGraphView
                         }
                             
                     }
-                }
-                else
-                {
-                    // Flag children as collapsed...
-                    foreach (var item in context.Layout.Items.Values)
-                    {
-                        if (item.Variant != MagGraphItem.Variants.Operator || item.ChildUi == null)
-                            continue;
 
-                        
-                        if(area.Contains(item.Area))
-                            item.ChildUi.CollapsedIntoAnnotationFrameId = magAnnotation.Id;
-                    }
                 }
                 context.Layout.FlagStructureAsChanged();
                 annotation.Collapsed = !annotation.Collapsed;
