@@ -81,12 +81,15 @@ internal sealed class GraphWindow : Windows.Window
         var rootSymbolChildId = rootInstance.SymbolChildId;
         var rootPath = rootInstance.InstancePath;
         var startPath = rootPath;
-        var opId = UserSettings.GetLastOpenOpForWindow(Config.Title);
-        if (opId != Guid.Empty && opId != rootSymbolChildId)
+        if (project.Package.OverrideHomeGuid == Guid.Empty)
         {
-            if (rootInstance.SymbolChild.SearchForChild(opId, out _, out var path))
+            var opId = UserSettings.GetLastOpenOpForWindow(Config.Title);
+            if (opId != Guid.Empty && opId != rootSymbolChildId)
             {
-                startPath = path;
+                if (rootInstance.SymbolChild.SearchForChild(opId, out _, out var path))
+                {
+                    startPath = path;
+                }
             }
         }
 
