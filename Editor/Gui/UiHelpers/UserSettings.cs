@@ -85,6 +85,9 @@ public sealed class UserSettings : Settings<UserSettings.ConfigData>
         public int ValueEditSmoothing = 6;
         public float ScrollSmoothing = 0.06f;
 
+        public bool UseTouchPadPanning = false;
+        public float PanSpeed = 20;
+
         // Mag Graph
         public bool DisconnectOnUnsnap = true;
         public float MaxCurveRadius = 350;

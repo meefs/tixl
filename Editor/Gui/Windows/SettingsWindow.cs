@@ -145,7 +145,7 @@ internal sealed class SettingsWindow : Window
                     }
 
                     FormInputs.AddVerticalSpace();
-
+                    
                     changed |= FormInputs.AddFloat("Scroll smoothing",
                                                    ref UserSettings.Config.ScrollSmoothing,
                                                    0.0f, 0.2f, 0.01f, true, true,
@@ -175,6 +175,17 @@ internal sealed class SettingsWindow : Window
                                                       """,
                                                       UserSettings.Defaults.AddSpacesToParameterNames);
 
+                    FormInputs.AddVerticalSpace();
+                    FormInputs.AddSectionSubHeader("Input");
+                    
+                    changed |= FormInputs.AddCheckBox("Enable Touchpad Panning",
+                                                      ref UserSettings.Config.UseTouchPadPanning,
+                                                      """
+                                                      Use your trackpad for panning your graph and timeline views.
+                                                      Zooming in/out is possible with pinch zoom.
+                                                      """, 
+                                                      UserSettings.Defaults.UseTouchPadPanning);
+                    
                     FormInputs.AddVerticalSpace();
                     FormInputs.AddSectionSubHeader("Timeline");
 

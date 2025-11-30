@@ -36,9 +36,11 @@ public static partial class T3Ui
         FormInputs.BeginFrame();
         InitializeAfterAppWindowReady();
 
+        MouseWheelPanning.ProcessFrame(120);
+        
         // Prepare the current frame 
         RenderStatsCollector.StartNewFrame();
-
+        
         UpdateModifiedProjects();
 
         if (!Playback.Current.IsRenderingToFile && ProjectView.Focused != null)
