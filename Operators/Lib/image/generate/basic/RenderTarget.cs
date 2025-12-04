@@ -80,7 +80,11 @@ internal sealed class RenderTarget : Instance<RenderTarget>, IRenderStatsProvide
             // Save settings in context
             var prevRequestedResolution = context.RequestedResolution;
             var prevViewports = deviceContext.Rasterizer.GetViewports<RawViewportF>();
-            var prevTargets = deviceContext.OutputMerger.GetRenderTargets(2, out var prevDepthStencilView);
+            
+            // We only use 3 render targets
+            const int RtCount = 3;//OutputMergerStage.SimultaneousRenderTargetCount; // 8
+            var prevTargets = deviceContext.OutputMerger.GetRenderTargets(RtCount, out var prevDsv);
+            
             var prevObjectToWorld = context.ObjectToWorld;
             var prevWorldToCamera = context.WorldToCamera;
             var prevCameraToClipSpace = context.CameraToClipSpace;
@@ -96,8 +100,7 @@ internal sealed class RenderTarget : Instance<RenderTarget>, IRenderStatsProvide
             // Set render targets - include normal buffer if requested
             if (withNormalBuffer && _multiSampledNormalBufferRtv != null)
             {
-                deviceContext.OutputMerger.SetTargets(_multiSampledDepthBufferDsv,
-                    new RenderTargetView[] { _multiSampledColorBufferRtv, _multiSampledNormalBufferRtv });
+                deviceContext.OutputMerger.SetTargets(_multiSampledDepthBufferDsv, _multiSampledColorBufferRtv, _multiSampledNormalBufferRtv);
             }
             else
             {
@@ -156,7 +159,8 @@ internal sealed class RenderTarget : Instance<RenderTarget>, IRenderStatsProvide
             context.BackgroundColor = keepBackgroundColor;
             context.ForegroundColor = keepForegroundColor;
             deviceContext.Rasterizer.SetViewports(prevViewports);
-            deviceContext.OutputMerger.SetTargets(prevDepthStencilView, prevTargets);
+            deviceContext.OutputMerger.SetTargets(prevDsv, prevTargets);
+            //deviceContext.OutputMerger.SetTargets(prevDepthStencilView, prevTargets);
                 
 
             if (_sampleCount > 1)
@@ -206,7 +210,7 @@ internal sealed class RenderTarget : Instance<RenderTarget>, IRenderStatsProvide
                 prevTargets[i]?.Dispose();
             }
 
-            prevDepthStencilView?.Dispose();
+            prevDsv?.Dispose();
         }
             
         ColorBuffer.Value = ColorTexture;
