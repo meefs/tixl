@@ -1,5 +1,5 @@
 {
-  "Id": "fdad077d-e919-4f40-a154-36e86245a585"/*SetVec3*/,
+  "Id": "fdad077d-e919-4f40-a154-36e86245a585"/*SetVec3Var*/,
   "Inputs": [
     {
       "Id": "0edf7837-4555-4e62-902f-930abf72e8b8"/*VariableName*/,

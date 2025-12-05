@@ -134,7 +134,7 @@
       "Outputs": []
     },
     {
-      "Id": "97a8955d-f816-4b48-9f64-6d9abd0a6a21"/*SetIntVariable*/,
+      "Id": "97a8955d-f816-4b48-9f64-6d9abd0a6a21"/*SetIntVar*/,
       "SymbolId": "7953f704-ebee-498b-8bdd-a2c201dfe278",
       "InputValues": [
         {

@@ -1,5 +1,5 @@
 {
-  "Id": "7953f704-ebee-498b-8bdd-a2c201dfe278"/*SetIntVariable*/,
+  "Id": "7953f704-ebee-498b-8bdd-a2c201dfe278"/*SetIntVar*/,
   "Inputs": [
     {
       "Id": "4ab2a742-7f3f-4d96-b67e-73e14b4a8f47"/*LogLevel*/,

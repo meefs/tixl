@@ -227,7 +227,7 @@
       "Outputs": []
     },
     {
-      "Id": "5068b94a-c01e-4148-b86f-65ac4eb34c7b"/*SetIntVariable*/,
+      "Id": "5068b94a-c01e-4148-b86f-65ac4eb34c7b"/*SetIntVar*/,
       "SymbolId": "7953f704-ebee-498b-8bdd-a2c201dfe278",
       "InputValues": [
         {
