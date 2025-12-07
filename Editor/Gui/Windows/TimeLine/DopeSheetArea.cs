@@ -885,7 +885,7 @@ internal sealed class DopeSheetArea : AnimationParameterEditing, ITimeObjectMani
     private const float KeyframeIconWidth = 10;
     private Vector2 _minScreenPos;
     private static ChangeKeyframesCommand? _changeKeyframesCommand;
-    public const int LayerHeight = 25;
+    public  static int LayerHeight => (int)(25f * T3Ui.UiScaleFactor);
     private readonly ValueSnapHandler _snapHandler;
     private int _selectionCountBeforeClick;
     public bool MouseClickChangedSelection;
