@@ -243,10 +243,11 @@ internal static class PlaceHolderUi
 
         var resultAreaOnScreen = ImRect.RectWithSize(resultPosOnScreen, last);
 
-        if (ImGui.BeginChild(999, last, true,
+        bool childOpen = ImGui.BeginChild(999, last, true,
                              ImGuiWindowFlags.AlwaysUseWindowPadding
-                             | ImGuiWindowFlags.NoResize
-        ))
+                             | ImGuiWindowFlags.NoResize);
+
+        if (childOpen)
         {
             FrameStats.Current.OpenedPopupHovered = ImGui.IsWindowHovered();
 
@@ -260,9 +261,8 @@ internal static class PlaceHolderUi
             {
                 result |= SymbolBrowsing.Draw(context);
             }
-
-            ImGui.EndChild();
         }
+        ImGui.EndChild();  // Always call EndChild() regardless of childOpen [web:18]
 
         ImGui.PopStyleColor(2);
         ImGui.PopStyleVar(4);
@@ -320,9 +320,9 @@ internal static class PlaceHolderUi
         if (_selectedSymbolUi == null && EditorSymbolPackage.AllSymbolUis.Any())
             _selectedSymbolUi = EditorSymbolPackage.AllSymbolUis.First();
 
-        // --- ImGuiListClipper integration ---
+        // --- ImGuiListClipper integration (only when child is visible) ---
         var count = filter.MatchingSymbolUis.Count;
-        if (count > 0)
+        if (count > 0 && ImGui.IsWindowHovered() || ImGui.IsAnyItemActive())
         {
             unsafe
             {
