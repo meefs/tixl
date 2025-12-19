@@ -1,4 +1,4 @@
-namespace Examples.user.newemka980.Shading;
+namespace Lib.mesh.draw;
 
 [Guid("dcacc281-92c6-4e47-8eea-91fa8954ed86")]
 internal sealed class DrawMeshCelShading : Instance<DrawMeshCelShading>

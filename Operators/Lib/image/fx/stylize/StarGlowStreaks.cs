@@ -1,6 +1,6 @@
 using T3.Core.Utils;
 
-namespace Examples.user.newemka980.StarGlowStreaks;
+namespace Lib.image.fx.stylize;
 
 [Guid("ecbb40c4-aef4-49a8-ac89-e82c3a09862f")]
 internal sealed class StarGlowStreaks : Instance<StarGlowStreaks>

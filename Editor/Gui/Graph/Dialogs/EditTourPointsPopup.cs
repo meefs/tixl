@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿#nullable enable
+using System.Diagnostics;
+using System.Text;
 using ImGuiNET;
 using T3.Core.DataTypes.Vector;
 using T3.Core.Operator;
@@ -23,14 +25,49 @@ internal static class EditTourPointsPopup
         _isOpen = true;
     }
 
-    private static string GetAsMarkdown(SymbolUi symbolUi)
+    private static void WriteSymbolMarkdown(SymbolUi symbolUi, StringBuilder? sb = null)
     {
-        var sb = new StringBuilder();
+        sb ??= new StringBuilder();
+        
+        sb.Append("# ");
+        sb.Append(string.IsNullOrEmpty(symbolUi.Description) 
+                          ? symbolUi.Symbol.Name 
+                          : symbolUi.Description);
+
+        sb.Append("  &");
+        sb.AppendLine(symbolUi.Symbol.Id.ShortenGuid());
+
+        sb.AppendLine();
+        
         foreach (var tp in symbolUi.TourPoints)
         {
             tp.ToMarkdown(sb, symbolUi);
         }
+    }
 
+    private static string GetSelectionMarkdown()
+    {
+        if (_compositionUi == null)
+            return string.Empty;
+        
+        var sb = new StringBuilder();
+        
+        var hasCurrentCompositionTour = _compositionUi.TourPoints.Count > 0;
+        if (hasCurrentCompositionTour)
+        {
+            WriteSymbolMarkdown(_compositionUi, sb);
+        }
+        else
+        {
+            foreach (var id in _selectedChildIds)
+            {
+                if (!_compositionUi.ChildUis.TryGetValue(id, out var childUi))
+                    continue;
+                
+                WriteSymbolMarkdown(childUi.SymbolChild.Symbol.GetSymbolUi(), sb);
+                sb.AppendLine();
+            }
+        } 
         return sb.ToString();
     }
 
@@ -49,10 +86,11 @@ internal static class EditTourPointsPopup
 
             ImGui.BeginChild("Inner", Vector2.Zero, false, ImGuiWindowFlags.NoMove);
             {
+                _compositionUi = operatorSymbol.GetSymbolUi();
+                
                 if (CustomComponents.IconButton(Icon.CopyToClipboard, Vector2.Zero))
                 {
-                    ImGui.SetClipboardText(GetAsMarkdown(_compositionUi));
-
+                    ImGui.SetClipboardText(GetSelectionMarkdown());
                 }
 
                 if (ImGui.IsItemHovered())
@@ -61,15 +99,19 @@ internal static class EditTourPointsPopup
                     {
                         ImGui.PushFont(Fonts.Code);
                         ImGui.PushTextWrapPos(400);
-                        ImGui.TextWrapped(GetAsMarkdown(_compositionUi));
+                        ImGui.TextWrapped(GetSelectionMarkdown());
                         ImGui.PopTextWrapPos();
                         ImGui.PopFont();
                     }
                     ImGui.EndTooltip();
                 }
-
-                _compositionUi = operatorSymbol.GetSymbolUi();
-
+                
+                ImGui.SameLine();
+                if (ImGui.Button("Import from Clipboard"))
+                {
+                    TourDataMarkdownExport.TryPasteTourData(_compositionUi);
+                }
+                
                 // Handle selection
                 _selectedChildIds.Clear();
                 _firstSelectedChildId = Guid.Empty;
@@ -108,9 +150,7 @@ internal static class EditTourPointsPopup
                         var h = ImGui.GetFrameHeight();
                         ImGui.SetCursorPos(keepCursorPos - new Vector2(h, h * 0.5f));
 
-                        if (CustomComponents.TransparentIconButton(Icon.Plus, Vector2.Zero, CanAdd
-                                                                                                ? CustomComponents.ButtonStates.Normal
-                                                                                                : CustomComponents.ButtonStates.Disabled) && CanAdd)
+                        if (CustomComponents.TransparentIconButton(Icon.Plus, Vector2.Zero))
                         {
                             InsertNewTourPoint(index);
                         }
@@ -155,6 +195,7 @@ internal static class EditTourPointsPopup
 
     private static bool DrawItem(TourPoint tourPoint, int index)
     {
+        Debug.Assert(_compositionUi != null);
         var modified = false;
 
         var isSelected = _selectedChildIds.Contains(tourPoint.ChildId) && tourPoint.Style == TourPoint.Styles.InfoFor;
@@ -243,7 +284,7 @@ internal static class EditTourPointsPopup
                         var comp = ProjectView.Focused!.CompositionInstance;
                         if (comp != null && comp.Children.TryGetChildInstance(tourPoint.ChildId, out var instance))
                         {
-                            ProjectView.Focused!.GraphView.OpenAndFocusInstance(instance.InstancePath);
+                            ProjectView.Focused.GraphView.OpenAndFocusInstance(instance.InstancePath);
                         }
                     }
 
@@ -254,18 +295,18 @@ internal static class EditTourPointsPopup
                 }
                 else
                 {
-                    if (ImGui.Button("Op missing?"))
-                    {
-                    }
-
                     CustomComponents.TooltipForLastItem("" + tourPoint.ChildId);
                 }
                 
-                if (CanAdd)
+                if (CanAdd && tourPoint.ChildId != _firstSelectedChildId)
                 {
                     ImGui.SameLine();
                     if (CustomComponents.IconButton(Icon.Link, Vector2.Zero))
+                    {
                         tourPoint.ChildId = _firstSelectedChildId;
+                        tourPoint.InputId = Guid.Empty;
+                        modified = true;
+                    }
                 } 
                 
                 if(tourPoint.ChildId != Guid.Empty)
@@ -284,9 +325,21 @@ internal static class EditTourPointsPopup
                     {
                         if (_compositionUi.ChildUis.TryGetValue(tourPoint.ChildId, out var symbolUi))
                         {
+                            if (ImGui.Selectable("--none--", tourPoint.InputId == Guid.Empty))
+                            {
+                                tourPoint.InputId= Guid.Empty;
+                                modified = true;
+                            }
+
+                            
+                            
                             foreach (var i in symbolUi.SymbolChild.Symbol.InputDefinitions)
                             {
-                                ImGui.Selectable(i.Name, false);
+                                if (ImGui.Selectable(i.Name, i.Id == tourPoint.InputId))
+                                {
+                                    tourPoint.InputId = i.Id;
+                                    modified = true;
+                                }
                             }
                         }
                         ImGui.EndCombo();
@@ -357,24 +410,11 @@ internal static class EditTourPointsPopup
 
         return modified;
     }
-
-    private static string Test(TourPoint tourPoint)
-    {
-        if (tourPoint.ChildId == Guid.Empty)
-            return string.Empty;
-        
-        if (tourPoint.InputId == Guid.Empty)
-            return string.Empty;
-
-        if (_compositionUi== null || _compositionUi.ChildUis.TryGetValue(tourPoint.ChildId, out var childUi))
-            return string.Empty;
-        
-        return string.Empty;
-    }
+    
 
     private static void InsertNewTourPoint(int index)
     {
-        _compositionUi.TourPoints.Insert(index, new TourPoint
+        _compositionUi?.TourPoints.Insert(index, new TourPoint
                                                     {
                                                         Description = string.Empty,
                                                         Id = Guid.NewGuid(),
@@ -391,7 +431,7 @@ internal static class EditTourPointsPopup
     private static bool _completedDragging;
 
     private static Guid _editedTourPointId;
-    private static SymbolUi _compositionUi;
+    private static SymbolUi? _compositionUi;
     private static Guid _firstSelectedChildId;
     private static readonly HashSet<Guid> _selectedChildIds = [];
 }
