@@ -262,7 +262,7 @@ internal static class PlaceHolderUi
                 result |= SymbolBrowsing.Draw(context);
             }
         }
-        ImGui.EndChild();  // Always call EndChild() regardless of childOpen [web:18]
+        ImGui.EndChild();
 
         ImGui.PopStyleColor(2);
         ImGui.PopStyleVar(4);
@@ -322,7 +322,7 @@ internal static class PlaceHolderUi
 
         // --- ImGuiListClipper integration (only when child is visible) ---
         var count = filter.MatchingSymbolUis.Count;
-        if (count > 0 && ImGui.IsWindowHovered() || ImGui.IsAnyItemActive())
+        if (count > 0 && ImGui.IsAnyItemActive())
         {
             unsafe
             {
