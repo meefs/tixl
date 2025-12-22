@@ -3,7 +3,6 @@ using T3.Core.DataTypes.Vector;
 using T3.Core.Utils;
 using T3.Editor.Gui.Input;
 using T3.Editor.Gui.Styling;
-using T3.Editor.Skills;
 using T3.Editor.UiModel;
 using T3.Editor.UiModel.ProjectHandling;
 using T3.Editor.UiModel.Selection;
@@ -30,19 +29,18 @@ internal static class TourInteraction
         if (compositionUi.TourPoints.Count == 0)
             return;
 
+        UpdateStyles();
         if (ImGui.IsWindowAppearing())
         {
             _lastClickTime = ImGui.GetTime();
         }
-        
+
         SkillTraining.DrawLevelHeader();
 
-        FormInputs.AddVerticalSpace(10);
+        FormInputs.AddVerticalSpace();
 
-        var cursorPos2 = ImGui.GetCursorScreenPos();
+        var cursorPos = ImGui.GetCursorScreenPos();
         ImGui.Indent(40 * T3Ui.UiScaleFactor - 5);
-
-        var timeSinceInteraction = (float)(ImGui.GetTime() - _lastClickTime);
 
         if (!_symbolTourProgress.TryGetValue(compositionUi.Symbol.Id, out var progressIndex))
         {
@@ -53,127 +51,259 @@ internal static class TourInteraction
 
         if (completed)
         {
-            if (CustomComponents.TransparentIconButton(Icon.HelpOutline, Vector2.Zero))
-            {
-                _symbolTourProgress[compositionUi.Symbol.Id] = 0;
-                _lastClickTime = ImGui.GetTime();
-            }
-
-            CustomComponents.TooltipForLastItem("Start tour");
-            ImGui.SameLine(0, 0);
-            ImGui.AlignTextToFramePadding();
-            CustomComponents.StylizedText("Restart tour...", Fonts.FontNormal, UiColors.TextMuted);
+            if (DrawCtaButton("Restart Tour", Icon.None, UiColors.TextMuted, Color.Transparent, UiColors.ForegroundFull.Fade(0.2f)))
+                SetProgressIndex(compositionUi, 0);
         }
         else
         {
             var dl = ImGui.GetWindowDrawList();
+            var activeTourPoint = compositionUi.TourPoints[progressIndex];
 
-            FormInputs.AddVerticalSpace(20);
-            var point = compositionUi.TourPoints[progressIndex];
+            if (DrawProgressDots(dl, compositionUi, cursorPos, progressIndex, out var hoveredIndex))
+            {
+                if (hoveredIndex >= 0)
+                    SetProgressIndex(compositionUi, hoveredIndex);
+            }
 
-            // Draw tip
+            RenderTourPointDetails(compositionUi, progressIndex, hoveredIndex);
+            DrawGraphIndicator(dl, activeTourPoint, projectView, compositionUi);
+        }
+    }
+
+    private static void RenderTourPointDetails(SymbolUi compositionUi, int progressIndex, int hoveredIndex)
+    {
+        if (compositionUi.TourPoints.Count == 0)
+            return;
+
+        var isDotHovered = hoveredIndex >= 0 && hoveredIndex != progressIndex;
+        var activeIndex = (isDotHovered ? hoveredIndex : progressIndex).Clamp(0, compositionUi.TourPoints.Count - 1);
+        var isLast = activeIndex == compositionUi.TourPoints.Count - 1;
+        var activeTourPoint = compositionUi.TourPoints[activeIndex];
+
+        var style = _windowStyles[int.Min(_windowStyles.Length - 1, (int)activeTourPoint.Style)];
+
+        ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 10);
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(10, 6) * T3Ui.UiScaleFactor);
+        ImGui.PushStyleVar(ImGuiStyleVar.ChildBorderSize, 1);
+        ImGui.PushStyleColor(ImGuiCol.ChildBg, style.WindowBackground.Rgba);
+        ImGui.PushStyleColor(ImGuiCol.Border, style.WindowBorder.Rgba);
+
+        if (ImGui.BeginChild("Task", new Vector2(500 * T3Ui.UiScaleFactor, _lastContentHeight), true,
+                             ImGuiWindowFlags.AlwaysUseWindowPadding | ImGuiWindowFlags.NoScrollbar))
+        {
+            // Draw task
             ImGui.SameLine(0, 4);
 
-            if (!string.IsNullOrEmpty(point.Description))
+            var typeWriterProgress = (TimeSinceInteraction * 200f / (activeTourPoint.Description.Length + 1)).Clamp(0, 1);
+
+            if (!string.IsNullOrEmpty(activeTourPoint.Description))
             {
                 ImGui.PushFont(Fonts.FontLarge);
-                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + 450 * T3Ui.UiScaleFactor);
-                var typeWriterProgress = (timeSinceInteraction * 200f / (point.Description.Length + 1)).Clamp(0, 1);
-                var shortedText = StringUtils.SliceToProgress(point.Description, typeWriterProgress);
-                TextParagraphs(shortedText);
+                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + 470 * T3Ui.UiScaleFactor);
+
+                var shortedText = StringUtils.SliceToProgress(activeTourPoint.Description, typeWriterProgress);
+                DrawTextWithParagraphs(shortedText);
                 ImGui.PopTextWrapPos();
                 ImGui.PopFont();
             }
 
-            // Draw progress
-            var tourPointsCount = compositionUi.TourPoints.Count;
-
-            var h = ImGui.GetFrameHeight();
-            cursorPos2 += new Vector2(0.9f, 0.3f) * h;
-
-            for (int dotIndex = 0; dotIndex < tourPointsCount; dotIndex++)
+            if (typeWriterProgress >= 1 && !isDotHovered)
             {
-                var pos = cursorPos2
-                          + new Vector2(0, 40 * T3Ui.UiScaleFactor * dotIndex / (float)tourPointsCount);
+                FormInputs.AddVerticalSpace();
 
-                var isCurrent = dotIndex == progressIndex;
-                var radius = 3 + (isCurrent ? 3 / (timeSinceInteraction * 2f + 1) : 0);
-
-                var color = isCurrent ? UiColors.StatusActivated : UiColors.ForegroundFull.Fade(0.3f);
-                dl.AddCircleFilled(pos, radius, color, 16);
-            }
-
-            // Draw graph indicator...
-            if (point.Style != TourPoint.Styles.Info)
-            {
-                if (compositionUi.ChildUis.TryGetValue(point.ChildId, out var child))
+                if (DrawCtaButton(style.ButtonLabel,
+                                  isLast ? Icon.None : Icon.ArrowRight,
+                                  textColor: style.ButtonLabelColor,
+                                  bgColor: style.ButtonBackground,
+                                  borderColor: style.ButtonBorder))
                 {
-                    if (_lastCompositionId != compositionUi.Symbol.Id)
-                    {
-                        _lastCompositionId = compositionUi.Symbol.Id;
-                        _dampedCanvasPos = child.PosOnCanvas;
-                    }
-                    else
-                    {
-                        _dampedCanvasPos = Vector2.Lerp(_dampedCanvasPos, child.PosOnCanvas, 0.1f);
-                    }
-
-                    var posOnScreen = projectView.GraphView.Canvas.TransformPosition(_dampedCanvasPos);
-
-                    var fadeCount = 4;
-                    var t = ImGui.GetTime();
-
-                    var dotRadius = 40 + (100 / (timeSinceInteraction * 0.5f + 1));
-
-                    for (int fadeIndex = 0; fadeIndex < fadeCount; fadeIndex++)
-                    {
-                        var xx = (float)((t * 0.1f + fadeIndex / (float)fadeCount) % 1);
-                        xx = MathF.Pow(1 - xx, 2.5f);
-
-                        dl.AddCircleFilled(posOnScreen, (1 - xx) * dotRadius, UiColors.StatusActivated.Fade(0.3f * xx));
-                    }
+                    SetProgressIndex(compositionUi, activeIndex + 1);
                 }
             }
 
             FormInputs.AddVerticalSpace();
+            _lastContentHeight = ImGui.GetCursorPosY();
+            ImGui.EndChild();
+        }
 
-            if (progressIndex > 0 &&
-                CustomComponents.TransparentIconButton(Icon.ChevronLeft, new Vector2(Fonts.FontLarge.FontSize + 7), CustomComponents.ButtonStates.Dimmed))
+        ImGui.PopStyleVar(3);
+        ImGui.PopStyleColor(2);
+    }
+
+    private static bool DrawProgressDots(ImDrawListPtr dl, SymbolUi compositionUi, Vector2 pos, int activeIndex, out int hoveredIndex)
+    {
+        var clicked = false;
+        hoveredIndex = -1;
+        var tourPointsCount = compositionUi.TourPoints.Count;
+        var windowsHovered = ImGui.IsWindowHovered();
+        var mousePos = ImGui.GetMousePos();
+
+        var h = ImGui.GetFrameHeight();
+        pos += new Vector2(0.9f, 0.3f) * h;
+
+        var size = MathF.Floor(14 * T3Ui.UiScaleFactor);
+
+        var spacing = new Vector2(0, size);
+
+        for (var dotIndex = 0; dotIndex < tourPointsCount; dotIndex++)
+        {
+            var dotPos = pos + spacing * dotIndex;
+
+            var isHovered = hoveredIndex == -1 && windowsHovered && Vector2.Distance(mousePos, dotPos) < size / 2;
+            if (isHovered)
             {
-                progressIndex--;
-                _symbolTourProgress[compositionUi.Symbol.Id] = progressIndex;
-                _lastClickTime = ImGui.GetTime();
+                dl.AddCircle(dotPos, size * 0.6f, UiColors.ForegroundFull.Fade(0.5f));
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    clicked = true;
+                }
+
+                hoveredIndex = dotIndex;
             }
 
-            ImGui.SameLine();
+            var isCurrent = dotIndex == activeIndex;
+            var radius = 3 + (isCurrent ? 2 + 5 * AttentionScaleFactor : 0);
 
-            ImGui.PushStyleColor(ImGuiCol.Button, Color.Transparent.Rgba);
-            ImGui.PushStyleColor(ImGuiCol.Text, UiColors.StatusActivated.Rgba);
+            var color = isCurrent ? UiColors.StatusActivated : UiColors.ForegroundFull.Fade(0.3f);
+            dl.AddCircleFilled(dotPos, radius, color, 16);
+        }
 
-            var buttonLabel = point.Style switch
-                                  {
-                                      TourPoint.Styles.Info         => "Continue...",
-                                      TourPoint.Styles.InfoFor      => "Continue when ready",
-                                      TourPoint.Styles.Tip          => "Got it!",
-                                      TourPoint.Styles.CallToAction => "Did it!",
-                                      _                             => "Okay"
-                                  };
+        return clicked;
+    }
 
-            ImGui.PushFont(Fonts.FontLarge);
-            if (ImGui.Button(buttonLabel))
-            {
-                progressIndex++;
-                _symbolTourProgress[compositionUi.Symbol.Id] = progressIndex;
-                _lastClickTime = ImGui.GetTime();
-            }
+    private static void DrawGraphIndicator(ImDrawListPtr dl, TourPoint activeTourPoint, ProjectView projectView,
+                                           SymbolUi compositionUi)
+    {
+        if (activeTourPoint.Style == TourPoint.Styles.Info)
+            return;
 
-            ImGui.PopFont();
+        if (!compositionUi.ChildUis.TryGetValue(activeTourPoint.ChildId, out var child))
+            return;
 
-            ImGui.PopStyleColor(2);
+        if (_lastCompositionId != compositionUi.Symbol.Id)
+        {
+            _lastCompositionId = compositionUi.Symbol.Id;
+            _dampedCanvasPos = child.PosOnCanvas;
+        }
+        else
+        {
+            _dampedCanvasPos = Vector2.Lerp(_dampedCanvasPos, child.PosOnCanvas, 0.1f);
+        }
+
+        var posOnScreen = projectView.GraphView.Canvas.TransformPosition(_dampedCanvasPos);
+
+        var fadeCount = 4;
+        var t = ImGui.GetTime();
+
+        var dotRadius = 40 + (100 / (TimeSinceInteraction * 0.5f + 1));
+
+        for (int fadeIndex = 0; fadeIndex < fadeCount; fadeIndex++)
+        {
+            var xx = (float)((t * 0.1f + fadeIndex / (float)fadeCount) % 1);
+            xx = MathF.Pow(1 - xx, 2.5f);
+
+            dl.AddCircleFilled(posOnScreen, (1 - xx) * dotRadius, UiColors.StatusActivated.Fade(0.3f * xx));
         }
     }
 
-    private static void TextParagraphs(ReadOnlySpan<char> text, float paragraphSpacing = 6f)
+    private sealed record Style(
+        Color WindowBorder,
+        Color WindowBackground,
+        Color ButtonBorder,
+        Color ButtonBackground,
+        Color ButtonLabelColor,
+        string ButtonLabel);
+
+    private static void UpdateStyles()
+    {
+        // if (!FrameStats.Last.UiColorsChanged && _windowStyles != null)
+        //     return;
+
+        _windowStyles ??= new Style[Enum.GetNames<TourPoint.Styles>().Length];
+
+        var solidBackground = Color.Mix(UiColors.WindowBackground, UiColors.BackgroundFull, 0.6f);
+        _windowStyles[(int)TourPoint.Styles.Info]
+            = new Style(UiColors.BackgroundActive,
+                        solidBackground,
+                        Color.Transparent,
+                        UiColors.BackgroundActive,
+                        UiColors.ForegroundFull,
+                        "Continue Reading..."
+                       );
+
+        _windowStyles[(int)TourPoint.Styles.InfoFor]
+            = new Style(UiColors.ForegroundFull.Fade(0.5f),
+                        solidBackground,
+                        Color.Transparent,
+                        UiColors.BackgroundActive,
+                        UiColors.ForegroundFull,
+                        "Got it"
+                       );
+
+        // Something close to background color, but opaque enough to ensure readability...
+        var dimmedBackground = Color.Mix(UiColors.WindowBackground, UiColors.BackgroundFull, 0.6f).Fade(0.8f);
+
+        _windowStyles[(int)TourPoint.Styles.CallToAction]
+            = new Style(UiColors.BackgroundFull.Fade(0.6f),
+                        dimmedBackground,
+                        UiColors.ForegroundFull.Fade(0.4f),
+                        Color.Transparent,
+                        UiColors.ForegroundFull,
+                        "Done"
+                       );
+
+        _windowStyles[(int)TourPoint.Styles.Conclusion]
+            = new Style(UiColors.BackgroundFull.Fade(0.6f),
+                        dimmedBackground,
+                        UiColors.ForegroundFull.Fade(0.4f),
+                        Color.Transparent,
+                        UiColors.ForegroundFull,
+                        "Okay"
+                       );
+
+        _windowStyles[(int)TourPoint.Styles.Tip]
+            = new Style(UiColors.BackgroundFull.Fade(0.6f),
+                        dimmedBackground,
+                        UiColors.ForegroundFull.Fade(0.4f),
+                        Color.Transparent,
+                        UiColors.ForegroundFull,
+                        "Got it"
+                       );
+    }
+
+    private static bool DrawCtaButton(string label, Icon icon, Color textColor, Color bgColor, Color borderColor)
+    {
+        var showIcon = icon != Icon.None;
+        var padding = new Vector2(10, 2);
+        ImGui.PushFont(Fonts.FontLarge);
+        var size = ImGui.CalcTextSize(label) + padding * 2;
+        if (showIcon)
+            size.X += Icons.FontSize;
+
+        ImGui.PopFont();
+
+        var clicked = ImGui.InvisibleButton(label, size);
+        var min = ImGui.GetItemRectMin();
+        var max = ImGui.GetItemRectMax();
+        var dl = ImGui.GetWindowDrawList();
+        var isHovered = ImGui.IsItemHovered();
+
+        dl.AddRectFilled(min, max, bgColor.Fade(isHovered ? 0.8f : 1f), 5);
+        dl.AddRect(min, max, borderColor, 5);
+        dl.AddText(Fonts.FontLarge, Fonts.FontLarge.FontSize, min + padding,
+                   textColor,
+                   label);
+
+        var screenPos = new Vector2(max.X - Icons.FontSize - padding.X / 2,
+                                    (max.Y + min.Y) / 2f - Icons.FontSize / 2f + 1
+                                   ).Floor();
+
+        if (showIcon)
+            Icons.DrawIconAtScreenPosition(icon, screenPos, dl, textColor);
+        return clicked;
+    }
+
+    private static void DrawTextWithParagraphs(ReadOnlySpan<char> text, float paragraphSpacing = 6f)
     {
         var start = 0;
 
@@ -201,9 +331,20 @@ internal static class TourInteraction
         ImGui.EndGroup();
     }
 
+    private static void SetProgressIndex(SymbolUi symbolUi, int index)
+    {
+        _symbolTourProgress[symbolUi.Symbol.Id] = index;
+        _lastClickTime = ImGui.GetTime();
+    }
+
+    private static float _lastContentHeight;
+    private static Style[] _windowStyles;
+
     private static Vector2 _dampedCanvasPos;
     private static Guid _lastCompositionId;
     private static double _lastClickTime;
+    private static float TimeSinceInteraction => (float)(ImGui.GetTime() - _lastClickTime).ClampMin(0);
+    private static float AttentionScaleFactor => (1 / (TimeSinceInteraction * 3f + 1)).Clamp(0, 1);
 
     public static void SetProgressIndex(Guid compositionId, int index)
     {

@@ -987,7 +987,7 @@ internal sealed class GraphNode
                     ImGui.BeginTooltip();
                     ImGui.TextUnformatted($".{outputDef.Name}");
                     ImGui.PushFont(Fonts.FontSmall);
-                    ImGui.TextColored(UiColors.Gray, $"<{TypeNameRegistry.Entries[outputDef.ValueType]}>\n{output.DirtyFlag.NumUpdatesWithinFrame} Updates\n({output.DirtyFlag.Trigger})");
+                    ImGui.TextColored(UiColors.Gray.Rgba, $"<{TypeNameRegistry.Entries[outputDef.ValueType]}>\n{output.DirtyFlag.NumUpdatesWithinFrame} Updates\n({output.DirtyFlag.Trigger})");
                     ImGui.PopFont();
                     ImGui.EndTooltip();
 
@@ -1116,13 +1116,11 @@ internal sealed class GraphNode
                     }
 
                     ImGui.TextUnformatted($".{inputDef.Name}");
-                    ImGui.PushFont(Fonts.FontSmall);
-                    ImGui.TextColored(UiColors.Gray, $"<{TypeNameRegistry.Entries[inputDef.DefaultValue.ValueType]}>");
-                    ImGui.PopFont();
+                    CustomComponents.StylizedText($"<{TypeNameRegistry.Entries[inputDef.DefaultValue.ValueType]}>", Fonts.FontSmall, UiColors.Gray);
                     if (isMissing)
                     {
                         FormInputs.AddVerticalSpace(5);
-                        ImGui.TextColored(UiColors.StatusAttention, $"Requires input");   
+                        ImGui.TextColored(UiColors.StatusAttention.Rgba, $"Requires input");   
                     }
                 }
                 ImGui.EndTooltip();

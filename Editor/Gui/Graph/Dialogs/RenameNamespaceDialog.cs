@@ -40,7 +40,7 @@ internal sealed class RenameNamespaceDialog : ModalDialog
             }
             else
             {
-                ImGui.TextColored(UiColors.StatusError, $"No source project found for namespace {nodeName}");
+                ImGui.TextColored(UiColors.StatusError.Rgba, $"No source project found for namespace {nodeName}");
             }
                 
             if (ImGui.Button("Cancel"))

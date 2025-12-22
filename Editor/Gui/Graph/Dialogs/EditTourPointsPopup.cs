@@ -87,7 +87,7 @@ internal static class EditTourPointsPopup
                 }
                 
                 ImGui.SameLine();
-                if (ImGui.Button("Paste from Clipboard"))
+                if (CustomComponents.IconButton(Icon.PasteFromClipboard, Vector2.Zero))
                 {
                     TourDataMarkdownExport.TryPasteTourData(_compositionUi, projectView);
                 }
@@ -283,7 +283,7 @@ internal static class EditTourPointsPopup
                 if (!CanAdd && tourPoint.ChildId != _firstSelectedChildId)
                 {
                     ImGui.SameLine();
-                    if (CustomComponents.IconButton(Icon.Unpin, Vector2.Zero))
+                    if (CustomComponents.IconButton(Icon.Cross, Vector2.Zero))
                     {
                         tourPoint.ChildId = Guid.Empty;
                         tourPoint.InputId = Guid.Empty;
@@ -293,7 +293,7 @@ internal static class EditTourPointsPopup
                 else if (CanAdd && tourPoint.ChildId != _firstSelectedChildId)
                 {
                     ImGui.SameLine();
-                    if (CustomComponents.IconButton(Icon.PinOutline, Vector2.Zero))
+                    if (CustomComponents.IconButton(Icon.ApplySelection, Vector2.Zero))
                     {
                         tourPoint.ChildId = _firstSelectedChildId;
                         tourPoint.InputId = Guid.Empty;

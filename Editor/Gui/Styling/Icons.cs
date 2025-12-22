@@ -278,6 +278,13 @@ internal static class Icons
             new(Icon.Locked, slotIndex: 130),
             new(Icon.Unlocked, slotIndex: 131),
             new(Icon.Usb, slotIndex: 132),
+            new(Icon.ArrowLeft, slotIndex: 133),
+            new(Icon.ArrowRight, slotIndex: 134),
+            new(Icon.ArrowUp, slotIndex: 135),
+            new(Icon.ArrowDown, slotIndex: 136),
+            new(Icon.ApplySelection, slotIndex: 137),
+            new(Icon.PasteFromClipboard, slotIndex: 138),
+            new(Icon.Cross, slotIndex: 139),
         };
 
     public static readonly string IconAtlasPath = Path.Combine(SharedResources.Directory, @"images\editor\t3-icons.png");
@@ -425,4 +432,11 @@ public enum Icon
     Locked,
     Unlocked,
     Usb,
+    ArrowLeft,
+    ArrowRight,
+    ArrowUp,
+    ArrowDown,
+    ApplySelection,
+    PasteFromClipboard,
+    Cross
 }
