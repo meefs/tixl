@@ -32,6 +32,9 @@ namespace Lib.io.audio{
         [Output(Guid = "960aa0a3-89b4-4eff-8b52-36ff6965cf8f")]
         private readonly Slot<bool> IsPlaying = new();
 
+        [Output(Guid = "b09d215a-bcf0-479a-a649-56f9c698ecb1")]
+        private readonly Slot<float> GetLevel = new();
+
         private int _stream;
         private bool _prevPlay;
         private bool _prevStop;
@@ -184,6 +187,17 @@ namespace Lib.io.audio{
         {
             var isPlaying = _stream != 0 && Bass.ChannelIsActive(_stream) == PlaybackState.Playing;
             IsPlaying.Value = isPlaying;
+
+            // Update audio levels (peak amplitude for left/right channels, normalized 0-1)
+            if (_stream != 0 && Bass.ChannelIsActive(_stream) != PlaybackState.Stopped)
+            {
+                var level = Bass.ChannelGetLevel(_stream);
+                GetLevel.Value = ((level & 0xFFFF) + ((level >> 16) & 0xFFFF)) / (2f * 32768f);
+            }
+            else
+            {
+                GetLevel.Value = 0f;
+            }
         }
 
         ~BassAudioPlayer()
