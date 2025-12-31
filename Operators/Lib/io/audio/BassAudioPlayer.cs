@@ -1,6 +1,4 @@
-
 using ManagedBass;
-
 
 namespace Lib.io.audio{
     [Guid("65e95f77-4743-437f-ab31-f34b831d28d7")]
@@ -67,7 +65,7 @@ namespace Lib.io.audio{
                 {
                     if (Bass.LastError == Errors.Already)
                     {
-                        Log.Debug($"BASS Already Initialized");
+                        Log.Debug("BASS already initialized");
                         _bassInitialized = true;
                     }
                     else 
@@ -121,7 +119,7 @@ namespace Lib.io.audio{
                     Log.Debug($"Panning: {clampedPanning}");
                 }
                 
-                // Speed via frequency adjustment (simple pitch-preserving alternative)
+                // Speed via frequency adjustment
                 if (Math.Abs(speed - _prevSpeed) > 0.001f)
                 {
                     var clampedSpeed = Math.Max(0.1f, Math.Min(4f, speed));
@@ -144,38 +142,58 @@ namespace Lib.io.audio{
             }
 
             // Play trigger: load/create stream
-            if (!playTrigger || string.IsNullOrEmpty(filePath)) return;
+            if (!playTrigger || string.IsNullOrEmpty(filePath)) 
+                return;
+            
+            if (_stream != 0)
             {
+                Log.Debug($"Play trigger while playing: restarting stream {_stream}");
+                Bass.ChannelSetPosition(_stream, 0);
+                var ok = Bass.ChannelPlay(_stream, true);
+                if (!ok)
+                {
+                    Log.Debug($"ChannelPlay restart failed: {Bass.LastError}");
+                }
+            }
+            else
+            {
+                Log.Debug($"Play trigger: Loading and playing {filePath}");
+                
+                // Normal playback stream – no Decode flag so it can be heard
+                _stream = Bass.CreateStream(
+                    filePath,
+                    0,
+                    0,
+                    BassFlags.Default | BassFlags.Prescan);
+
                 if (_stream != 0)
                 {
-                    Log.Debug($"Play trigger while playing: restarting stream {_stream}");
-                    Bass.ChannelSetPosition(_stream, 0);
-                    Bass.ChannelPlay(_stream, true);
+                    Bass.ChannelSetAttribute(_stream, ChannelAttribute.Volume, Math.Max(0f, volume));
+                    Bass.ChannelSetAttribute(_stream, ChannelAttribute.Pan, Math.Max(-1f, Math.Min(1f, panning)));
+
+                    var baseFreq = Bass.ChannelGetAttribute(_stream, ChannelAttribute.Frequency);
+                    Bass.ChannelSetAttribute(_stream, ChannelAttribute.Frequency, baseFreq * speed);
+
+                    var ok = Bass.ChannelPlay(_stream, false);
+                    if (!ok)
+                    {
+                        Log.Debug($"ChannelPlay failed: {Bass.LastError}");
+                    }
+                    else
+                    {
+                        Log.Debug($"ChannelPlay succeeded, state={Bass.ChannelIsActive(_stream)}");
+                    }
+
+                    _prevVolume = volume;
+                    _prevPanning = panning;
+                    _prevSpeed = speed;
+                    _prevSeek = 0f;
+
+                    Log.Debug($"Started stream {_stream}");
                 }
-                else
+                else 
                 {
-                    Log.Debug($"Play trigger: Loading and playing {filePath}");
-                    _stream = Bass.CreateStream(filePath);
-                    
-                    if (_stream != 0)
-                    {
-                        // Initialize with current parameters
-                        Bass.ChannelSetAttribute(_stream, ChannelAttribute.Volume, Math.Max(0f, volume));
-                        Bass.ChannelSetAttribute(_stream, ChannelAttribute.Pan, Math.Max(-1f, Math.Min(1f, panning)));
-                        var freq = Bass.ChannelGetAttribute(_stream, ChannelAttribute.Frequency);
-                        Bass.ChannelSetAttribute(_stream, ChannelAttribute.Frequency, freq * speed);
-                        
-                        Bass.ChannelPlay(_stream);
-                        _prevVolume = volume;
-                        _prevPanning = panning;
-                        _prevSpeed = speed;
-                        _prevSeek = 0f;
-                        Log.Debug($"Started stream {_stream}");
-                    }
-                    else 
-                    {
-                        Log.Debug($"Failed to create stream: {Bass.LastError}");
-                    }
+                    Log.Debug($"Failed to create stream: {Bass.LastError}");
                 }
             }
         }
@@ -188,7 +206,9 @@ namespace Lib.io.audio{
                 _stream = 0;
             }
 
-            if (!_bassInitialized) return;
+            if (!_bassInitialized) 
+                return;
+
             Log.Debug("Freeing BASS");
             Bass.Free();
             _bassInitialized = false;
