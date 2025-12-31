@@ -6,6 +6,10 @@
       "DefaultValue": ""
     },
     {
+      "Id": "53d1622e-b1d5-4b1c-acd0-ebceb7064043"/*Panning*/,
+      "DefaultValue": 0.0
+    },
+    {
       "Id": "59b659c6-ca1f-4c2b-8dff-3a1da9abd352"/*StopAudio*/,
       "DefaultValue": false
     },

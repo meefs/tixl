@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using ManagedBass;
 using ManagedBass.Wasapi;
 using T3.Core.Logging;
+using System;  // Added for Math
 
 namespace Lib.io.audio{
     [Guid("65e95f77-4743-437f-ab31-f34b831d28d7")]
@@ -22,6 +23,9 @@ namespace Lib.io.audio{
         [Input(Guid = "c0645e37-db4e-4658-9d65-96478851f6f6")]
         private readonly InputSlot<float> Volume = new InputSlot<float>();
         
+        [Input(Guid = "53d1622e-b1d5-4b1c-acd0-ebceb7064043")]
+        private readonly InputSlot<float> Panning = new InputSlot<float>();
+        
         [Input(Guid = "d1a11c4c-9526-4f6b-873e-1798b9dd2b48")]
         private readonly InputSlot<float> Speed = new InputSlot<float>();
         
@@ -36,6 +40,7 @@ namespace Lib.io.audio{
         private bool _prevPlay = false;
         private bool _prevStop = false;
         private float _prevVolume = 1f;
+        private float _prevPanning = 0f;  // Added panning state tracking
         private float _prevSpeed = 1f;
         private float _prevSeek = 0f;
 
@@ -50,6 +55,7 @@ namespace Lib.io.audio{
             var shouldPlay = PlayAudio.GetValue(context);
             var shouldStop = StopAudio.GetValue(context);
             var volume = Volume.GetValue(context);
+            var panning = Panning.GetValue(context);  // Get panning value
             var speed = Speed.GetValue(context);
             var seek = Seek.GetValue(context);
 
@@ -108,6 +114,15 @@ namespace Lib.io.audio{
                     Log.Debug($"Volume: {clampedVolume}");
                 }
                 
+                // Panning (-1 to +1 range, only if changed) [web:4][web:16]
+                if (Math.Abs(panning - _prevPanning) > 0.001f)
+                {
+                    float clampedPanning = Math.Max(-1f, Math.Min(1f, panning));
+                    Bass.ChannelSetAttribute(_stream, ChannelAttribute.Pan, clampedPanning);
+                    _prevPanning = panning;
+                    Log.Debug($"Panning: {clampedPanning}");
+                }
+                
                 // Speed via frequency adjustment (simple pitch-preserving alternative)
                 if (Math.Abs(speed - _prevSpeed) > 0.001f)
                 {
@@ -148,11 +163,13 @@ namespace Lib.io.audio{
                     {
                         // Initialize with current parameters
                         Bass.ChannelSetAttribute(_stream, ChannelAttribute.Volume, Math.Max(0f, volume));
+                        Bass.ChannelSetAttribute(_stream, ChannelAttribute.Pan, Math.Max(-1f, Math.Min(1f, panning)));  // Initialize panning
                         double freq = Bass.ChannelGetAttribute(_stream, ChannelAttribute.Frequency);
                         Bass.ChannelSetAttribute(_stream, ChannelAttribute.Frequency, freq * speed);
                         
                         Bass.ChannelPlay(_stream, false);
                         _prevVolume = volume;
+                        _prevPanning = panning;  // Store initial panning
                         _prevSpeed = speed;
                         _prevSeek = 0f;
                         Log.Debug($"Started stream {_stream}");

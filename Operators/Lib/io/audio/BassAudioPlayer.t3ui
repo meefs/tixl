@@ -11,6 +11,18 @@
       "Usage": "Default"
     },
     {
+      "InputId": "53d1622e-b1d5-4b1c-acd0-ebceb7064043"/*Panning*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 300.0
+      },
+      "Min": -1.0,
+      "Max": 1.0,
+      "Scale": 0.01,
+      "ClampMin": true,
+      "ClampMax": true
+    },
+    {
       "InputId": "59b659c6-ca1f-4c2b-8dff-3a1da9abd352"/*StopAudio*/,
       "Position": {
         "X": -200.0,
