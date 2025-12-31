@@ -50,7 +50,7 @@ namespace Lib.io.audio{
             var shouldPlay = PlayAudio.GetValue(context);
             var shouldStop = StopAudio.GetValue(context);
             var volume = Volume.GetValue(context);
-            var panning = Panning.GetValue(context);  // Get panning value
+            var panning = Panning.GetValue(context);
             var speed = Speed.GetValue(context);
             var seek = Seek.GetValue(context);
 
@@ -76,8 +76,11 @@ namespace Lib.io.audio{
                         return;
                     }
                 }
-                Log.Debug("BASS initialized successfully");
-                _bassInitialized = true;
+                else
+                {
+                    Log.Debug("BASS initialized successfully");
+                    _bassInitialized = true;
+                }
             }
 
             // Auto-free if stream completed playback
