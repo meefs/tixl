@@ -1,6 +1,6 @@
 {
   "Id": "3208070c-794e-4400-b996-608cb200aec8"/*I02a_WidthAndScale*/,
-  "Description": "",
+  "Description": "LinearGradient: Width and Scale Mode",
   "InputUis": [],
   "SymbolChildUis": [
     {
@@ -476,19 +476,18 @@
   ],
   "TourPoints": [
     {
-      "Id": "d5c32c64-779c-4e88-9ddf-68fef5ab8ceb",
+      "Id": "62da30af-e883-4c17-8d4c-0bca3b2cdc46",
       "Description": "Gradients are a core building block in TiXL. They are used in many operators and effects.\nThis is the [LinearGradient]. It draws a gradient along a line."
     },
     {
-      "Id": "5459de84-8f42-4bb5-bdcc-e8a01e78ca0b",
+      "Id": "54a0a877-ccc7-4df0-a8a0-7904df248d1f",
       "ChildId": "2385e6e5-8fd9-4edc-b4c9-29af4ffcd4e8",
       "Description": "Notice that the gradient does not cover the full width of the image.\nThis is because the default scale mode is AlignToHeight. When the output aspect ratio changes, TiXL adjusts the left and right edges.\nAligning to the height helps avoid unexpected layout changes and keeps the result consistent across aspect ratios.",
       "Style": "InfoFor"
     },
     {
-      "Id": "766324fa-72d2-47df-9138-a8f6a0516cf3",
+      "Id": "1df787ed-09fe-4c59-b63d-79be5ad5d4ae",
       "ChildId": "2385e6e5-8fd9-4edc-b4c9-29af4ffcd4e8",
-      "InputId": "e4739314-4075-4d14-a80d-79e149081dac",
       "Description": "Adjust the parameters so the gradient covers the full width.",
       "Style": "CallToAction"
     }

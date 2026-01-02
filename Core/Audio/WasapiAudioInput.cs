@@ -201,8 +201,7 @@ public static class WasapiAudioInput
         var playbackSettings = Playback.Current?.Settings;
         if (playbackSettings == null) 
             return length;
-        
-        
+
         AudioAnalysis.ProcessUpdate(playbackSettings?.AudioGainFactor?? 1,
                                     playbackSettings?.AudioDecayFactor?? 0.9f);
 
