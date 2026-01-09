@@ -18,6 +18,7 @@ public static class AudioMixerManager
     private static int _operatorMixerHandle;
     private static int _soundtrackMixerHandle;
     private static bool _initialized;
+    private static int _flacPluginHandle;
 
     public static int GlobalMixerHandle => _globalMixerHandle;
     public static int OperatorMixerHandle => _operatorMixerHandle;
@@ -28,10 +29,29 @@ public static class AudioMixerManager
         if (_initialized)
             return;
 
-        if (!Bass.Init(-1, 44100, DeviceInitFlags.Default, IntPtr.Zero))
+        // Check if BASS is already initialized
+        DeviceInfo deviceInfo;
+        var bassIsInitialized = Bass.GetDeviceInfo(Bass.CurrentDevice, out deviceInfo) && deviceInfo.IsInitialized;
+        
+        if (!bassIsInitialized)
         {
-            Log.Error($"Failed to initialize BASS: {Bass.LastError}");
-            return;
+            if (!Bass.Init(-1, 44100, DeviceInitFlags.Default, IntPtr.Zero))
+            {
+                Log.Error($"Failed to initialize BASS: {Bass.LastError}");
+                return;
+            }
+        }
+
+        // Load BASS FLAC plugin for native FLAC support (better than Media Foundation)
+        // The plugin DLL should be in the same directory as bassflac.dll or bass.dll
+        _flacPluginHandle = Bass.PluginLoad("bassflac.dll");
+        if (_flacPluginHandle == 0)
+        {
+            Log.Warning($"Failed to load BASS FLAC plugin: {Bass.LastError}. FLAC files will use Media Foundation fallback.");
+        }
+        else
+        {
+            Log.Debug($"BASS FLAC plugin loaded successfully: {_flacPluginHandle}");
         }
 
         // Create global mixer (stereo output to soundcard)
@@ -42,7 +62,7 @@ public static class AudioMixerManager
             return;
         }
 
-        // Create operator mixer
+        // Create operator mixer (decode stream that feeds into global mixer)
         _operatorMixerHandle = BassMix.CreateMixerStream(44100, 2, BassFlags.MixerNonStop | BassFlags.Decode);
         if (_operatorMixerHandle == 0)
         {
@@ -50,7 +70,7 @@ public static class AudioMixerManager
             return;
         }
 
-        // Create soundtrack mixer
+        // Create soundtrack mixer (decode stream that feeds into global mixer)
         _soundtrackMixerHandle = BassMix.CreateMixerStream(44100, 2, BassFlags.MixerNonStop | BassFlags.Decode);
         if (_soundtrackMixerHandle == 0)
         {
@@ -70,8 +90,15 @@ public static class AudioMixerManager
             Log.Error($"Failed to add soundtrack mixer to global mixer: {Bass.LastError}");
         }
 
-        // Start the global mixer playing
-        Bass.ChannelPlay(_globalMixerHandle, false);
+        // IMPORTANT: Do NOT call Bass.ChannelPlay() on decode streams!
+        // Decode streams are passive data sources that are pulled from by the mixer.
+        // Only the global mixer (output stream) needs to be started.
+
+        // Start the global mixer playing (outputs to soundcard)
+        if (!Bass.ChannelPlay(_globalMixerHandle, false))
+        {
+            Log.Error($"Failed to start global mixer: {Bass.LastError}");
+        }
 
         _initialized = true;
         Log.Debug("Audio mixer system initialized successfully.");
@@ -85,6 +112,13 @@ public static class AudioMixerManager
         Bass.StreamFree(_operatorMixerHandle);
         Bass.StreamFree(_soundtrackMixerHandle);
         Bass.StreamFree(_globalMixerHandle);
+        
+        // Unload FLAC plugin
+        if (_flacPluginHandle != 0)
+        {
+            Bass.PluginFree(_flacPluginHandle);
+        }
+        
         Bass.Free();
 
         _initialized = false;

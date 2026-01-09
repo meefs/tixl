@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using ManagedBass;
 using T3.Core.Animation;
 using T3.Core.IO;
+using T3.Core.Logging;
 using T3.Core.Operator;
+using T3.Core.Resource;
 
 namespace T3.Core.Audio;
 
@@ -175,6 +177,9 @@ public static class AudioEngine
         public OperatorAudioStream? Stream;
         public string CurrentFilePath = string.Empty;
         public bool IsPaused;
+        public float PreviousSeek = 0f;
+        public bool PreviousPlay;
+        public bool PreviousStop;
     }
 
     public static void UpdateOperatorPlayback(
@@ -185,24 +190,51 @@ public static class AudioEngine
         bool shouldStop,
         float volume,
         bool mute,
-        float panning)
+        float panning,
+        float speed = 1.0f,
+        float seek = 0f)
     {
+        // Ensure mixer is initialized
+        if (AudioMixerManager.OperatorMixerHandle == 0)
+        {
+            AudioMixerManager.Initialize();
+            
+            if (AudioMixerManager.OperatorMixerHandle == 0)
+            {
+                Log.Warning("AudioMixerManager failed to initialize, cannot play audio");
+                return;
+            }
+        }
+
         if (!_operatorAudioStates.TryGetValue(operatorId, out var state))
         {
             state = new OperatorAudioState();
             _operatorAudioStates[operatorId] = state;
         }
 
+        // Resolve file path if it's relative
+        string? resolvedFilePath = filePath;
+        if (!string.IsNullOrEmpty(filePath) && !System.IO.File.Exists(filePath))
+        {
+            // Try to resolve as relative path
+            if (ResourceManager.TryResolvePath(filePath, null, out var absolutePath, out _))
+            {
+                resolvedFilePath = absolutePath;
+            }
+        }
+
         // Handle file change
-        if (state.CurrentFilePath != filePath)
+        if (state.CurrentFilePath != resolvedFilePath)
         {
             state.Stream?.Dispose();
             state.Stream = null;
-            state.CurrentFilePath = filePath;
+            state.CurrentFilePath = resolvedFilePath ?? string.Empty;
+            state.PreviousPlay = false;
+            state.PreviousStop = false;
 
-            if (!string.IsNullOrEmpty(filePath))
+            if (!string.IsNullOrEmpty(resolvedFilePath))
             {
-                if (OperatorAudioStream.TryLoadStream(filePath, AudioMixerManager.OperatorMixerHandle, out var stream))
+                if (OperatorAudioStream.TryLoadStream(resolvedFilePath, AudioMixerManager.OperatorMixerHandle, out var stream))
                 {
                     state.Stream = stream;
                 }
@@ -212,27 +244,50 @@ public static class AudioEngine
         if (state.Stream == null)
             return;
 
-        // Handle stop
-        if (shouldStop)
+        // Update stale detection
+        state.Stream.UpdateStaleDetection(localFxTime);
+
+        // Detect play trigger (rising edge)
+        var playTrigger = shouldPlay && !state.PreviousPlay;
+        state.PreviousPlay = shouldPlay;
+
+        // Detect stop trigger (rising edge)
+        var stopTrigger = shouldStop && !state.PreviousStop;
+        state.PreviousStop = shouldStop;
+
+        // Handle stop trigger
+        if (stopTrigger)
         {
             state.Stream.Stop();
             state.IsPaused = false;
+            state.PreviousSeek = 0f;
             return;
         }
 
-        // Handle play
-        if (shouldPlay && !state.Stream.IsPlaying)
+        // Handle play trigger - restart playback
+        if (playTrigger)
         {
-            state.Stream.Play();
-        }
-        else if (!shouldPlay && state.Stream.IsPlaying && !state.IsPaused)
-        {
+            // Stop and restart from beginning
             state.Stream.Stop();
+            state.Stream.Play();
+            state.IsPaused = false;
         }
 
-        // Update volume, mute, and panning
-        state.Stream.SetVolume(volume, mute);
-        state.Stream.SetPanning(panning);
+        // Always update volume, mute, panning, and speed when stream is active
+        if (state.Stream.IsPlaying)
+        {
+            state.Stream.SetVolume(volume, mute);
+            state.Stream.SetPanning(panning);
+            state.Stream.SetSpeed(speed);
+
+            // Handle seek (0-1 normalized position)
+            if (Math.Abs(seek - state.PreviousSeek) > 0.001f && seek >= 0f && seek <= 1f)
+            {
+                var seekTimeInSeconds = (float)(seek * state.Stream.Duration);
+                state.Stream.Seek(seekTimeInSeconds);
+                state.PreviousSeek = seek;
+            }
+        }
     }
 
     public static void PauseOperator(Guid operatorId)
@@ -275,6 +330,24 @@ public static class AudioEngine
             return state.Stream.GetLevel();
         }
         return 0f;
+    }
+
+    public static List<float> GetOperatorWaveform(Guid operatorId)
+    {
+        if (_operatorAudioStates.TryGetValue(operatorId, out var state) && state.Stream != null)
+        {
+            return state.Stream.GetWaveform();
+        }
+        return new List<float>();
+    }
+
+    public static List<float> GetOperatorSpectrum(Guid operatorId)
+    {
+        if (_operatorAudioStates.TryGetValue(operatorId, out var state) && state.Stream != null)
+        {
+            return state.Stream.GetSpectrum();
+        }
+        return new List<float>();
     }
 
     public static void UnregisterOperator(Guid operatorId)
