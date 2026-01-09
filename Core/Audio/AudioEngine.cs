@@ -35,6 +35,7 @@ public static class AudioEngine
         {
             Bass.Free();
             Bass.Init();
+            AudioMixerManager.Initialize();
             _bassInitialized = true;
         }
         
@@ -165,6 +166,126 @@ public static class AudioEngine
         Bass.ChannelGetInfo(stream.StreamHandle, out var info);
         return info.Frequency;
     }
+
+    #region Operator Audio Playback
+    private static readonly Dictionary<Guid, OperatorAudioState> _operatorAudioStates = new();
+
+    private class OperatorAudioState
+    {
+        public OperatorAudioStream? Stream;
+        public string CurrentFilePath = string.Empty;
+        public bool IsPaused;
+    }
+
+    public static void UpdateOperatorPlayback(
+        Guid operatorId,
+        double localFxTime,
+        string filePath,
+        bool shouldPlay,
+        bool shouldStop,
+        float volume,
+        bool mute,
+        float panning)
+    {
+        if (!_operatorAudioStates.TryGetValue(operatorId, out var state))
+        {
+            state = new OperatorAudioState();
+            _operatorAudioStates[operatorId] = state;
+        }
+
+        // Handle file change
+        if (state.CurrentFilePath != filePath)
+        {
+            state.Stream?.Dispose();
+            state.Stream = null;
+            state.CurrentFilePath = filePath;
+
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                if (OperatorAudioStream.TryLoadStream(filePath, AudioMixerManager.OperatorMixerHandle, out var stream))
+                {
+                    state.Stream = stream;
+                }
+            }
+        }
+
+        if (state.Stream == null)
+            return;
+
+        // Handle stop
+        if (shouldStop)
+        {
+            state.Stream.Stop();
+            state.IsPaused = false;
+            return;
+        }
+
+        // Handle play
+        if (shouldPlay && !state.Stream.IsPlaying)
+        {
+            state.Stream.Play();
+        }
+        else if (!shouldPlay && state.Stream.IsPlaying && !state.IsPaused)
+        {
+            state.Stream.Stop();
+        }
+
+        // Update volume, mute, and panning
+        state.Stream.SetVolume(volume, mute);
+        state.Stream.SetPanning(panning);
+    }
+
+    public static void PauseOperator(Guid operatorId)
+    {
+        if (_operatorAudioStates.TryGetValue(operatorId, out var state) && state.Stream != null)
+        {
+            state.Stream.Pause();
+            state.IsPaused = true;
+        }
+    }
+
+    public static void ResumeOperator(Guid operatorId)
+    {
+        if (_operatorAudioStates.TryGetValue(operatorId, out var state) && state.Stream != null)
+        {
+            state.Stream.Resume();
+            state.IsPaused = false;
+        }
+    }
+
+    public static bool IsOperatorStreamPlaying(Guid operatorId)
+    {
+        return _operatorAudioStates.TryGetValue(operatorId, out var state) 
+               && state.Stream != null 
+               && state.Stream.IsPlaying 
+               && !state.Stream.IsPaused;
+    }
+
+    public static bool IsOperatorPaused(Guid operatorId)
+    {
+        return _operatorAudioStates.TryGetValue(operatorId, out var state) 
+               && state.Stream != null 
+               && state.IsPaused;
+    }
+
+    public static float GetOperatorLevel(Guid operatorId)
+    {
+        if (_operatorAudioStates.TryGetValue(operatorId, out var state) && state.Stream != null)
+        {
+            return state.Stream.GetLevel();
+        }
+        return 0f;
+    }
+
+    public static void UnregisterOperator(Guid operatorId)
+    {
+        if (_operatorAudioStates.TryGetValue(operatorId, out var state))
+        {
+            state.Stream?.Dispose();
+            _operatorAudioStates.Remove(operatorId);
+        }
+    }
+    #endregion
 
     private static double _lastPlaybackSpeed = 1;
     private static bool _bassInitialized;
