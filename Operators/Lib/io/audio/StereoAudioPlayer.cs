@@ -223,7 +223,7 @@ namespace Lib.io.audio
 
         private string GenerateTestTone(float frequency, float durationSeconds, string label)
         {
-            const int sampleRate = 44100;
+            const int sampleRate = 48000;
             const int channels = 2;
             int sampleCount = (int)(sampleRate * durationSeconds);
 

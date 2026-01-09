@@ -24,7 +24,7 @@ public static class AudioMixerManager
     public static int OperatorMixerHandle => _operatorMixerHandle;
     public static int SoundtrackMixerHandle => _soundtrackMixerHandle;
     
-    private const int MixerFrequency = 44100;
+    private const int MixerFrequency = 48000;
 
     public static void Initialize()
     {

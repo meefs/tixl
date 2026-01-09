@@ -30,6 +30,7 @@ This document describes a comprehensive redesign of the T3 audio system, introdu
 - **Critical deadlock fixes** preventing UI freezes during audio operations
 - **New operator**: `StereoAudioPlayer` for real-time audio playback in operator graphs
 - **Improved short sound handling** with proper buffering and immediate playback
+- **48kHz sample rate** for professional audio quality and better plugin compatibility
 
 ### Key Achievements
 - ✅ **94% latency reduction** for short sounds (500ms → 30ms typical)
@@ -37,6 +38,7 @@ This document describes a comprehensive redesign of the T3 audio system, introdu
 - ✅ **Reliable short sound playback** (100ms clips now play consistently)
 - ✅ **Native FLAC support** with proper duration detection
 - ✅ **Stale detection system** for automatic resource management
+- ✅ **48kHz professional audio** for better quality and plugin compatibility
 
 ---
 
@@ -90,7 +92,7 @@ Problems:
 │  │             ▼                   │  │             ▼              │ │
 │  │  ┌──────────────────────────┐  │  │  ┌──────────────────────┐  │ │
 │  │  │ Operator Mixer           │  │  │  │ Soundtrack Mixer     │  │ │
-│  │  │ (44.1kHz | DECODE)       │  │  │  │ (44.1kHz | DECODE)   │  │ │
+│  │  │ (48kHz | DECODE)         │  │  │  │ (48kHz | DECODE)     │  │ │
 │  │  │ BassFlags.MixerNonStop   │  │  │  │ BassFlags.MixerNonStop│ │ │
 │  │  └──────────┬───────────────┘  │  │  └──────────┬───────────┘  │ │
 │  │             │                   │  │             │              │ │
@@ -100,7 +102,7 @@ Problems:
 │                             ▼                                        │
 │                  ┌──────────────────────┐                            │
 │                  │  Global Mixer        │                            │
-│                  │  (44.1kHz | FLOAT)   │                            │
+│                  │  (48kHz | FLOAT)     │                            │
 │                  │  BassFlags.MixerNonStop                           │
 │                  └──────────┬───────────┘                            │
 │                             │                                        │
@@ -117,6 +119,7 @@ Benefits:
 + Separate operator/soundtrack routing
 + No deadlocks (cached metadata)
 + Stale detection for resource cleanup
++ 48kHz professional audio quality
 ```
 
 ### Signal Flow Detail
@@ -135,6 +138,8 @@ Latency breakdown:
 - Device buffer:   ~20ms    (DeviceBufferLength config)
 ────────────────────────────────────────────────
 Total:             ~37-55ms (typical)
+
+Sample Rate: 48kHz (professional standard)
 ```
 
 ---
@@ -154,11 +159,11 @@ AudioMixerManager.Initialize()
 │   ├── UpdateThreads: 2
 │   ├── PlaybackBufferLength: 100ms
 │   └── DeviceBufferLength: 20ms
-├── Bass.Init(-1, 44100Hz, DeviceInitFlags.Latency)
+├── Bass.Init(-1, 48000Hz, DeviceInitFlags.Latency)
 ├── Load BASS FLAC plugin (bassflac.dll)
-├── Create Global Mixer (44.1kHz, Stereo, FLOAT | MIXERNONSTOP)
-├── Create Operator Mixer (44.1kHz, Stereo, DECODE | MIXERNONSTOP)
-├── Create Soundtrack Mixer (44.1kHz, Stereo, DECODE | MIXERNONSTOP)
+├── Create Global Mixer (48kHz, Stereo, FLOAT | MIXERNONSTOP)
+├── Create Operator Mixer (48kHz, Stereo, DECODE | MIXERNONSTOP)
+├── Create Soundtrack Mixer (48kHz, Stereo, DECODE | MIXERNONSTOP)
 ├── Add Operator Mixer → Global Mixer
 ├── Add Soundtrack Mixer → Global Mixer
 └── Bass.ChannelPlay(GlobalMixer)
@@ -169,6 +174,7 @@ AudioMixerManager.Initialize()
 - **FLAC plugin support**: Native FLAC decoding for accurate duration
 - **Low-latency configuration**: Reduces total pipeline latency to ~20-60ms
 - **Separate mixing paths**: Independent volume/routing for operators vs soundtrack
+- **48kHz sample rate**: Professional audio standard for better quality and plugin compatibility
 
 **Critical Configuration:**
 ```csharp
@@ -319,9 +325,10 @@ Result: 100ms clips now play reliably with ~30-50ms latency
 **Test Mode Features:**
 ```csharp
 // Generates WAV files in-memory for latency testing
+// Now uses 48kHz sample rate for consistency with mixer
 GenerateTestTone(frequency, duration, label)
 ├── Create temporary WAV file
-├── Write proper WAV header (PCM, 44.1kHz, stereo)
+├── Write proper WAV header (PCM, 48kHz, stereo)
 ├── Generate sine wave at specified frequency
 ├── Apply 5ms fade envelope (prevent clicks)
 └── Return file path for immediate playback
@@ -330,6 +337,7 @@ Usage:
 - Short test (0.1s): Measure minimum latency
 - Long test (2.0s): Verify sustained playback
 - Custom frequency: Test different tones
+- 48kHz output: Matches mixer sample rate (no resampling)
 ```
 
 **Integration with AudioEngine:**
@@ -411,7 +419,7 @@ Bass.Configure(Configuration.UpdatePeriod, 10);        // 10ms vs 100ms default
 Bass.Configure(Configuration.UpdateThreads, 2);        // 2 vs 1 default
 Bass.Configure(Configuration.PlaybackBufferLength, 100); // 100ms vs 500ms default
 Bass.Configure(Configuration.DeviceBufferLength, 20);   // 20ms vs 100ms default
-Bass.Init(-1, 44100, DeviceInitFlags.Latency, IntPtr.Zero);
+Bass.Init(-1, 48000, DeviceInitFlags.Latency, IntPtr.Zero); // 48kHz sample rate
 ```
 
 #### Stream Creation Flags
@@ -792,7 +800,8 @@ Impact: Orphaned sounds clean up automatically
 
 #### 3. FLAC Duration - ℹ️ BUG FIX
 **Severity:** Low - May affect timeline synchronization  
-**Impact:** Timeline-based projects using FLAC may need adjustment
+**Impact:** Timeline-based projects using FLAC may need adjustment if they
+        were compensating for incorrect duration values
 
 ```
 Before: FLAC files often reported incorrect duration
@@ -832,7 +841,7 @@ Bass.Init();
 // ... other init ...
 
 // NEW:
-AudioMixerManager.Initialize();  // ← Add this FIRST
+AudioMixerManager.Initialize();  // ← Add this FIRST (now initializes at 48kHz)
 // ... other init ...
 
 // AudioEngine.CompleteFrame() will now use the mixer system
@@ -953,8 +962,7 @@ Check: Look for any Bass.Init() calls before it
 ```
 Cause: Missing Bass.ChannelUpdate() after MixerAddChannel
 Fix:   Add immediate buffering:
-       BassMix.MixerAddChannel(...);
-       Bass.ChannelUpdate(mixerHandle, 0);  // ← Add this
+       Bass.ChannelUpdate(mixerHandle, 0);  // Force data fetch NOW
 ```
 
 #### Issue: Application freezes when playing audio
@@ -977,6 +985,14 @@ Cause: Not calling AudioEngine.UnregisterOperator()
 Fix:   Call in finalizer/Dispose:
        AudioEngine.UnregisterOperator(_operatorId);
 Note:  Stale detection will auto-mute after 100ms anyway
+```
+
+#### Issue: Audio sounds slightly different
+```
+Cause: Sample rate changed from 44.1kHz to 48kHz
+Fix:   This is expected and generally improves quality
+Check: BASS automatically resamples, no action needed
+Note:  48kHz is professional standard, better for plugins/effects
 ```
 
 ---
@@ -1014,22 +1030,20 @@ ChannelAttribute.Pan       // -1.0 (left) to +1.0 (right)
 ChannelAttribute.Frequency // Sample rate (modify for pitch/speed)
 ```
 
-### Mixer Architecture Notes
+### Sample Rate Selection (48kHz)
 
-**Why 3 Mixers?**
-1. **Global Mixer**: Outputs to soundcard, always playing
-2. **Operator Mixer**: Aggregates operator audio, feeds to global
-3. **Soundtrack Mixer**: Aggregates soundtrack audio, feeds to global
+**Why 48kHz instead of 44.1kHz?**
 
-**Benefits:**
-- Independent volume control for operators vs soundtrack
-- Future: Could add effects per path (EQ, reverb, etc.)
-- Clean separation of concerns
-- Resource management per category
+1. **Professional Standard**: 48kHz is the industry standard for video, broadcast, and professional audio
+2. **Better Plugin Compatibility**: Most VST/audio plugins expect 48kHz
+3. **Future-Proof**: Modern audio interfaces default to 48kHz
+4. **Better Math**: 48000 divides evenly by common buffer sizes (480, 960, etc.)
+5. **Quality**: Nyquist frequency of 24kHz vs 22.05kHz (better high-frequency response)
 
-**Alternative Considered:**
-- Single mixer with manual channel management
-- Rejected due to complexity and harder debugging
+**Compatibility Note:**
+- BASS automatically resamples files at any sample rate (44.1k, 48k, 96k, etc.)
+- No quality loss for 44.1kHz content (high-quality resampler)
+- Slight quality improvement on most modern audio hardware
 
 ---
 
@@ -1064,9 +1078,9 @@ ChannelAttribute.Frequency // Sample rate (modify for pitch/speed)
 [AudioMixer] BASS not initialized, configuring for low latency...
 [AudioMixer] Config - UpdatePeriod: 10ms, UpdateThreads: 2, 
              PlaybackBuffer: 100ms, DeviceBuffer: 20ms
-[AudioMixer] Attempting BASS.Init with Latency flag at 44100Hz...
+[AudioMixer] Attempting BASS.Init with Latency flag at 48000Hz...
 [AudioMixer] BASS initialized with LATENCY flag (optimized)
-[AudioMixer] BASS Info - Device: 1, SampleRate: 44100Hz, 
+[AudioMixer] BASS Info - Device: 1, SampleRate: 48000Hz, 
              MinBuffer: 10ms, Latency: 20ms
 [AudioMixer] BASS FLAC plugin loaded successfully: Handle=12345
 [AudioMixer] Global mixer created: Handle=100
@@ -1094,8 +1108,6 @@ ChannelAttribute.Frequency // Sample rate (modify for pitch/speed)
 [OperatorAudio] ▶ Play(): test_100ms.wav | FlagResult: 0 | 
                 FlagTime: 0.05ms | UpdateTime: 0.12ms | 
                 StreamActive: Playing | MixerActive: Playing
-[OperatorAudio] GetLevel() SUCCESS: test_100ms.wav | 
-                Peak: 0.456 | Updates: 3
 ```
 
 ### Stale Detection
@@ -1123,12 +1135,18 @@ This audio architecture redesign represents a fundamental improvement in T3's au
 ✅ **Zero deadlocks** - complete elimination of thread contention issues  
 ✅ **Better resource management** - automatic cleanup via stale detection  
 ✅ **Future-proof architecture** - extensible mixer system for effects/routing  
+✅ **Professional audio quality** - 48kHz sample rate for better quality and compatibility  
 
 The new `StereoAudioPlayer` operator opens up new creative possibilities for interactive audio in operator graphs, while the underlying `AudioMixerManager` and `OperatorAudioStream` infrastructure provides a solid foundation for future audio features.
 
+The transition to 48kHz sample rate ensures compatibility with professional audio tools and plugins while maintaining excellent quality for all audio content through BASS's high-quality resampling.
+
 ---
 
-**Document Version:** 1.0  
+**Document Version:** 1.1  
 **Last Updated:** 01-09-2026  
 **Maintainer:** H445
+**Change Log:**
+- v1.1: Updated to reflect 48kHz sample rate change (from 44.1kHz)
+- v1.0: Initial comprehensive documentation
 
