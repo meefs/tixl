@@ -159,25 +159,28 @@ namespace Lib.io.audio{
 
                 Log.Debug($"Creating new stream {filePath}");
                 
-                // Create standard playback stream
-                _stream = Bass.CreateStream(filePath, 0, 0, BassFlags.Default);
+                // Create stream with BassFlags.Decode to prevent threading conflicts
+                // This forces synchronous, non-threaded operation which prevents deadlocks
+                _stream = Bass.CreateStream(filePath, 0, 0, BassFlags.Decode | BassFlags.Float);
 
                 if (_stream == 0)
                 {
                     Log.Debug($"Stream creation failed ({Bass.LastError}). Trying mono...");
                     // Fallback to mono
-                    _stream = Bass.CreateStream(filePath, 0, 0, BassFlags.Mono);
+                    _stream = Bass.CreateStream(filePath, 0, 0, BassFlags.Decode | BassFlags.Float | BassFlags.Mono);
                 }
 
                 if (_stream != 0)
                 {
-                    // Initial attributes
+                    // Get base frequency before setting attributes
+                    Bass.ChannelGetAttribute(_stream, ChannelAttribute.Frequency, out var baseFreq);
+                    
+                    // Set all attributes BEFORE starting playback to avoid race conditions
                     Bass.ChannelSetAttribute(_stream, ChannelAttribute.Volume, Math.Max(0f, volume));
                     Bass.ChannelSetAttribute(_stream, ChannelAttribute.Pan, Math.Max(-1f, Math.Min(1f, panning)));
-                    var baseFreq = Bass.ChannelGetAttribute(_stream, ChannelAttribute.Frequency);
                     Bass.ChannelSetAttribute(_stream, ChannelAttribute.Frequency, baseFreq * Math.Max(0.1f, Math.Min(4f, speed)));
 
-                    // Play the stream
+                    // Now start playback - this should not deadlock since we're using BassFlags.Decode
                     var ok = Bass.ChannelPlay(_stream, false);
                     if (!ok)
                     {
