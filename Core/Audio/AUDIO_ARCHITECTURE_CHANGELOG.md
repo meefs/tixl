@@ -16,10 +16,11 @@
 7. [Breaking Changes](#breaking-changes)
 8. [Migration Guide](#migration-guide)
 9. [Technical Details](#technical-details)
-10. [Logging Configuration](#logging-configuration)
-11. [Future Improvements](#future-improvements)
-12. [Appendix: Log Examples](#appendix-log-examples)
-13. [Conclusion](#conclusion)
+10. [Configuration Centralization](#configuration-centralization)
+11. [Logging Configuration](#logging-configuration)
+12. [Future Improvements](#future-improvements)
+13. [Appendix: Log Examples](#appendix-log-examples)
+14. [Conclusion](#conclusion)
 
 ---
 
@@ -33,6 +34,7 @@ This document describes a comprehensive redesign of the T3 audio system, introdu
 - **Improved short sound handling** with proper buffering and immediate playback
 - **48kHz sample rate** for professional audio quality and better plugin compatibility
 - **Configurable debug logging** to reduce console noise during development
+- **Centralized configuration** in `AudioConfig` for maintainability and consistency
 
 ### Key Achievements
 - ✅ **94% latency reduction** for short sounds (500ms → 30ms typical)
@@ -42,6 +44,254 @@ This document describes a comprehensive redesign of the T3 audio system, introdu
 - ✅ **Stale detection system** for automatic resource management
 - ✅ **48kHz professional audio** for better quality and plugin compatibility
 - ✅ **Suppressible debug logs** for cleaner development experience
+- ✅ **Centralized audio configuration** for easier maintenance and modification
+
+---
+
+## Configuration Centralization
+
+### AudioConfig Centralization (01-09-2026)
+
+**Motivation:** All audio initialization parameters, buffer settings, and analysis configurations were previously scattered across multiple files as hardcoded constants. This made it difficult to:
+- Find and modify configuration values
+- Understand the relationship between different settings
+- Maintain consistency across the codebase
+- Experiment with different configurations
+
+**Solution:** Centralize all audio configuration into a single source of truth: `Core/Audio/AudioConfig.cs`
+
+#### Architecture
+
+```
+AudioConfig.cs (Single Source of Truth)
+    ├── Mixer Configuration
+    │   ├── MixerFrequency (48000 Hz)
+    │   ├── UpdatePeriodMs (10 ms)
+    │   ├── UpdateThreads (2)
+    │   ├── PlaybackBufferLengthMs (100 ms)
+    │   └── DeviceBufferLengthMs (20 ms)
+    │
+    ├── FFT and Analysis Configuration
+    │   ├── FftBufferSize (1024)
+    │   ├── BassFftDataFlag (DataFlags.FFT2048)
+    │   ├── FrequencyBandCount (32)
+    │   ├── WaveformSampleCount (1024)
+    │   ├── LowPassCutoffFrequency (250 Hz)
+    │   └── HighPassCutoffFrequency (2000 Hz)
+    │
+    └── Logging Configuration
+        ├── SuppressDebugLogs (bool)
+        ├── LogDebug() helper
+        └── LogInfo() helper
+```
+
+#### Migrated Constants
+
+##### From AudioMixerManager.cs
+```csharp
+// BEFORE: Scattered throughout AudioMixerManager
+private const int MixerFrequency = 48000;
+Bass.Configure(Configuration.UpdatePeriod, 10);
+Bass.Configure(Configuration.UpdateThreads, 2);
+Bass.Configure(Configuration.PlaybackBufferLength, 100);
+Bass.Configure(Configuration.DeviceBufferLength, 20);
+
+// AFTER: Centralized in AudioConfig
+public const int MixerFrequency = 48000;
+public const int UpdatePeriodMs = 10;
+public const int UpdateThreads = 2;
+public const int PlaybackBufferLengthMs = 100;
+public const int DeviceBufferLengthMs = 20;
+
+// Usage in AudioMixerManager:
+Bass.Configure(Configuration.UpdatePeriod, AudioConfig.UpdatePeriodMs);
+Bass.Init(-1, AudioConfig.MixerFrequency, initFlags, IntPtr.Zero);
+```
+
+##### From AudioAnalysis.cs
+```csharp
+// BEFORE: Hardcoded in AudioAnalysis
+internal const int FrequencyBandCount = 32;
+internal const int FftBufferSize = 1024;
+internal const DataFlags BassFlagForFftBufferSize = DataFlags.FFT2048;
+var freq = (float)i / FftBufferSize * (48000f / 2f); // Hardcoded sample rate!
+
+// AFTER: Use AudioConfig constants
+public const int FrequencyBandCount = 32;
+public const int FftBufferSize = 1024;
+public const DataFlags BassFftDataFlag = DataFlags.FFT2048;
+
+// Usage in AudioAnalysis:
+var freq = (float)i / AudioConfig.FftBufferSize * (AudioConfig.MixerFrequency / 2f);
+FrequencyBands = new float[AudioConfig.FrequencyBandCount];
+FftGainBuffer = new float[AudioConfig.FftBufferSize];
+```
+
+##### From WaveFormProcessing.cs
+```csharp
+// BEFORE: Hardcoded waveform settings
+internal const int WaveSampleCount = 1024;
+private static readonly FilterCoefficients _lowPassCoeffs = CalculateLowPassCoeffs(250f);
+private static readonly FilterCoefficients _highPassCoeffs = CalculateHighPassCoeffs(2000f);
+float sampleRate = 48000f; // Hardcoded in filter calculation
+
+// AFTER: Use AudioConfig constants
+public const int WaveformSampleCount = 1024;
+public const float LowPassCutoffFrequency = 250f;
+public const float HighPassCutoffFrequency = 2000f;
+
+// Usage in WaveFormProcessing:
+WaveformLeftBuffer = new float[AudioConfig.WaveformSampleCount];
+_lowPassCoeffs = CalculateLowPassCoeffs(AudioConfig.LowPassCutoffFrequency);
+float sampleRate = AudioConfig.MixerFrequency;
+```
+
+#### Files Updated
+
+| File | Constants Removed | Now Uses AudioConfig |
+|------|------------------|---------------------|
+| `AudioMixerManager.cs` | MixerFrequency, buffer configs (5 values) | ✅ |
+| `AudioAnalysis.cs` | FrequencyBandCount, FftBufferSize, BassFlagForFftBufferSize, hardcoded 48000 | ✅ |
+| `WaveFormProcessing.cs` | WaveSampleCount, filter frequencies, hardcoded 48000 | ✅ |
+| `AudioEngine.cs` | Reference to WaveFormProcessing.WaveSampleCount | ✅ |
+| `WasapiAudioInput.cs` | Reference to WaveFormProcessing.WaveSampleCount | ✅ |
+| `BeatSynchronizer.cs` | Reference to AudioAnalysis.FrequencyBandCount | ✅ |
+
+#### Benefits
+
+**1. Single Source of Truth**
+```csharp
+// Want to change FFT resolution? One place:
+public const int FftBufferSize = 2048;  // Was 1024
+public const DataFlags BassFftDataFlag = DataFlags.FFT4096;  // Was FFT2048
+
+// All dependent code automatically uses new values
+```
+
+**2. Documentation Co-location**
+```csharp
+/// <summary>
+/// Number of frequency bands for audio analysis.
+/// Used by BeatSynchronizer, AudioReaction, and frequency visualization.
+/// </summary>
+public const int FrequencyBandCount = 32;
+```
+
+**3. Easier Experimentation**
+```csharp
+// Test different latency configurations by editing one file:
+public const int UpdatePeriodMs = 5;    // Was 10
+public const int DeviceBufferLengthMs = 10;  // Was 20
+// Experiment, measure, revert if needed
+```
+
+**4. Type Safety**
+```csharp
+// BEFORE: Easy to mistype magic numbers
+var buffer = new float[1024];  // Is this FFT size or waveform size?
+
+// AFTER: Clear semantic meaning
+var buffer = new float[AudioConfig.FftBufferSize];  // FFT buffer
+var waveform = new float[AudioConfig.WaveformSampleCount];  // Waveform buffer
+```
+
+**5. Consistency**
+```csharp
+// Sample rate used everywhere is guaranteed to match
+// BEFORE: Multiple files had hardcoded 48000, 44100, etc.
+// AFTER: Single MixerFrequency constant ensures consistency
+```
+
+#### Code Organization
+
+The `AudioConfig` class is organized into logical regions:
+
+```csharp
+public static class AudioConfig
+{
+    #region Mixer Configuration
+    // Sample rate, buffer lengths, update settings
+    #endregion
+
+    #region FFT and Analysis Configuration
+    // FFT size, frequency bands, filter settings
+    #endregion
+
+    #region Logging Configuration
+    // Debug log suppression, helper methods
+    #endregion
+}
+```
+
+#### Impact on Development Workflow
+
+**Before Centralization:**
+```
+Developer wants to change FFT resolution:
+1. Search codebase for "1024" → 50+ results
+2. Guess which ones are FFT-related
+3. Update AudioAnalysis.cs
+4. Find hardcoded reference in AudioFrequencies.cs
+5. Update that too
+6. Miss reference in test code → runtime error
+7. Grep for "FFT" → find more hardcoded values
+8. Update those
+9. Build fails in unrelated file that used wrong buffer size
+10. Debug and fix
+```
+
+**After Centralization:**
+```
+Developer wants to change FFT resolution:
+1. Edit AudioConfig.cs:
+   FftBufferSize = 2048
+   BassFftDataFlag = DataFlags.FFT4096
+2. Build
+3. Done ✅
+```
+
+#### Example Configuration Scenarios
+
+**Low-Latency Gaming Setup:**
+```csharp
+public const int UpdatePeriodMs = 5;           // Very responsive
+public const int PlaybackBufferLengthMs = 50;  // Minimal buffering
+public const int DeviceBufferLengthMs = 10;    // Aggressive
+
+// Tradeoff: Higher CPU usage, lower latency (~15ms)
+```
+
+**High-Quality Studio Setup:**
+```csharp
+public const int MixerFrequency = 96000;        // High sample rate
+public const int PlaybackBufferLengthMs = 200;  // Larger buffers
+public const int DeviceBufferLengthMs = 50;     // Safe buffering
+
+// Tradeoff: More CPU/memory, better quality, higher latency
+```
+
+**Current Balanced Setup (Default):**
+```csharp
+public const int MixerFrequency = 48000;
+public const int UpdatePeriodMs = 10;
+public const int UpdateThreads = 2;
+public const int PlaybackBufferLengthMs = 100;
+public const int DeviceBufferLengthMs = 20;
+
+// Tradeoff: Good quality, low latency (~20-60ms), reasonable CPU
+```
+
+#### Future Extensibility
+
+The centralized configuration makes it easy to add new features:
+
+```csharp
+// Potential future additions:
+public const bool EnableHardwareAcceleration = true;
+public const int MaxConcurrentStreams = 64;
+public const AudioOutputMode DefaultOutputMode = AudioOutputMode.Stereo;
+public const bool EnableDspEffects = false;
+```
 
 ---
 
@@ -1072,56 +1322,6 @@ audioPlayer.EnableTestMode = true;
 audioPlayer.TestFrequency = 440f;  // A4 note
 audioPlayer.TriggerShortTest = true;  // Generates 0.1s sine wave
 // Check DebugInfo output for diagnostics
-```
-
-### For Low-Level Developers
-
-**Creating Custom Audio Streams:**
-```csharp
-// 1. Create decode stream
-var streamHandle = Bass.CreateStream(
-    filePath, 0, 0, 
-    BassFlags.Decode | BassFlags.Float | BassFlags.AsyncFile
-);
-
-// 2. Get mixer handle
-var mixerHandle = AudioMixerManager.OperatorMixerHandle;
-
-// 3. Add to mixer
-BassMix.MixerAddChannel(
-    mixerHandle, 
-    streamHandle, 
-    BassFlags.MixerChanBuffer
-);
-
-// 4. Force immediate buffering (critical for short sounds!)
-Bass.ChannelUpdate(mixerHandle, 0);
-
-// 5. Control playback via mixer flags
-BassMix.ChannelFlags(streamHandle, 0, BassFlags.MixerChanPause); // Play
-BassMix.ChannelFlags(streamHandle, BassFlags.MixerChanPause, 
-                     BassFlags.MixerChanPause); // Pause
-```
-
-**IMPORTANT: Never call Bass.ChannelGetInfo() in hot paths**
-```csharp
-// ❌ WRONG - Can deadlock:
-void UpdateEveryFrame() {
-    var info = Bass.ChannelGetInfo(streamHandle);
-    DoSomething(info.Channels);
-}
-
-// ✅ CORRECT - Cache at initialization:
-int _cachedChannels;
-
-void Initialize() {
-    var info = Bass.ChannelGetInfo(streamHandle);
-    _cachedChannels = info.Channels;
-}
-
-void UpdateEveryFrame() {
-    DoSomething(_cachedChannels);
-}
 ```
 
 ### Troubleshooting

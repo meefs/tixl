@@ -174,7 +174,7 @@ public static class WasapiAudioInput
 
         if (WaveFormProcessing.RequestedOnce)
         {
-            var sizeInBytes = WaveFormProcessing.WaveSampleCount << 2 << 1;
+            var sizeInBytes = AudioConfig.WaveformSampleCount << 2 << 1;
             WaveFormProcessing.LastFetchResultCode = BassWasapi.GetData(WaveFormProcessing.InterleavenSampleBuffer,  
                                                                         sizeInBytes);
         }

@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using System;
 using T3.Core.Animation;
@@ -13,11 +13,9 @@ public static class WaveFormProcessing
     /// <summary>
     /// This will be set when updating channel audio data from Soundtrack or Wasapi inputs 
     /// </summary>
-    internal static readonly float[] InterleavenSampleBuffer = new float[WaveSampleCount << 1];
+    internal static readonly float[] InterleavenSampleBuffer = new float[AudioConfig.WaveformSampleCount << 1];
 
     internal static int LastFetchResultCode;
-
-    internal const int WaveSampleCount = 1024;
 
     /// <summary>
     /// To avoid unnecessary processing we only fetch wave data from BASS when requested once from an Operator. 
@@ -27,12 +25,12 @@ public static class WaveFormProcessing
     /// <summary>
     /// Results of the waveform analysis
     /// </summary>
-    public static readonly float[] WaveformLeftBuffer = new float[WaveSampleCount];
+    public static readonly float[] WaveformLeftBuffer = new float[AudioConfig.WaveformSampleCount];
 
-    public static readonly float[] WaveformRightBuffer = new float[WaveSampleCount];
-    public static readonly float[] WaveformLowBuffer = new float[WaveSampleCount];
-    public static readonly float[] WaveformMidBuffer = new float[WaveSampleCount];
-    public static readonly float[] WaveformHighBuffer = new float[WaveSampleCount];
+    public static readonly float[] WaveformRightBuffer = new float[AudioConfig.WaveformSampleCount];
+    public static readonly float[] WaveformLowBuffer = new float[AudioConfig.WaveformSampleCount];
+    public static readonly float[] WaveformMidBuffer = new float[AudioConfig.WaveformSampleCount];
+    public static readonly float[] WaveformHighBuffer = new float[AudioConfig.WaveformSampleCount];
 
     private static int _lastUpdateFrame = -1;
 
@@ -74,18 +72,18 @@ public static class WaveFormProcessing
 
     private static FilterCoefficients CalculateLowPassCoeffs(float cutoffFreq)
     {
-        const float sampleRate = 48000f;
+        float sampleRate = AudioConfig.MixerFrequency;
         var rc = 1.0f / (2.0f * MathF.PI * cutoffFreq);
-        const float dt = 1.0f / sampleRate;
+        var dt = 1.0f / sampleRate;
         var alpha = dt / (rc + dt);
         return new FilterCoefficients(alpha, 1.0f - alpha);
     }
 
     private static FilterCoefficients CalculateHighPassCoeffs(float cutoffFreq)
     {
-        const float sampleRate = 48000f;
+        float sampleRate = AudioConfig.MixerFrequency;
         float rc = 1.0f / (2.0f * MathF.PI * cutoffFreq);
-        const float dt = 1.0f / sampleRate;
+        float dt = 1.0f / sampleRate;
         float alpha = rc / (rc + dt);
         return new FilterCoefficients(alpha, alpha);
     }
@@ -113,7 +111,7 @@ public static class WaveFormProcessing
     private static void ProcessFilteredWaveformsImproved()
     {
         // Create mono mix for filtering (reuse temp buffer)
-        for (int i = 0; i < WaveSampleCount; i++)
+        for (int i = 0; i < AudioConfig.WaveformSampleCount; i++)
         {
             _tempBuffer[i] = (WaveformLeftBuffer[i] + WaveformRightBuffer[i]) * 0.5f;
         }
@@ -139,11 +137,11 @@ public static class WaveFormProcessing
     private static float _highFilterX1;
 
     // Improved filter coefficients (calculated once)
-    private static readonly FilterCoefficients _lowPassCoeffs = CalculateLowPassCoeffs(250f);
-    private static readonly FilterCoefficients _midHighPassCoeffs = CalculateHighPassCoeffs(250f);
-    private static readonly FilterCoefficients _midLowPassCoeffs = CalculateLowPassCoeffs(2000f);
-    private static readonly FilterCoefficients _highPassCoeffs = CalculateHighPassCoeffs(2000f);
+    private static readonly FilterCoefficients _lowPassCoeffs = CalculateLowPassCoeffs(AudioConfig.LowPassCutoffFrequency);
+    private static readonly FilterCoefficients _midHighPassCoeffs = CalculateHighPassCoeffs(AudioConfig.LowPassCutoffFrequency);
+    private static readonly FilterCoefficients _midLowPassCoeffs = CalculateLowPassCoeffs(AudioConfig.HighPassCutoffFrequency);
+    private static readonly FilterCoefficients _highPassCoeffs = CalculateHighPassCoeffs(AudioConfig.HighPassCutoffFrequency);
 
-    private static readonly float[] _midFilterBuffer = new float[WaveSampleCount];
-    private static readonly float[] _tempBuffer = new float[WaveSampleCount]; // Reusable temp buffer
+    private static readonly float[] _midFilterBuffer = new float[AudioConfig.WaveformSampleCount];
+    private static readonly float[] _tempBuffer = new float[AudioConfig.WaveformSampleCount]; // Reusable temp buffer
 }

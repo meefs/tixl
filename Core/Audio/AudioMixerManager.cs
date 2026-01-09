@@ -24,8 +24,6 @@ public static class AudioMixerManager
     public static int OperatorMixerHandle => _operatorMixerHandle;
     public static int SoundtrackMixerHandle => _soundtrackMixerHandle;
     
-    private const int MixerFrequency = 48000;
-
     public static void Initialize()
     {
         if (_initialized)
@@ -52,30 +50,30 @@ public static class AudioMixerManager
             AudioConfig.LogDebug("[AudioMixer] BASS not initialized, configuring for low latency...");
             
             // Configure BASS for low latency BEFORE initialization
-            Bass.Configure(Configuration.UpdatePeriod, 10);
-            Bass.Configure(Configuration.UpdateThreads, 2);
-            Bass.Configure(Configuration.PlaybackBufferLength, 100);
-            Bass.Configure(Configuration.DeviceBufferLength, 20);
+            Bass.Configure(Configuration.UpdatePeriod, AudioConfig.UpdatePeriodMs);
+            Bass.Configure(Configuration.UpdateThreads, AudioConfig.UpdateThreads);
+            Bass.Configure(Configuration.PlaybackBufferLength, AudioConfig.PlaybackBufferLengthMs);
+            Bass.Configure(Configuration.DeviceBufferLength, AudioConfig.DeviceBufferLengthMs);
             
-            AudioConfig.LogDebug($"[AudioMixer] Config - UpdatePeriod: 10ms, UpdateThreads: 2, PlaybackBuffer: 100ms, DeviceBuffer: 20ms");
+            AudioConfig.LogDebug($"[AudioMixer] Config - UpdatePeriod: {AudioConfig.UpdatePeriodMs}ms, UpdateThreads: {AudioConfig.UpdateThreads}, PlaybackBuffer: {AudioConfig.PlaybackBufferLengthMs}ms, DeviceBuffer: {AudioConfig.DeviceBufferLengthMs}ms");
             
             // Try to initialize with latency flag first
             var initFlags = DeviceInitFlags.Latency | DeviceInitFlags.Stereo;
             
-            AudioConfig.LogDebug($"[AudioMixer] Attempting BASS.Init with Latency flag at {MixerFrequency}Hz...");
-            if (!Bass.Init(-1, MixerFrequency, initFlags, IntPtr.Zero))
+            AudioConfig.LogDebug($"[AudioMixer] Attempting BASS.Init with Latency flag at {AudioConfig.MixerFrequency}Hz...");
+            if (!Bass.Init(-1, AudioConfig.MixerFrequency, initFlags, IntPtr.Zero))
             {
                 var error1 = Bass.LastError;
                 Log.Warning($"[AudioMixer] Init with Latency flag failed: {error1}, trying without...");
                 
                 // Fallback without latency flag
-                if (!Bass.Init(-1, MixerFrequency, DeviceInitFlags.Stereo, IntPtr.Zero))
+                if (!Bass.Init(-1, AudioConfig.MixerFrequency, DeviceInitFlags.Stereo, IntPtr.Zero))
                 {
                     var error2 = Bass.LastError;
                     Log.Warning($"[AudioMixer] Init with Stereo flag failed: {error2}, trying basic init...");
                     
                     // Last resort - basic init
-                    if (!Bass.Init(-1, MixerFrequency, DeviceInitFlags.Default, IntPtr.Zero))
+                    if (!Bass.Init(-1, AudioConfig.MixerFrequency, DeviceInitFlags.Default, IntPtr.Zero))
                     {
                         var error3 = Bass.LastError;
                         Log.Error($"[AudioMixer] Failed to initialize BASS with all methods: {error3}");
@@ -114,7 +112,7 @@ public static class AudioMixerManager
 
         // Create global mixer (stereo output to soundcard)
         AudioConfig.LogDebug("[AudioMixer] Creating global mixer stream...");
-        _globalMixerHandle = BassMix.CreateMixerStream(MixerFrequency, 2, BassFlags.Float | BassFlags.MixerNonStop);
+        _globalMixerHandle = BassMix.CreateMixerStream(AudioConfig.MixerFrequency, 2, BassFlags.Float | BassFlags.MixerNonStop);
         if (_globalMixerHandle == 0)
         {
             Log.Error($"[AudioMixer] Failed to create global mixer: {Bass.LastError}");
@@ -124,7 +122,7 @@ public static class AudioMixerManager
 
         // Create operator mixer (decode stream that feeds into global mixer)
         AudioConfig.LogDebug("[AudioMixer] Creating operator mixer stream...");
-        _operatorMixerHandle = BassMix.CreateMixerStream(MixerFrequency, 2, BassFlags.MixerNonStop | BassFlags.Decode);
+        _operatorMixerHandle = BassMix.CreateMixerStream(AudioConfig.MixerFrequency, 2, BassFlags.MixerNonStop | BassFlags.Decode);
         if (_operatorMixerHandle == 0)
         {
             Log.Error($"[AudioMixer] Failed to create operator mixer: {Bass.LastError}");
@@ -134,7 +132,7 @@ public static class AudioMixerManager
 
         // Create soundtrack mixer (decode stream that feeds into global mixer)
         AudioConfig.LogDebug("[AudioMixer] Creating soundtrack mixer stream...");
-        _soundtrackMixerHandle = BassMix.CreateMixerStream(MixerFrequency, 2, BassFlags.MixerNonStop | BassFlags.Decode);
+        _soundtrackMixerHandle = BassMix.CreateMixerStream(AudioConfig.MixerFrequency, 2, BassFlags.MixerNonStop | BassFlags.Decode);
         if (_soundtrackMixerHandle == 0)
         {
             Log.Error($"[AudioMixer] Failed to create soundtrack mixer: {Bass.LastError}");

@@ -152,7 +152,7 @@ public static class AudioEngine
         if (!WaveFormProcessing.RequestedOnce) 
             return;
         
-        const int lengthInBytes = WaveFormProcessing.WaveSampleCount << 2 << 1;
+        const int lengthInBytes = AudioConfig.WaveformSampleCount << 2 << 1;
         
         // This will later be processed in WaveFormProcessing
         WaveFormProcessing.LastFetchResultCode = Bass.ChannelGetData(soundStreamHandle, 
