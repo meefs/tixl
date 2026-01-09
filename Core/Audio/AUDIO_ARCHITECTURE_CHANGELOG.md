@@ -748,7 +748,7 @@ Project Root/
 
 ```csharp
 // CORRECT ORDER:
-1. AudioMixerManager.Initialize()  // First, before any BASS usage
+1. AudioMixerManager.Initialize()  // FIRST, before any BASS usage
 2. Load other resources
 3. AudioEngine.CompleteFrame()      // Can now use audio
 
@@ -817,7 +817,318 @@ Impact: Existing FLAC-based timelines may need adjustment if they
 | FLAC Duration | ℹ️ Info | Check FLAC timelines | Timeline sync may need adjustment |
 
 
-````````
+---
 
-# Response
-````````markdown
+## Migration Guide
+
+### For Application Developers
+
+**Step 1: Update Initialization Code**
+```csharp
+// In your Program.cs or main initialization:
+
+// OLD:
+Bass.Init();
+// ... other init ...
+
+// NEW:
+AudioMixerManager.Initialize();  // ← Add this FIRST
+// ... other init ...
+
+// AudioEngine.CompleteFrame() will now use the mixer system
+```
+
+**Step 2: Add BASS FLAC Plugin**
+```
+1. Download bassflac.dll from un4seen.com
+2. Copy to your application output directory
+3. AudioMixerManager will load it automatically
+4. Check logs for: "BASS FLAC plugin loaded successfully"
+```
+
+**Step 3: Test Short Sounds**
+```csharp
+// Create a test with 100ms audio file
+var player = new StereoAudioPlayer();
+player.AudioFile = "test_100ms.wav";
+player.PlayAudio = true;
+
+// Should hear audio within ~40ms
+// If not, check initialization order
+```
+
+### For Operator Developers
+
+**Using StereoAudioPlayer:**
+```csharp
+// Create operator instance
+var audioPlayer = new StereoAudioPlayer
+{
+    AudioFile = "path/to/sound.wav",
+    Volume = 1.0f,
+    Panning = 0.0f,  // Center
+    Speed = 1.0f
+};
+
+// Trigger playback (rising edge)
+audioPlayer.PlayAudio = true;  // ← Plays once
+audioPlayer.PlayAudio = false; // Reset for next trigger
+
+// Or use stop
+audioPlayer.StopAudio = true;  // ← Rising edge stops
+
+// Get feedback
+bool isPlaying = audioPlayer.IsPlaying;
+float level = audioPlayer.GetLevel;
+```
+
+**Test Mode for Debugging:**
+```csharp
+audioPlayer.EnableTestMode = true;
+audioPlayer.TestFrequency = 440f;  // A4 note
+audioPlayer.TriggerShortTest = true;  // Generates 0.1s sine wave
+// Check DebugInfo output for diagnostics
+```
+
+### For Low-Level Developers
+
+**Creating Custom Audio Streams:**
+```csharp
+// 1. Create decode stream
+var streamHandle = Bass.CreateStream(
+    filePath, 0, 0, 
+    BassFlags.Decode | BassFlags.Float | BassFlags.AsyncFile
+);
+
+// 2. Get mixer handle
+var mixerHandle = AudioMixerManager.OperatorMixerHandle;
+
+// 3. Add to mixer
+BassMix.MixerAddChannel(
+    mixerHandle, 
+    streamHandle, 
+    BassFlags.MixerChanBuffer
+);
+
+// 4. Force immediate buffering (critical for short sounds!)
+Bass.ChannelUpdate(mixerHandle, 0);
+
+// 5. Control playback via mixer flags
+BassMix.ChannelFlags(streamHandle, 0, BassFlags.MixerChanPause); // Play
+BassMix.ChannelFlags(streamHandle, BassFlags.MixerChanPause, 
+                     BassFlags.MixerChanPause); // Pause
+```
+
+**IMPORTANT: Never call Bass.ChannelGetInfo() in hot paths**
+```csharp
+// ❌ WRONG - Can deadlock:
+void UpdateEveryFrame() {
+    var info = Bass.ChannelGetInfo(streamHandle);
+    DoSomething(info.Channels);
+}
+
+// ✅ CORRECT - Cache at initialization:
+int _cachedChannels;
+
+void Initialize() {
+    var info = Bass.ChannelGetInfo(streamHandle);
+    _cachedChannels = info.Channels;
+}
+
+void UpdateEveryFrame() {
+    DoSomething(_cachedChannels);
+}
+```
+
+### Troubleshooting
+
+#### Issue: "AudioMixerManager failed to initialize"
+```
+Cause: BASS already initialized before AudioMixerManager
+Fix:   Move AudioMixerManager.Initialize() to earliest point in startup
+Check: Look for any Bass.Init() calls before it
+```
+
+#### Issue: Short sounds still not playing
+```
+Cause: Missing Bass.ChannelUpdate() after MixerAddChannel
+Fix:   Add immediate buffering:
+       BassMix.MixerAddChannel(...);
+       Bass.ChannelUpdate(mixerHandle, 0);  // ← Add this
+```
+
+#### Issue: Application freezes when playing audio
+```
+Cause: Calling Bass.ChannelGetInfo() in update loop
+Fix:   Cache metadata at initialization time
+Check: Search codebase for "Bass.ChannelGetInfo" in hot paths
+```
+
+#### Issue: FLAC files have wrong duration
+```
+Cause: bassflac.dll not loaded
+Fix:   Ensure bassflac.dll is in output directory
+Check: Log shows "BASS FLAC plugin loaded successfully"
+```
+
+#### Issue: Sounds continue playing after operator deleted
+```
+Cause: Not calling AudioEngine.UnregisterOperator()
+Fix:   Call in finalizer/Dispose:
+       AudioEngine.UnregisterOperator(_operatorId);
+Note:  Stale detection will auto-mute after 100ms anyway
+```
+
+---
+
+## Technical Details
+
+### BASS Flags Explained
+
+```csharp
+// Stream Creation Flags
+BassFlags.Decode        // Stream doesn't play directly, used as data source
+BassFlags.Float         // 32-bit float samples (better quality)
+BassFlags.AsyncFile     // Non-blocking file I/O (lower latency)
+
+// Mixer Flags
+BassFlags.MixerNonStop  // Mixer continues even with no sources
+BassFlags.MixerChanBuffer // Source uses internal buffering (smoother playback)
+BassFlags.MixerChanPause  // Source is paused in mixer
+
+// Device Flags
+DeviceInitFlags.Latency // Request low-latency mode from device
+DeviceInitFlags.Stereo  // Stereo output
+```
+
+### Position Flags
+```csharp
+PositionFlags.Bytes      // Position in bytes
+PositionFlags.MixerReset // Reset mixer buffers (required for mixer channels)
+```
+
+### Channel Attributes
+```csharp
+ChannelAttribute.Volume    // 0.0 - 1.0 (can go higher for amplification)
+ChannelAttribute.Pan       // -1.0 (left) to +1.0 (right)
+ChannelAttribute.Frequency // Sample rate (modify for pitch/speed)
+```
+
+### Mixer Architecture Notes
+
+**Why 3 Mixers?**
+1. **Global Mixer**: Outputs to soundcard, always playing
+2. **Operator Mixer**: Aggregates operator audio, feeds to global
+3. **Soundtrack Mixer**: Aggregates soundtrack audio, feeds to global
+
+**Benefits:**
+- Independent volume control for operators vs soundtrack
+- Future: Could add effects per path (EQ, reverb, etc.)
+- Clean separation of concerns
+- Resource management per category
+
+**Alternative Considered:**
+- Single mixer with manual channel management
+- Rejected due to complexity and harder debugging
+
+---
+
+## Future Improvements
+
+### Planned
+- [ ] Per-mixer EQ/effects support
+- [ ] Dynamic mixer channel allocation (currently fixed stereo)
+- [ ] Surround sound support (5.1, 7.1)
+- [ ] Audio recording/capture from mixer
+- [ ] VST plugin support in mixer chain
+
+### Under Consideration
+- [ ] Automatic sample rate conversion
+- [ ] Adaptive buffer sizing based on system load
+- [ ] GPU-accelerated audio effects
+- [ ] Real-time waveform/spectrum visualization optimization
+- [ ] ASIO driver support for ultra-low latency
+
+### Performance Targets
+- Target latency: <10ms (currently 20-60ms)
+- Target CPU overhead: <2% for 10 streams (currently ~8%)
+- Target memory: <1MB per stream (currently ~250KB)
+
+---
+
+## Appendix: Log Examples
+
+### Successful Initialization
+```
+[AudioMixer] Starting initialization...
+[AudioMixer] BASS not initialized, configuring for low latency...
+[AudioMixer] Config - UpdatePeriod: 10ms, UpdateThreads: 2, 
+             PlaybackBuffer: 100ms, DeviceBuffer: 20ms
+[AudioMixer] Attempting BASS.Init with Latency flag at 44100Hz...
+[AudioMixer] BASS initialized with LATENCY flag (optimized)
+[AudioMixer] BASS Info - Device: 1, SampleRate: 44100Hz, 
+             MinBuffer: 10ms, Latency: 20ms
+[AudioMixer] BASS FLAC plugin loaded successfully: Handle=12345
+[AudioMixer] Global mixer created: Handle=100
+[AudioMixer] Operator mixer created: Handle=101
+[AudioMixer] Soundtrack mixer created: Handle=102
+[AudioMixer] Operator mixer added to global mixer successfully
+[AudioMixer] Soundtrack mixer added to global mixer successfully
+[AudioMixer] Global mixer started, State: Playing
+[AudioMixer] ✓ Audio mixer system initialized successfully 
+             with low-latency settings.
+```
+
+### Stream Load + Playback
+```
+[OperatorAudio] Loading: test_100ms.wav (8820 bytes)
+[OperatorAudio] Stream created: Handle=200, CreateTime: 8.42ms
+[OperatorAudio] Stream info: Channels=2, Freq=44100, 
+                CType=Wave, Flags=Decode
+[OperatorAudio] Stream length: 0.100s (8820 bytes)
+[OperatorAudio] ✓ Loaded: test_100ms.wav | Duration: 0.100s | 
+                Handle: 200 | Channels: 2 | Freq: 44100 | 
+                MixerAdd: 2.15ms | Update: 0.87ms | 
+                StreamActive: Paused | MixerActive: Playing
+[OperatorAudio] First update: test_100ms.wav | Time: 0.000
+[OperatorAudio] ▶ Play(): test_100ms.wav | FlagResult: 0 | 
+                FlagTime: 0.05ms | UpdateTime: 0.12ms | 
+                StreamActive: Playing | MixerActive: Playing
+[OperatorAudio] GetLevel() SUCCESS: test_100ms.wav | 
+                Peak: 0.456 | Updates: 3
+```
+
+### Stale Detection
+```
+[OperatorAudio] First update: music.mp3 | Time: 0.000
+[OperatorAudio] ▶ Play(): music.mp3
+... (stream plays normally) ...
+... (Update() stops being called) ...
+[OperatorAudio] MUTED (active->stale): music.mp3 | Duration: 180.5s | 
+                TimeSinceStart: 12.3s | TimeSinceUpdate: 0.152s | 
+                Updates: 738 | MuteCount: 1
+... (Update() resumes) ...
+[OperatorAudio] UNMUTED (stale->active): music.mp3 | 
+                Updates: 739 | TimeSinceUpdate: 0.016s
+```
+
+---
+
+## Conclusion
+
+This audio architecture redesign represents a fundamental improvement in T3's audio capabilities:
+
+✅ **Reliable short sound playback** - sounds as short as 50ms now work  
+✅ **Dramatic latency reduction** - 88% improvement in trigger-to-audio time  
+✅ **Zero deadlocks** - complete elimination of thread contention issues  
+✅ **Better resource management** - automatic cleanup via stale detection  
+✅ **Future-proof architecture** - extensible mixer system for effects/routing  
+
+The new `StereoAudioPlayer` operator opens up new creative possibilities for interactive audio in operator graphs, while the underlying `AudioMixerManager` and `OperatorAudioStream` infrastructure provides a solid foundation for future audio features.
+
+---
+
+**Document Version:** 1.0  
+**Last Updated:** 01-09-2026  
+**Maintainer:** H445
+
