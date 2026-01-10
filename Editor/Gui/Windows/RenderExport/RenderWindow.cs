@@ -1,4 +1,5 @@
 #nullable enable
+using System.IO;
 using ImGuiNET;
 using T3.Core.DataTypes.Vector;
 using T3.Editor.Gui.Input;
@@ -64,6 +65,8 @@ internal sealed class RenderWindow : Window
         ImGui.Separator();
         FormInputs.AddVerticalSpace(5);
 
+        DrawRenderSummary();
+
         DrawRenderingControls();
 
         CustomComponents.HelpText(RenderProcess.IsExporting ? RenderProcess.LastHelpString : _lastHelpString);
@@ -108,8 +111,8 @@ internal sealed class RenderWindow : Window
 
         RenderSettings.FrameCount = RenderTiming.ComputeFrameCount(RenderSettings);
 
-        FormInputs.AddFloat("Resolution Factor", ref RenderSettings.ResolutionFactor, 0.125f, 4, 0.1f, true, true,
-                            "A factor applied to the output resolution of the rendered frames.");
+        // Resolution as Percentage with Popover
+        DrawResolutionPopover();
 
         if (FormInputs.AddInt("Motion Blur Samples", ref RenderSettings.OverrideMotionBlurSamples, -1, 50, 1,
                               "This requires a [RenderWithMotionBlur] operator. Please check its documentation."))
@@ -118,9 +121,69 @@ internal sealed class RenderWindow : Window
         }
     }
 
+    private static void DrawResolutionPopover()
+    {
+        var currentPct = (int)(RenderSettings.ResolutionFactor * 100);
+
+        FormInputs.SetIndentToParameters();
+        ImGui.TextUnformatted("Resolution");
+        ImGui.SameLine();
+        FormInputs.SetCursorToParameterEdit();
+
+        CustomComponents.DrawPopover("ResolutionPopover", $"{currentPct}%", () =>
+        {
+            var shouldClose = false;
+
+            if (ImGui.Selectable("25%", currentPct == 25))
+            {
+                RenderSettings.ResolutionFactor = 0.25f;
+                shouldClose = true;
+            }
+            if (ImGui.Selectable("50%", currentPct == 50))
+            {
+                RenderSettings.ResolutionFactor = 0.5f;
+                shouldClose = true;
+            }
+            if (ImGui.Selectable("100%", currentPct == 100))
+            {
+                RenderSettings.ResolutionFactor = 1.0f;
+                shouldClose = true;
+            }
+            if (ImGui.Selectable("200%", currentPct == 200))
+            {
+                RenderSettings.ResolutionFactor = 2.0f;
+                shouldClose = true;
+            }
+
+            CustomComponents.SeparatorLine();
+
+            // Custom input
+            ImGui.TextUnformatted("Custom:");
+            ImGui.SameLine();
+            var customPct = RenderSettings.ResolutionFactor * 100f;
+            ImGui.SetNextItemWidth(60 * T3Ui.UiScaleFactor);
+            if (ImGui.InputFloat("##CustomRes", ref customPct, 0, 0, "%.0f"))
+            {
+                customPct = Math.Clamp(customPct, 12.5f, 400f);
+                RenderSettings.ResolutionFactor = customPct / 100f;
+            }
+            ImGui.SameLine();
+            ImGui.TextUnformatted("%");
+
+            return shouldClose;
+        });
+        CustomComponents.TooltipForLastItem("A factor applied to the output resolution of the rendered frames.");
+    }
+
     private void DrawVideoSettings(Int2 size)
     {
-        FormInputs.AddInt("Bitrate", ref RenderSettings.Bitrate, 0, 500000000, 1000);
+        // Bitrate in Mbps
+        var bitrateMbps = RenderSettings.Bitrate / 1_000_000f;
+        if (FormInputs.AddFloat("Bitrate (Mbps)", ref bitrateMbps, 0.1f, 500f, 0.5f, true, true,
+                                "Video bitrate in megabits per second."))
+        {
+            RenderSettings.Bitrate = (int)(bitrateMbps * 1_000_000f);
+        }
 
         var startSec = RenderTiming.ReferenceTimeToSeconds(RenderSettings.StartInBars, RenderSettings.Reference, RenderSettings.Fps);
         var endSec = RenderTiming.ReferenceTimeToSeconds(RenderSettings.EndInBars, RenderSettings.Reference, RenderSettings.Fps);
@@ -134,12 +197,37 @@ internal sealed class RenderWindow : Window
         FormInputs.AddHint($"{q.Title} quality ({RenderSettings.Bitrate * duration / 1024 / 1024 / 8:0} MB for {duration / 60:0}:{duration % 60:00}s at {size.Width}×{size.Height})");
         CustomComponents.TooltipForLastItem(q.Description);
 
-        FormInputs.AddFilePicker("File name",
-                                 ref UserSettings.Config.RenderVideoFilePath!,
-                                 ".\\Render\\Title-v01.mp4 ",
+        // Split path into Output Folder and File Name
+        var currentPath = UserSettings.Config.RenderVideoFilePath ?? "./Render/render-v01.mp4";
+        var directory = Path.GetDirectoryName(currentPath) ?? "./Render";
+        var filename = Path.GetFileName(currentPath) ?? "render-v01.mp4";
+
+        FormInputs.AddFilePicker("Output Folder",
+                                 ref directory!,
+                                 ".\\Render",
                                  null,
-                                 "Using v01 in the file name will enable auto incrementation and don't forget the .mp4 extension, I'm serious.",
+                                 "Folder where the video will be saved.",
                                  FileOperations.FilePickerTypes.Folder);
+
+        if (FormInputs.AddStringInput("File Name", ref filename))
+        {
+            // Sanitize invalid characters
+            filename = (filename ?? string.Empty).Trim();
+            foreach (var c in Path.GetInvalidFileNameChars())
+            {
+                filename = filename.Replace(c, '_');
+            }
+            if (string.IsNullOrEmpty(filename))
+                filename = "render-v01.mp4";
+        }
+        CustomComponents.TooltipForLastItem("Video filename. Using 'v01' enables auto-increment.");
+
+        // Ensure .mp4 extension
+        if (!filename.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase))
+            filename += ".mp4";
+
+        // Recombine path
+        UserSettings.Config.RenderVideoFilePath = Path.Combine(directory, filename);
 
         if (RenderPaths.IsFilenameIncrementable())
         {
@@ -156,7 +244,7 @@ internal sealed class RenderWindow : Window
     {
         FormInputs.AddEnumDropdown(ref RenderSettings.FileFormat, "File Format");
 
-        if (FormInputs.AddStringInput("File name", ref UserSettings.Config.RenderSequenceFileName))
+        if (FormInputs.AddStringInput("File Name", ref UserSettings.Config.RenderSequenceFileName))
         {
             UserSettings.Config.RenderSequenceFileName = (UserSettings.Config.RenderSequenceFileName ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(UserSettings.Config.RenderSequenceFileName))
@@ -178,6 +266,43 @@ internal sealed class RenderWindow : Window
                                  FileOperations.FilePickerTypes.Folder);
     }
 
+    private void DrawRenderSummary()
+    {
+        var size = RenderProcess.MainOutputOriginalSize;
+        var scaledWidth = (int)(size.Width * RenderSettings.ResolutionFactor);
+        var scaledHeight = (int)(size.Height * RenderSettings.ResolutionFactor);
+
+        var startSec = RenderTiming.ReferenceTimeToSeconds(RenderSettings.StartInBars, RenderSettings.Reference, RenderSettings.Fps);
+        var endSec = RenderTiming.ReferenceTimeToSeconds(RenderSettings.EndInBars, RenderSettings.Reference, RenderSettings.Fps);
+        var duration = Math.Max(0, endSec - startSec);
+
+        string outputPath;
+        string format;
+        if (RenderSettings.RenderMode == RenderSettings.RenderModes.Video)
+        {
+            outputPath = UserSettings.Config.RenderVideoFilePath ?? "./Render/render-v01.mp4";
+            format = "MP4 Video";
+        }
+        else
+        {
+            var folder = UserSettings.Config.RenderSequenceFilePath ?? ".\\ImageSequence";
+            var baseName = UserSettings.Config.RenderSequenceFileName ?? "output";
+            outputPath = Path.Combine(folder, baseName);
+            format = $"{RenderSettings.FileFormat} Sequence";
+        }
+
+        ImGui.PushFont(Fonts.FontSmall);
+        ImGui.PushStyleColor(ImGuiCol.Text, UiColors.TextMuted.Rgba);
+
+        ImGui.TextWrapped($"Output: {outputPath}");
+        ImGui.TextWrapped($"Format: {format} • {scaledWidth}×{scaledHeight} @ {RenderSettings.Fps:0}fps");
+        ImGui.TextWrapped($"Duration: {duration / 60:0}:{duration % 60:00.0}s ({RenderSettings.FrameCount} frames)");
+
+        ImGui.PopStyleColor();
+        ImGui.PopFont();
+        FormInputs.AddVerticalSpace(5);
+    }
+
     private static void DrawRenderingControls()
     {
         if (!RenderProcess.IsExporting && !RenderProcess.IsToollRenderingSomething)
@@ -189,11 +314,28 @@ internal sealed class RenderWindow : Window
         }
         else if (RenderProcess.IsExporting)
         {
-            ImGui.ProgressBar((float)RenderProcess.Progress, new Vector2(-1, 16 * T3Ui.UiScaleFactor));
+            var progress = (float)RenderProcess.Progress;
+            var elapsed = T3.Core.Animation.Playback.RunTimeInSecs - RenderProcess.ExportStartedTimeLocal;
+
+            // Calculate time remaining
+            string timeRemainingStr = "Calculating...";
+            if (progress > 0.01)
+            {
+                var estimatedTotal = elapsed / progress;
+                var remaining = estimatedTotal - elapsed;
+                timeRemainingStr = StringUtils.HumanReadableDurationFromSeconds(remaining) + " remaining";
+            }
+
+            ImGui.ProgressBar(progress, new Vector2(-1, 16 * T3Ui.UiScaleFactor), $"{progress * 100:0}%");
+
+            ImGui.PushFont(Fonts.FontSmall);
+            ImGui.PushStyleColor(ImGuiCol.Text, UiColors.TextMuted.Rgba);
+            ImGui.TextUnformatted(timeRemainingStr);
+            ImGui.PopStyleColor();
+            ImGui.PopFont();
 
             if (ImGui.Button("Cancel"))
             {
-                var elapsed = T3.Core.Animation.Playback.RunTimeInSecs - RenderProcess.ExportStartedTimeLocal;
                 RenderProcess.Cancel($"Render cancelled after {StringUtils.HumanReadableDurationFromSeconds(elapsed)}");
             }
         }
