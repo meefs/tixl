@@ -41,15 +41,42 @@ public sealed class StereoOperatorAudioStream
     private const int WaveformWindowSamples = 1024;
     private const int SpectrumBands = 512;
 
-    // Stale detection for performance optimization
-    private double _lastUpdateTime = double.NegativeInfinity;
-    private bool _isMuted;
-    private const double StaleThresholdSeconds = 0.1;
+    // Stale detection - managed by AudioEngine
+    private bool _isStaleMuted;
+    private bool _isUserMuted; // Track user mute state
+
+    public void SetStaleMuted(bool muted, string reason = "")
+    {
+        if (_isStaleMuted == muted)
+            return; // No change
+
+        _isStaleMuted = muted;
+        
+        var fileName = Path.GetFileName(FilePath);
+        
+        if (muted)
+        {
+            // Mute by setting volume to 0 (stream continues playing in background)
+            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
+            AudioConfig.LogDebug($"[StereoAudio] MUTED (stale): {fileName} | Reason: {reason}");
+        }
+        else
+        {
+            // Unmute: only restore volume if stream is playing, not user-paused, AND not user-muted
+            if (IsPlaying && !IsPaused && !_isUserMuted)
+            {
+                Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, _currentVolume);
+                AudioConfig.LogDebug($"[StereoAudio] UNMUTED (active): {fileName} | Reason: {reason}");
+            }
+            else if (_isUserMuted)
+            {
+                AudioConfig.LogDebug($"[StereoAudio] UNMUTED (active) but user muted: {fileName} | Reason: {reason}");
+            }
+        }
+    }
     
     // Diagnostic tracking
     private int _updateCount;
-    private int _staleMuteCount;
-    private double _streamStartTime = double.NegativeInfinity;
 
     internal static bool TryLoadStream(string filePath, int mixerHandle, [NotNullWhen(true)] out StereoOperatorAudioStream? stream)
     {
@@ -155,84 +182,23 @@ public sealed class StereoOperatorAudioStream
         return true;
     }
 
-    public void UpdateStaleDetection(double currentTime)
-    {
-        var timeSinceLastUpdate = currentTime - _lastUpdateTime;
-        
-        // On first update after stream creation, record start time
-        if (_streamStartTime == double.NegativeInfinity)
-        {
-            _streamStartTime = currentTime;
-        }
-        
-        // On first update, just record the time and don't check staleness
-        if (_lastUpdateTime == double.NegativeInfinity)
-        {
-            _lastUpdateTime = currentTime;
-            _updateCount++;
-            
-            var fileName = Path.GetFileName(FilePath);
-            AudioConfig.LogDebug($"[StereoAudio] First update: {fileName} | Time: {currentTime:F3}");
-            return;
-        }
-        
-        var isStale = timeSinceLastUpdate > StaleThresholdSeconds;
-        var wasStale = _isMuted;
-        
-        _lastUpdateTime = currentTime;
-        _updateCount++;
-
-        // Only apply stale muting if the stream is actually playing
-        // Don't interfere with stopped or manually paused streams
-        if (!IsPlaying || IsPaused)
-            return;
-
-        // Handle stale -> active transition (unmute)
-        if (wasStale && !isStale)
-        {
-            _isMuted = false;
-            // Unmute by removing pause flag
-            BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanBuffer, BassFlags.MixerChanPause);
-            
-            var fileName = Path.GetFileName(FilePath);
-            AudioConfig.LogDebug($"[StereoAudio] UNMUTED (stale->active): {fileName} | Updates: {_updateCount} | TimeSinceUpdate: {timeSinceLastUpdate:F3}s");
-        }
-        // Handle active -> stale transition (mute but keep stream alive)
-        else if (!wasStale && isStale)
-        {
-            _isMuted = true;
-            _staleMuteCount++;
-            
-            // Mute by setting pause flag
-            BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
-            
-            var fileName = Path.GetFileName(FilePath);
-            var timeSinceStart = currentTime - _streamStartTime;
-            Log.Warning($"[StereoAudio] MUTED (active->stale): {fileName} | Duration: {Duration:F3}s | TimeSinceStart: {timeSinceStart:F3}s | TimeSinceUpdate: {timeSinceLastUpdate:F3}s | Updates: {_updateCount} | MuteCount: {_staleMuteCount}");
-        }
-    }
-
     public void Play()
     {
         var fileName = Path.GetFileName(FilePath);
         
-        if (IsPlaying && !IsPaused && !_isMuted)
+        if (IsPlaying && !IsPaused && !_isStaleMuted)
         {
             AudioConfig.LogDebug($"[StereoAudio] Play() - already playing: {fileName}");
             return;
         }
 
-        var wasStale = _isMuted;
+        var wasStale = _isStaleMuted;
         var wasPaused = IsPaused;
         
         AudioConfig.LogDebug($"[StereoAudio] Play() - Starting: {fileName} | WasStale: {wasStale} | WasPaused: {wasPaused}");
         
         // Clear stale-muted state when explicitly playing
-        _isMuted = false;
-        
-        // Reset stale tracking timers when explicitly playing
-        _lastUpdateTime = double.NegativeInfinity;
-        _streamStartTime = double.NegativeInfinity;
+        _isStaleMuted = false;
         
         // For mixer channels: clear the pause flag to unpause
         var startTime = DateTime.Now;
@@ -291,9 +257,7 @@ public sealed class StereoOperatorAudioStream
         IsPaused = false;
         
         // Reset stale tracking when stopped
-        _isMuted = false;
-        _lastUpdateTime = double.NegativeInfinity;
-        _streamStartTime = double.NegativeInfinity;
+        _isStaleMuted = false;
         
         // For mixer channels, DON'T remove and re-add for short sounds
         // Instead, just pause and seek to start - this preserves the mixer connection
@@ -310,22 +274,23 @@ public sealed class StereoOperatorAudioStream
     public void SetVolume(float volume, bool mute)
     {
         _currentVolume = volume;
+        _isUserMuted = mute; // Track user mute state
         
-        // Don't apply muting if we're not playing
+        // Don't apply volume changes if we're not playing
         if (!IsPlaying)
             return;
-            
-        if (mute || _isMuted)
+        
+        // Determine final volume based on mute states
+        float finalVolume = 0.0f;
+        
+        if (!mute && !_isStaleMuted)
         {
-            // User requested mute OR stale-muted - use pause flag
-            BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
+            // Not muted by user or stale detection - use current volume
+            finalVolume = volume;
         }
-        else
-        {
-            // Not muted - remove pause flag and set volume
-            BassMix.ChannelFlags(StreamHandle, 0, BassFlags.MixerChanPause);
-            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, volume);
-        }
+        // else: volume stays at 0 (muted by user or stale detection)
+        
+        Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, finalVolume);
     }
 
     public void SetPanning(float panning)
@@ -360,7 +325,7 @@ public sealed class StereoOperatorAudioStream
     public float GetLevel()
     {
         // Return 0 if stream is not playing or user-paused (but not if just stale-muted)
-        if (!IsPlaying || (IsPaused && !_isMuted))
+        if (!IsPlaying || (IsPaused && !_isStaleMuted))
             return 0f;
             
         // Use BassMix.ChannelGetLevel for much better performance than ChannelGetData
@@ -375,7 +340,7 @@ public sealed class StereoOperatorAudioStream
                 var fileName = Path.GetFileName(FilePath);
                 var channelActive = Bass.ChannelIsActive(StreamHandle);
                 var mixerActive = Bass.ChannelIsActive(MixerStreamHandle);
-                AudioConfig.LogDebug($"[StereoAudio] GetLevel() failed: {fileName} | Updates: {_updateCount} | IsMuted: {_isMuted} | StreamActive: {channelActive} | MixerActive: {mixerActive} | Error: {Bass.LastError}");
+                AudioConfig.LogDebug($"[StereoAudio] GetLevel() failed: {fileName} | Updates: {_updateCount} | IsMuted: {_isStaleMuted} | StreamActive: {channelActive} | MixerActive: {mixerActive} | Error: {Bass.LastError}");
             }
             return 0f;
         }
@@ -402,7 +367,7 @@ public sealed class StereoOperatorAudioStream
     public List<float> GetWaveform()
     {
         // Return empty buffer if not playing or user-paused (but allow if just stale-muted)
-        if (!IsPlaying || (IsPaused && !_isMuted))
+        if (!IsPlaying || (IsPaused && !_isStaleMuted))
             return EnsureWaveformBuffer();
 
         UpdateWaveformFromPcm();
@@ -412,7 +377,7 @@ public sealed class StereoOperatorAudioStream
     public List<float> GetSpectrum()
     {
         // Return empty buffer if not playing or user-paused (but allow if just stale-muted)
-        if (!IsPlaying || (IsPaused && !_isMuted))
+        if (!IsPlaying || (IsPaused && !_isStaleMuted))
             return EnsureSpectrumBuffer();
 
         UpdateSpectrum();
@@ -547,7 +512,7 @@ public sealed class StereoOperatorAudioStream
     public void Dispose()
     {
         var fileName = Path.GetFileName(FilePath);
-        AudioConfig.LogDebug($"[StereoAudio] Disposing: {fileName} | TotalUpdates: {_updateCount} | TotalStaleMutes: {_staleMuteCount}");
+        AudioConfig.LogDebug($"[StereoAudio] Disposing: {fileName} | TotalUpdates: {_updateCount}");
         
         Bass.ChannelStop(StreamHandle);
         BassMix.MixerRemoveChannel(StreamHandle);

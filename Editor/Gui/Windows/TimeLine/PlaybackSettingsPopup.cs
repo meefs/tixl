@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System.Text;
 using System.Text.RegularExpressions;
 using ImGuiNET;
@@ -396,11 +396,11 @@ internal static class PlaybackSettingsPopup
                         if (ImGui.Selectable($"{d.DeviceInfo.Name}", isSelected, ImGuiSelectableFlags.DontClosePopups))
                         {
                             Bass.Configure(Configuration.UpdateThreads, false);
-
                             settings.AudioInputDeviceName = d.DeviceInfo.Name;
                             modified = true;
                             ProjectSettings.Save();
                             //WasapiAudioInput.StartInputCapture(d);
+                            T3.Core.Audio.AudioEngine.OnAudioDeviceChanged(); // <-- Ensure audio engine resets on device change
                         }
 
                         if (ImGui.IsItemHovered())

@@ -114,6 +114,9 @@ public static class AudioEngine
             ClipStreams.Remove(handle);
         }
         
+        // STALE DETECTION: Check all operator streams and mute those that weren't updated this frame
+        CheckAndMuteStaleOperators(playback.FxTimeInBars);
+        
         // Clear after loop to avoid keeping open references
         _obsoleteHandles.Clear();
         _updatedClipTimes.Clear();
@@ -183,6 +186,9 @@ public static class AudioEngine
     #region Operator Audio Playback
     private static readonly Dictionary<Guid, StereoOperatorAudioState> _operatorAudioStates = new();
     private static readonly Dictionary<Guid, SpatialOperatorAudioState> _spatialOperatorAudioStates = new();
+    
+    // Track which operators were updated this frame for stale detection
+    private static readonly HashSet<Guid> _operatorsUpdatedThisFrame = new();
 
     // 3D Listener position and orientation
     private static Vector3 _listenerPosition = Vector3.Zero;
@@ -198,6 +204,7 @@ public static class AudioEngine
         public float PreviousSeek = 0f;
         public bool PreviousPlay;
         public bool PreviousStop;
+        public bool IsStale; // Track stale state to avoid redundant SetStaleMuted calls
     }
 
     private class SpatialOperatorAudioState
@@ -208,6 +215,7 @@ public static class AudioEngine
         public float PreviousSeek = 0f;
         public bool PreviousPlay;
         public bool PreviousStop;
+        public bool IsStale; // Track stale state to avoid redundant SetStaleMuted calls
     }
 
     /// <summary>
@@ -241,7 +249,7 @@ public static class AudioEngine
     /// </summary>
     public static Vector3 Get3DListenerUp() => _listenerUp;
 
-    public static void UpdateOperatorPlayback(
+    public static void UpdateStereoOperatorPlayback(
         Guid operatorId,
         double localFxTime,
         string filePath,
@@ -253,6 +261,9 @@ public static class AudioEngine
         float speed = 1.0f,
         float seek = 0f)
     {
+        // Mark this operator as updated this frame (active, not stale)
+        _operatorsUpdatedThisFrame.Add(operatorId);
+        
         // Ensure mixer is initialized
         if (AudioMixerManager.OperatorMixerHandle == 0)
         {
@@ -314,9 +325,6 @@ public static class AudioEngine
 
         if (state.Stream == null)
             return;
-
-        // Update stale detection
-        state.Stream.UpdateStaleDetection(localFxTime);
 
         // Detect play trigger (rising edge)
         var playTrigger = shouldPlay && !state.PreviousPlay;
@@ -471,6 +479,9 @@ public static class AudioEngine
         float outerConeVolume = 1.0f,
         int mode3D = 0)
     {
+        // Mark this operator as updated this frame (active, not stale)
+        _operatorsUpdatedThisFrame.Add(operatorId);
+        
         // Ensure mixer is initialized
         if (AudioMixerManager.OperatorMixerHandle == 0)
         {
@@ -537,9 +548,6 @@ public static class AudioEngine
 
         if (state.Stream == null)
             return;
-
-        // Update stale detection
-        state.Stream.UpdateStaleDetection(localFxTime);
 
         // Update 3D position ALWAYS (even when not playing, for smooth transitions)
         state.Stream.Update3DPosition(position, minDistance, maxDistance);
@@ -683,4 +691,79 @@ public static class AudioEngine
 
     // reused list to avoid allocations
     private static readonly List<AudioClipResourceHandle> _obsoleteHandles = [];
+
+    /// <summary>
+    /// Check all operator audio streams and mute those that weren't updated this frame
+    /// This runs every frame to detect when operators are no longer being evaluated
+    /// </summary>
+    private static void CheckAndMuteStaleOperators(double currentTime)
+    {
+        // Check stereo operators
+        foreach (var kvp in _operatorAudioStates)
+        {
+            var operatorId = kvp.Key;
+            var state = kvp.Value;
+            
+            if (state.Stream == null)
+                continue;
+
+            // Operator was NOT updated this frame = it's stale
+            bool isStale = !_operatorsUpdatedThisFrame.Contains(operatorId);
+            
+            // Only call SetStaleMuted when state actually changes
+            // This prevents calling it every frame for already-stale operators
+            if (state.IsStale != isStale)
+            {
+                state.Stream.SetStaleMuted(isStale, isStale ? "Operator not evaluated" : "Operator active");
+                state.IsStale = isStale;
+            }
+        }
+
+        // Check spatial operators
+        foreach (var kvp in _spatialOperatorAudioStates)
+        {
+            var operatorId = kvp.Key;
+            var state = kvp.Value;
+            
+            if (state.Stream == null)
+                continue;
+
+            // Operator was NOT updated this frame = it's stale
+            bool isStale = !_operatorsUpdatedThisFrame.Contains(operatorId);
+            
+            // Only call SetStaleMuted when state actually changes
+            if (state.IsStale != isStale)
+            {
+                state.Stream.SetStaleMuted(isStale, isStale ? "Operator not evaluated" : "Operator active");
+                state.IsStale = isStale;
+            }
+        }
+
+        // Clear the set for next frame
+        _operatorsUpdatedThisFrame.Clear();
+    }
+
+    public static void OnAudioDeviceChanged()
+    {
+        // Dispose and clear all stereo operator streams
+        foreach (var state in _operatorAudioStates.Values)
+        {
+            state.Stream?.Dispose();
+        }
+        _operatorAudioStates.Clear();
+
+        // Dispose and clear all spatial operator streams
+        foreach (var state in _spatialOperatorAudioStates.Values)
+        {
+            state.Stream?.Dispose();
+        }
+        _spatialOperatorAudioStates.Clear();
+
+        // Reinitialize the mixer for the new device
+        AudioMixerManager.Shutdown();
+        AudioMixerManager.Initialize();
+
+        // Optionally, log the device change
+        AudioConfig.LogInfo("[AudioEngine] Audio device changed: all operator streams and mixer reinitialized.");
+    }
 }

@@ -17,6 +17,7 @@ The `StereoAudioPlayer` operator provides full-featured stereo audio playback wi
 - **Test Mode**: Built-in test tone generator for debugging and verification
 - **Status Outputs**: IsPlaying, IsPaused flags for operator graph logic
 - **Low-Latency Design**: Optimized for ~20-60ms latency through buffer management
+- **Automatic Stale Detection**: Streams automatically mute when operators are disabled/bypassed
 
 ### 2. StereoOperatorAudioStream.cs
 **Location:** `Core/Audio/StereoOperatorAudioStream.cs`
@@ -27,7 +28,7 @@ The `StereoAudioPlayer` operator provides full-featured stereo audio playback wi
 - **Stereo/Mono Support**: Handles 1-channel (mono) and 2-channel (stereo) audio files
 - **Format Support**: WAV, MP3, OGG, FLAC (via BASS plugins)
 - **Smart Buffering**: Optimized buffer sizes for short and long audio clips
-- **Stale Detection**: Automatically mutes inactive streams to save CPU
+- **Stale Detection**: Automatically mutes inactive streams to save CPU (100ms threshold)
 - **Real-time Parameters**: Dynamic volume, panning, speed, and seek control
 - **Sample-Accurate Seeking**: Precise playback positioning
 - **Comprehensive Analysis**: Level metering, waveform data, spectrum data
@@ -206,7 +207,49 @@ private static readonly Dictionary<Guid, OperatorAudioState> _stereoOperatorAudi
 2. **Playback**: Stream starts/resumes on play trigger
 3. **Updates**: Volume, panning, speed, seek applied each frame
 4. **Analysis**: Level, waveform, spectrum calculated in real-time
-5. **Cleanup**: Stale streams automatically cleaned up after 100ms inactivity
+5. **Stale Detection**: Inactive streams automatically muted after 100ms (see below)
+6. **Cleanup**: Streams disposed when operators are unregistered
+
+### Stale Detection System
+
+**Purpose:** Automatically mutes audio streams when operators stop being evaluated (e.g., disabled nodes, bypassed graph sections).
+
+**How It Works:**
+- When an operator is **active** (Update() is called), it's marked in `AudioEngine._operatorsUpdatedThisFrame`
+- At the end of each frame, `AudioEngine.CheckAndMuteStaleOperators()` checks all registered operators
+- If an operator was **not** updated this frame, its stream is considered **stale**
+- After 100ms without updates, the stream is automatically **muted** (paused in mixer)
+- When the operator becomes active again, the stream automatically **unmutes** instantly
+
+**Key Benefits:**
+- ✅ **Zero user intervention**: No manual cleanup required
+- ✅ **Instant resume**: Streams stay loaded, unmute immediately when re-enabled
+- ✅ **Maintains playback position**: Stream continues advancing silently in background
+- ✅ **Respects user settings**: User mute checkbox is honored even when returning from stale
+- ✅ **CPU efficient**: Silent streams use minimal resources
+- ✅ **Non-destructive**: Maintains playback position and state
+
+**Muting Mechanism:**
+```csharp
+// Mute by setting volume to 0 (stream continues playing in background)
+Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
+
+// Unmute by restoring volume
+Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, _currentVolume);
+```
+
+**Diagnostic Logging:**
+```
+[StereoAudio] MUTED (stale): audio.wav | Reason: Operator not evaluated
+[StereoAudio] UNMUTED (active): audio.wav | Reason: Operator active
+```
+
+**Use Cases:**
+- Disabled operator nodes → Audio stops automatically
+- Bypassed graph sections → All audio in section mutes
+- Conditional playback → Audio only plays when condition is true
+
+**For detailed information**, see [STALE_DETECTION.md](STALE_DETECTION.md).
 
 ### Audio Format Support
 

@@ -38,6 +38,7 @@ namespace Lib.io.audio
         [Input(Guid = "a5de0d72-5924-4f3a-a02f-d5de7c03f07f")]
         public readonly InputSlot<float> Seek = new();
 
+#if DEBUG
         // Test/Debug inputs
         [Input(Guid = "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b")]
         public readonly InputSlot<bool> EnableTestMode = new();
@@ -50,6 +51,7 @@ namespace Lib.io.audio
 
         [Input(Guid = "b4c5d6e7-f8a9-4b0c-1d2e-3f4a5b6c7d8e")]
         public readonly InputSlot<float> TestFrequency = new();
+#endif
 
         [Output(Guid = "2433f838-a8ba-4f3a-809e-2d41c404bb84")]
         public readonly Slot<Command> Result = new();
@@ -69,16 +71,20 @@ namespace Lib.io.audio
         [Output(Guid = "7f8e9d2a-4b5c-3e89-8f12-6a5b9c8d0e2f")]
         public readonly Slot<List<float>> GetSpectrum = new();
 
+#if DEBUG
         // Debug output
         [Output(Guid = "c5d6e7f8-a9b0-4c1d-2e3f-4a5b6c7d8e9f")]
         public readonly Slot<string> DebugInfo = new();
+#endif
 
         private Guid _operatorId;
         private bool _wasPausedLastFrame;
+#if DEBUG
         private bool _previousShortTestTrigger;
         private bool _previousLongTestTrigger;
         private string _testFilePath = string.Empty;
         private bool _testModeActive;
+#endif
 
         public StereoAudioPlayer()
         {
@@ -90,7 +96,9 @@ namespace Lib.io.audio
             GetLevel.UpdateAction += Update;
             GetWaveform.UpdateAction += Update;
             GetSpectrum.UpdateAction += Update;
+#if DEBUG
             DebugInfo.UpdateAction += Update;
+#endif
         }
 
         private void Update(EvaluationContext context)
@@ -101,6 +109,7 @@ namespace Lib.io.audio
                 AudioConfig.LogDebug($"[StereoAudioPlayer] Initialized with operator ID: {_operatorId}");
             }
 
+#if DEBUG
             var enableTestMode = EnableTestMode.GetValue(context);
             var triggerShortTest = TriggerShortTest.GetValue(context);
             var triggerLongTest = TriggerLongTest.GetValue(context);
@@ -151,6 +160,10 @@ namespace Lib.io.audio
                 filePath = AudioFile.GetValue(context);
                 shouldPlay = PlayAudio.GetValue(context);
             }
+#else
+            string filePath = AudioFile.GetValue(context);
+            bool shouldPlay = PlayAudio.GetValue(context);
+#endif
 
             var shouldStop = StopAudio.GetValue(context);
             var shouldPause = PauseAudio.GetValue(context);
@@ -179,7 +192,7 @@ namespace Lib.io.audio
 
             // Send all state to AudioEngine - let it handle the logic
             var updateStart = DateTime.Now;
-            AudioEngine.UpdateOperatorPlayback(
+            AudioEngine.UpdateStereoOperatorPlayback(
                 operatorId: _operatorId,
                 localFxTime: context.LocalFxTime,
                 filePath: filePath,
@@ -206,6 +219,7 @@ namespace Lib.io.audio
             GetWaveform.Value = AudioEngine.GetOperatorWaveform(_operatorId);
             GetSpectrum.Value = AudioEngine.GetOperatorSpectrum(_operatorId);
 
+#if DEBUG
             // Build debug info
             if (_testModeActive)
             {
@@ -219,8 +233,10 @@ namespace Lib.io.audio
                                  $"Playing: {IsPlaying.Value} | Paused: {IsPaused.Value} | " +
                                  $"Level: {GetLevel.Value:F3}";
             }
+#endif
         }
 
+#if DEBUG
         private string GenerateTestTone(float frequency, float durationSeconds, string label)
         {
             const int sampleRate = 48000;
@@ -290,6 +306,7 @@ namespace Lib.io.audio
                 return string.Empty;
             }
         }
+#endif
 
         private Guid ComputeInstanceGuid()
         {
@@ -323,6 +340,7 @@ namespace Lib.io.audio
                 AudioEngine.UnregisterOperator(_operatorId);
             }
 
+#if DEBUG
             // Clean up test files
             if (!string.IsNullOrEmpty(_testFilePath) && System.IO.File.Exists(_testFilePath))
             {
@@ -335,6 +353,7 @@ namespace Lib.io.audio
                     // Ignore cleanup errors
                 }
             }
+#endif
         }
     }
 }

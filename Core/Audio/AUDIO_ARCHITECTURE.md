@@ -1,6 +1,6 @@
 # Audio System Architecture
 
-**Version:** 2.0  
+**Version:** 1.0  
 **Last Updated:** 2026-01-10  
 **Status:** Production Ready
 
@@ -202,7 +202,6 @@ Audio configuration is accessible through the Editor Settings window:
 - **Analysis buffers:** ~16KB per stream (FFT + waveform)
 
 ### Scalability
-- **Concurrent streams:** 50+ streams tested without performance degradation
 - **Update frequency:** 60Hz position updates for spatial audio
 - **Hardware acceleration:** Utilized where available (3D audio, mixing)
 
@@ -212,9 +211,15 @@ Audio configuration is accessible through the Editor Settings window:
 
 ### Implementation Guides
 - **[STEREO_AUDIO_IMPLEMENTATION.md](STEREO_AUDIO_IMPLEMENTATION.md)** - Complete StereoAudioPlayer documentation
-  - Usage examples, parameter reference, performance optimization
+  - Usage examples, parameter reference, performance optimization, stale detection
 - **[SPATIAL_AUDIO_IMPLEMENTATION.md](SPATIAL_AUDIO_IMPLEMENTATION.md)** - Complete SpatialAudioPlayer documentation
-  - 3D audio concepts, cone configuration, Doppler effects, advanced usage
+  - 3D audio concepts, cone configuration, Doppler effects, advanced usage, stale detection
+
+### System Documentation
+- **[STALE_DETECTION.md](STALE_DETECTION.md)** - Comprehensive stale detection system documentation
+  - Frame-based tracking architecture, automatic muting/unmuting of inactive operators
+  - Performance characteristics, diagnostic logging, troubleshooting guide
+  - Best practices for operator graph design and audio system development
 
 ### Development Documentation
 - **[CHANGELOG_UPDATE_SUMMARY.md](CHANGELOG_UPDATE_SUMMARY.md)** - Detailed version history
@@ -274,6 +279,12 @@ Audio configuration is accessible through the Editor Settings window:
 
 ### State Management
 
+**Stale Detection Tracking:**
+```csharp
+// Track which operators were updated this frame for stale detection
+private static HashSet<Guid> _operatorsUpdatedThisFrame;
+```
+
 **Stereo Audio State:**
 ```csharp
 private struct OperatorAudioState
@@ -311,10 +322,56 @@ private static bool _3dInitialized;
 ### Stream Lifecycle
 
 1. **Initialization**: Stream created when file path changes or first play
-2. **Playback**: Stream starts/resumes on play trigger
+2. **Playback**: Stream starts/restarts on play trigger
 3. **Updates**: Parameters applied each frame (volume, position, etc.)
 4. **Analysis**: Level, waveform, spectrum calculated in real-time
-5. **Cleanup**: Stale streams automatically cleaned up after 100ms inactivity
+5. **Stale Detection**: Inactive operators automatically muted after 100ms
+6. **Cleanup**: Streams disposed when operators are unregistered
+
+### Stale Detection System
+
+**Purpose:** Automatically mute audio streams when operators stop being evaluated (e.g., disabled nodes in graph).
+
+**Architecture:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  AudioEngine.CompleteFrame() - Runs EVERY frame             │
+│  ├── CheckAndMuteStaleOperators()                           │
+│  │   ├── Loop through all registered operators              │
+│  │   ├── Check if operator in _operatorsUpdatedThisFrame    │
+│  │   └── If NOT → call UpdateStaleDetection() to mute       │
+│  └── Clear _operatorsUpdatedThisFrame for next frame        │
+└─────────────────────────────────────────────────────────────┘
+           ▲                                    ▲
+           │                                    │
+    UpdateOperatorPlayback()      UpdateSpatialOperatorPlayback()
+    adds operator to set           adds operator to set
+           │                                    │
+           │                                    │
+    StereoAudioPlayer.Update()     SpatialAudioPlayer.Update()
+    (when operator is evaluated)   (when operator is evaluated)
+```
+
+**How It Works:**
+1. **Active Tracking**: When an operator is evaluated, it's marked as "updated this frame"
+2. **Stale Detection**: At end of each frame, operators NOT marked are considered stale
+3. **Auto-Muting**: Stale streams are automatically muted (volume set to 0) but continue playing silently
+4. **Auto-Unmuting**: When operators resume evaluation, streams automatically unmute
+5. **Performance**: Zero-allocation HashSet tracking with ~0.1ms overhead per frame
+6. **User Settings Respected**: User mute checkbox is honored even when returning from stale state
+
+**Benefits:**
+- ✅ Prevents audio playback from disabled/bypassed operators
+- ✅ Automatic resource management (no manual cleanup needed)
+- ✅ Smooth transitions (streams stay loaded for instant resume)
+- ✅ Maintains playback position (streams continue advancing silently)
+- ✅ Respects all UI settings (volume, mute, panning, speed, seek)
+- ✅ CPU-efficient (muted streams use minimal resources)
+
+**Implementation Details:**
+- **Detection**: Frame-based (not time-based within operators)
+- **State**: Muting uses volume control (non-destructive, maintains position)
+- **Logging**: Full diagnostic output for debugging
 
 ### Audio Format Support
 
@@ -340,6 +397,7 @@ private static bool _3dInitialized;
 - Manual panning control for creative effects
 - Test tone generator for debugging
 - Monitor CPU usage with many simultaneous streams
+- Trust automatic stale detection for disabled operators
 
 ### Spatial Audio
 - Use mono sources for best 3D positioning
@@ -347,18 +405,28 @@ private static bool _3dInitialized;
 - Update listener position every frame for accurate panning
 - Use directional cones for focused sound sources
 - Test Doppler effects with moving sources
+- Disable operators when not needed (automatic muting via stale detection)
+
+### Operator Graph Design
+- **Leverage stale detection**: Disable audio operators when not needed instead of manual stop/cleanup
+- **Trust automatic muting**: Streams mute/unmute automatically when operators are enabled/disabled
+- **No manual workarounds**: Don't add delays or manual audio stops when disabling operators
+- **Use conditional logic**: Connect audio operators to switches/conditions for dynamic playback
+- **Monitor diagnostics**: Enable logging to observe stale detection behavior during development
 
 ### Configuration
 - Adjust buffer sizes for latency vs stability balance
 - Enable log suppression in production builds
 - Use DEBUG-only advanced settings for experimentation
 - Monitor performance with profiling tools
+- Keep stale threshold at 100ms (configurable in `AudioConfig` if needed)
 
 ### Debugging
 - Enable `LogDebugInfo` parameter for detailed output
 - Use test tone to verify audio pipeline
 - Check file paths (relative or absolute)
 - Verify audio device configuration
+- Watch for stale detection logs to understand operator evaluation patterns
 
 ---
 
@@ -390,4 +458,16 @@ For detailed implementation information, refer to the documentation index above 
 - Low-latency audio drivers (ASIO, WASAPI)
 - 48kHz native sample rate support
 
+## TODO
+
+- ✅ Switching external input devices 
+-     [AudioMixerManager.Shutdown -> AudioMixerManager.Initialize]
+- ✅ AudioRection
+- ✅ Adding a soundtrack to a project
+-     Soundtrack retains timeline sync and waveform generation
+- ✅ Rendering a project with soundtrack duration to mp4
+- PlayVideo with audio (and audio level)
+- Toggling audio mute button
+- Changing audio level in Settings
+- Exporting a project to the player (This will need to release rebuild of the player and might be difficult to test. I can help here.)
 

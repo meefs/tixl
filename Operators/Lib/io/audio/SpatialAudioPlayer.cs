@@ -69,6 +69,7 @@ namespace Lib.io.audio
         [Input(Guid = "5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c", MappedType = typeof(Audio3DModes))]
         public readonly InputSlot<int> Audio3DMode = new();
 
+#if DEBUG
         // Test/Debug inputs
         [Input(Guid = "5f2e9a4c-7d3b-4e8f-9c1a-6f2e8b7d3a5c")]
         public readonly InputSlot<bool> EnableTestMode = new();
@@ -81,6 +82,7 @@ namespace Lib.io.audio
 
         [Input(Guid = "7f4a2e9c-8d3b-4c1f-9e5a-2b7d6f8c3a5e")]
         public readonly InputSlot<float> TestFrequency = new();
+#endif
 
         [Output(Guid = "4a8e2f7c-9d3b-4c1f-8e5a-7b2d6f9c3a4e")]
         public readonly Slot<Command> Result = new();
@@ -100,16 +102,21 @@ namespace Lib.io.audio
         [Output(Guid = "2f7a4e9c-8d3b-4c1f-9e5a-6b2d7f8c3a5e")]
         public readonly Slot<List<float>> GetSpectrum = new();
 
+#if DEBUG
         // Debug output
         [Output(Guid = "7c4a2e9f-3d8b-4c1f-8e5a-9b2d6f7c4a3e")]
         public readonly Slot<string> DebugInfo = new();
+#endif
 
         private Guid _operatorId;
         private bool _wasPausedLastFrame;
+
+#if DEBUG
         private bool _previousShortTestTrigger;
         private bool _previousLongTestTrigger;
         private string _testFilePath = string.Empty;
         private bool _testModeActive;
+#endif
 
         public SpatialAudioPlayer()
         {
@@ -121,7 +128,9 @@ namespace Lib.io.audio
             GetLevel.UpdateAction += Update;
             GetWaveform.UpdateAction += Update;
             GetSpectrum.UpdateAction += Update;
+#if DEBUG
             DebugInfo.UpdateAction += Update;
+#endif
         }
 
         private void Update(EvaluationContext context)
@@ -132,6 +141,7 @@ namespace Lib.io.audio
                 AudioConfig.LogDebug($"[SpatialAudioPlayer] Initialized with operator ID: {_operatorId}");
             }
 
+#if DEBUG
             var enableTestMode = EnableTestMode.GetValue(context);
             var triggerShortTest = TriggerShortTest.GetValue(context);
             var triggerLongTest = TriggerLongTest.GetValue(context);
@@ -182,6 +192,10 @@ namespace Lib.io.audio
                 filePath = AudioFile.GetValue(context);
                 shouldPlay = PlayAudio.GetValue(context);
             }
+#else
+            string filePath = AudioFile.GetValue(context);
+            bool shouldPlay = PlayAudio.GetValue(context);
+#endif
 
             var shouldStop = StopAudio.GetValue(context);
             var shouldPause = PauseAudio.GetValue(context);
@@ -283,6 +297,7 @@ namespace Lib.io.audio
             GetWaveform.Value = AudioEngine.GetSpatialOperatorWaveform(_operatorId);
             GetSpectrum.Value = AudioEngine.GetSpatialOperatorSpectrum(_operatorId);
 
+#if DEBUG
             // Build debug info
             if (_testModeActive)
             {
@@ -299,8 +314,10 @@ namespace Lib.io.audio
                                  $"MinDist: {minDistance:F1} | MaxDist: {maxDistance:F1} | " +
                                  $"Orient: {sourceOrientation} | Cone: {innerConeAngle:F0}°/{outerConeAngle:F0}° | Mode: {(Audio3DModes)audio3DMode}";
             }
+#endif
         }
 
+#if DEBUG
         private string GenerateTestTone(float frequency, float durationSeconds, string label)
         {
             const int sampleRate = 48000;
@@ -369,6 +386,7 @@ namespace Lib.io.audio
                 return string.Empty;
             }
         }
+#endif
 
         private Guid ComputeInstanceGuid()
         {
@@ -402,6 +420,7 @@ namespace Lib.io.audio
                 AudioEngine.UnregisterOperator(_operatorId);
             }
 
+#if DEBUG
             // Clean up test files
             if (!string.IsNullOrEmpty(_testFilePath) && System.IO.File.Exists(_testFilePath))
             {
@@ -414,6 +433,7 @@ namespace Lib.io.audio
                     // Ignore cleanup errors
                 }
             }
+#endif
         }
 
         private enum Audio3DModes

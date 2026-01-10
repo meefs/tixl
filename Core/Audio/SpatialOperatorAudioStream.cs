@@ -53,15 +53,47 @@ public sealed class SpatialOperatorAudioStream
     private const int WaveformWindowSamples = 1024;
     private const int SpectrumBands = 512;
 
-    // Stale detection
-    private double _lastUpdateTime = double.NegativeInfinity;
-    private bool _isMuted;
-    private const double StaleThresholdSeconds = 0.1;
+    // Stale detection - managed by AudioEngine
+    private bool _isStaleMuted;
+    private bool _isUserMuted; // Track user mute state
     
-    // Diagnostic tracking
+    // Diagnostic tracking for other uses (position updates, etc)
     private int _updateCount;
-    private int _staleMuteCount;
+    
+    // Old fields kept for compatibility with existing code
+    private double _lastUpdateTime = double.NegativeInfinity;
     private double _streamStartTime = double.NegativeInfinity;
+    private bool _isMuted => _isStaleMuted; // Redirect to stale muted state
+
+    public void SetStaleMuted(bool muted, string reason = "")
+    {
+        if (_isStaleMuted == muted)
+            return; // No change
+
+        _isStaleMuted = muted;
+        
+        var fileName = Path.GetFileName(FilePath);
+        
+        if (muted)
+        {
+            // Mute by setting volume to 0 (stream continues playing in background)
+            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
+            AudioConfig.LogDebug($"[SpatialAudio] MUTED (stale): {fileName} | Reason: {reason}");
+        }
+        else
+        {
+            // Unmute: only restore volume if stream is playing, not user-paused, AND not user-muted
+            if (IsPlaying && !IsPaused && !_isUserMuted)
+            {
+                Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, _currentVolume);
+                AudioConfig.LogDebug($"[SpatialAudio] UNMUTED (active): {fileName} | Reason: {reason}");
+            }
+            else if (_isUserMuted)
+            {
+                AudioConfig.LogDebug($"[SpatialAudio] UNMUTED (active) but user muted: {fileName} | Reason: {reason}");
+            }
+        }
+    }
 
     internal static bool TryLoadStream(string filePath, int mixerHandle, [NotNullWhen(true)] out SpatialOperatorAudioStream? stream)
     {
@@ -104,7 +136,7 @@ public sealed class SpatialOperatorAudioStream
         // Verify it's mono (required for 3D audio)
         if (info.Channels != 1)
         {
-            Log.Warning($"[SpatialAudio] Audio file '{fileName}' has {info.Channels} channels. 3D audio requires mono. Will use first channel only.");
+            AudioConfig.LogDebug($"[SpatialAudio] Audio file '{fileName}' has {info.Channels} channels. 3D audio requires mono. Will use first channel only.");
         }
 
         AudioConfig.LogDebug($"[SpatialAudio] Stream info for {fileName}: Channels={info.Channels}, Freq={info.Frequency}, CType={info.ChannelType}, Flags={info.Flags}");
@@ -185,7 +217,14 @@ public sealed class SpatialOperatorAudioStream
             (int)_innerAngleDegrees, (int)_outerAngleDegrees, _outerVolume))
         {
             var error = Bass.LastError;
-            Log.Warning($"[SpatialAudio] Failed to set 3D attributes: {error}");
+            if (error != Errors.OK && error != Errors.NotAvailable)
+            {
+                Log.Warning($"[SpatialAudio] Failed to set 3D attributes: {error}");
+            }
+            else if (error == Errors.NotAvailable)
+            {
+                AudioConfig.LogDebug($"[SpatialAudio] 3D audio not available - 3D features will be disabled");
+            }
         }
         else
         {
@@ -196,7 +235,10 @@ public sealed class SpatialOperatorAudioStream
         if (!Bass.ChannelSet3DPosition(StreamHandle, To3DVector(_position), To3DVector(_orientation), To3DVector(_velocity)))
         {
             var error = Bass.LastError;
-            Log.Warning($"[SpatialAudio] Failed to set initial 3D position: {error}");
+            if (error != Errors.OK && error != Errors.NotAvailable)
+            {
+                Log.Warning($"[SpatialAudio] Failed to set initial 3D position: {error}");
+            }
         }
     }
 
@@ -206,55 +248,6 @@ public sealed class SpatialOperatorAudioStream
     private static ManagedBass.Vector3D To3DVector(Vector3 v)
     {
         return new ManagedBass.Vector3D(v.X, v.Y, v.Z);
-    }
-
-    public void UpdateStaleDetection(double currentTime)
-    {
-        var timeSinceLastUpdate = currentTime - _lastUpdateTime;
-        
-        if (_streamStartTime == double.NegativeInfinity)
-        {
-            _streamStartTime = currentTime;
-        }
-        
-        if (_lastUpdateTime == double.NegativeInfinity)
-        {
-            _lastUpdateTime = currentTime;
-            _updateCount++;
-            
-            var fileName = Path.GetFileName(FilePath);
-            AudioConfig.LogDebug($"[SpatialAudio] First update: {fileName} | Time: {currentTime:F3}");
-            return;
-        }
-        
-        var isStale = timeSinceLastUpdate > StaleThresholdSeconds;
-        var wasStale = _isMuted;
-        
-        _lastUpdateTime = currentTime;
-        _updateCount++;
-
-        if (!IsPlaying || IsPaused)
-            return;
-
-        if (wasStale && !isStale)
-        {
-            _isMuted = false;
-            BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanBuffer, BassFlags.MixerChanPause);
-            
-            var fileName = Path.GetFileName(FilePath);
-            AudioConfig.LogDebug($"[SpatialAudio] UNMUTED (stale->active): {fileName} | Updates: {_updateCount}");
-        }
-        else if (!wasStale && isStale)
-        {
-            _isMuted = true;
-            _staleMuteCount++;
-            
-            BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
-            
-            var fileName = Path.GetFileName(FilePath);
-            var timeSinceStart = currentTime - _streamStartTime;
-            Log.Warning($"[SpatialAudio] MUTED (active->stale): {fileName} | Duration: {Duration:F3}s | TimeSinceStart: {timeSinceStart:F3}s | Updates: {_updateCount}");
-        }
     }
 
     /// <summary>
@@ -276,7 +269,7 @@ public sealed class SpatialOperatorAudioStream
             (int)_innerAngleDegrees, (int)_outerAngleDegrees, _outerVolume))
         {
             var error = Bass.LastError;
-            if (_updateCount % 300 == 0) // Log errors occasionally to avoid spam
+            if (error != Errors.OK && error != Errors.NotAvailable && _updateCount % 300 == 0)
             {
                 Log.Warning($"[SpatialAudio] Failed to update 3D attributes: {error}");
             }
@@ -286,7 +279,7 @@ public sealed class SpatialOperatorAudioStream
         if (!Bass.ChannelSet3DPosition(StreamHandle, To3DVector(_position), To3DVector(_orientation), To3DVector(_velocity)))
         {
             var error = Bass.LastError;
-            if (_updateCount % 300 == 0) // Log errors occasionally to avoid spam
+            if (error != Errors.OK && error != Errors.NotAvailable && _updateCount % 300 == 0)
             {
                 Log.Warning($"[SpatialAudio] Failed to update 3D position: {error}");
             }
@@ -317,7 +310,10 @@ public sealed class SpatialOperatorAudioStream
         if (!Bass.ChannelSet3DPosition(StreamHandle, To3DVector(_position), To3DVector(_orientation), To3DVector(_velocity)))
         {
             var error = Bass.LastError;
-            Log.Warning($"[SpatialAudio] Failed to update 3D orientation: {error}");
+            if (error != Errors.OK && error != Errors.NotAvailable)
+            {
+                Log.Warning($"[SpatialAudio] Failed to update 3D orientation: {error}");
+            }
         }
         
         Bass.Apply3D();
@@ -336,13 +332,18 @@ public sealed class SpatialOperatorAudioStream
             (int)_innerAngleDegrees, (int)_outerAngleDegrees, _outerVolume))
         {
             var error = Bass.LastError;
-            Log.Warning($"[SpatialAudio] Failed to update 3D cone: {error}");
+            if (error != Errors.OK && error != Errors.NotAvailable)
+            {
+                Log.Warning($"[SpatialAudio] Failed to update 3D cone: {error}");
+            }
         }
-        
-        Bass.Apply3D();
-        
-        var fileName = Path.GetFileName(FilePath);
-        AudioConfig.LogDebug($"[SpatialAudio] Cone updated: {fileName} | Inner: {_innerAngleDegrees}° | Outer: {_outerAngleDegrees}° | OuterVol: {_outerVolume:F2}");
+        else
+        {
+            Bass.Apply3D();
+            
+            var fileName = Path.GetFileName(FilePath);
+            AudioConfig.LogDebug($"[SpatialAudio] Cone updated: {fileName} | Inner: {_innerAngleDegrees}° | Outer: {_outerAngleDegrees}° | OuterVol: {_outerVolume:F2}");
+        }
     }
 
     /// <summary>
@@ -356,13 +357,18 @@ public sealed class SpatialOperatorAudioStream
             (int)_innerAngleDegrees, (int)_outerAngleDegrees, _outerVolume))
         {
             var error = Bass.LastError;
-            Log.Warning($"[SpatialAudio] Failed to update 3D mode: {error}");
+            if (error != Errors.OK && error != Errors.NotAvailable)
+            {
+                Log.Warning($"[SpatialAudio] Failed to update 3D mode: {error}");
+            }
         }
-        
-        Bass.Apply3D();
-        
-        var fileName = Path.GetFileName(FilePath);
-        AudioConfig.LogDebug($"[SpatialAudio] 3D mode updated: {fileName} | Mode: {_3dMode}");
+        else
+        {
+            Bass.Apply3D();
+            
+            var fileName = Path.GetFileName(FilePath);
+            AudioConfig.LogDebug($"[SpatialAudio] 3D mode updated: {fileName} | Mode: {_3dMode}");
+        }
     }
 
     public void Play()
@@ -375,7 +381,7 @@ public sealed class SpatialOperatorAudioStream
             return;
         }
 
-        _isMuted = false;
+        _isStaleMuted = false;
         _lastUpdateTime = double.NegativeInfinity;
         _streamStartTime = double.NegativeInfinity;
         
@@ -428,7 +434,7 @@ public sealed class SpatialOperatorAudioStream
         IsPlaying = false;
         IsPaused = false;
         
-        _isMuted = false;
+        _isStaleMuted = false;
         _lastUpdateTime = double.NegativeInfinity;
         _streamStartTime = double.NegativeInfinity;
         
@@ -444,19 +450,22 @@ public sealed class SpatialOperatorAudioStream
     public void SetVolume(float volume, bool mute)
     {
         _currentVolume = volume;
+        _isUserMuted = mute; // Track user mute state
         
         if (!IsPlaying)
             return;
-            
-        if (mute || _isMuted)
+        
+        // Determine final volume based on mute states
+        float finalVolume = 0.0f;
+        
+        if (!mute && !_isStaleMuted)
         {
-            BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
+            // Not muted by user or stale detection - use current volume
+            finalVolume = volume;
         }
-        else
-        {
-            BassMix.ChannelFlags(StreamHandle, 0, BassFlags.MixerChanPause);
-            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, volume);
-        }
+        // else: volume stays at 0 (muted by user or stale detection)
+        
+        Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, finalVolume);
     }
 
     public void SetSpeed(float speed)
@@ -609,7 +618,7 @@ public sealed class SpatialOperatorAudioStream
     public void Dispose()
     {
         var fileName = Path.GetFileName(FilePath);
-        AudioConfig.LogDebug($"[SpatialAudio] Disposing: {fileName} | TotalUpdates: {_updateCount} | TotalStaleMutes: {_staleMuteCount}");
+        AudioConfig.LogDebug($"[SpatialAudio] Disposing: {fileName}");
         
         Bass.ChannelStop(StreamHandle);
         BassMix.MixerRemoveChannel(StreamHandle);
