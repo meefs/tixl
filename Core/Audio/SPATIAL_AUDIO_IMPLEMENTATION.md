@@ -1,152 +1,339 @@
-# 3D Spatial Audio Implementation for SpatialAudioPlayer
+# SpatialAudioPlayer Documentation
 
 ## Overview
-Implemented full 3D spatial audio support for the `SpatialAudioPlayer` operator with distance-based attenuation and positional panning.
+The `SpatialAudioPlayer` operator provides full 3D spatial audio support with native BASS 3D audio capabilities including distance-based attenuation, positional panning, directional sound cones, and velocity-based Doppler effects.
 
-## Components Created/Modified
+## Components
 
-### 1. SpatialOperatorAudioStream.cs (NEW)
+### 1. SpatialOperatorAudioStream.cs
 **Location:** `Core/Audio/SpatialOperatorAudioStream.cs`
 
-**Purpose:** Dedicated audio stream class for 3D spatial audio playback with mono sources
+**Purpose:** Dedicated audio stream class for 3D spatial audio playback using native ManagedBass 3D audio features
 
 **Key Features:**
-- Mono audio source loading (required for effective 3D positioning)
-- Distance-based volume attenuation using inverse distance law
-- Automatic 3D panning based on listener-relative position
-- Min/Max distance parameters for attenuation control
-- Smooth position updates with minimal performance impact
+- **Native BASS 3D Audio**: Uses `Bass.ChannelSet3DAttributes()` and `Bass.ChannelSet3DPosition()` for hardware-accelerated 3D audio
+- **Mono audio source loading**: Required for BASS 3D positioning (stereo files automatically converted)
+- **Distance-based volume attenuation**: Configurable min/max distance with BASS native attenuation
+- **Automatic velocity calculation**: Enables Doppler shift effects
+- **Directional sound cones**: Inner/outer cone angles for spotlight/speaker effects
+- **3D processing modes**: Normal, Relative, and Off modes
+- **Orientation support**: Sound source direction for directional audio
+
+**3D Audio Features:**
+- **Position**: 3D world position of the sound source
+- **Orientation**: Direction the sound is facing (for directional cones)
+- **Velocity**: Automatically calculated from position changes (Doppler effect)
+- **Distance Attenuation**: Native BASS distance falloff
+- **Cone Angles**: Inner and outer cone for directional sound
+- **3D Modes**: Normal (world coordinates), Relative (listener coordinates), Off (no 3D)
 
 **Distance Attenuation Model:**
 ```
 - Distance < MinDistance: Full volume (attenuation = 1.0)
-- MinDistance < Distance < MaxDistance: Linear falloff
+- MinDistance < Distance < MaxDistance: BASS native falloff
 - Distance >= MaxDistance: Silent (attenuation = 0.0)
 ```
 
 **Panning Model:**
-- Based on listener's local coordinate system using orientation vectors
-- **Right Vector** = Cross product of `ListenerForward` × `ListenerUp`
-- **Pan Calculation** = Dot product of (normalized sound direction) · (right vector)
-- Positive pan = Right speaker (sound to listener's right)
-- Negative pan = Left speaker (sound to listener's left)
-- Range: -1.0 to +1.0
-- **Orientation-Aware**: Panning adapts when listener rotates
+- Fully handled by BASS 3D engine based on listener position and orientation
+- **Automatic**: Calculates stereo panning from 3D positions
+- **Orientation-Aware**: Adapts when listener rotates
+- **Doppler Effect**: Pitch shifts based on relative velocity
 
-### 2. AudioEngine.cs (MODIFIED)
+### 2. AudioEngine.cs
 **Location:** `Core/Audio/AudioEngine.cs`
 
-**New Methods:**
+**Spatial Audio Methods:**
 
-#### Spatial Audio Playback
-- `UpdateSpatialOperatorPlayback()`: Main update method for spatial audio streams
-- `PauseSpatialOperator()`: Pause spatial audio playback
-- `ResumeSpatialOperator()`: Resume spatial audio playback
-- `IsSpatialOperatorStreamPlaying()`: Check if spatial stream is playing
-- `IsSpatialOperatorPaused()`: Check if spatial stream is paused
-- `GetSpatialOperatorLevel()`: Get current audio level
-- `GetSpatialOperatorWaveform()`: Get waveform data
-- `GetSpatialOperatorSpectrum()`: Get spectrum data
+#### Playback Control
+```csharp
+// Main spatial playback update
+public static void UpdateSpatialOperatorPlayback(
+    Guid operatorId,
+    double localFxTime,
+    string filePath,
+    bool shouldPlay,
+    bool shouldStop,
+    float volume,
+    bool mute,
+    Vector3 position,
+    float minDistance,
+    float maxDistance,
+    float speed = 1.0f,
+    float seek = 0f,
+    Vector3? orientation = null,
+    float innerConeAngle = 360f,
+    float outerConeAngle = 360f,
+    float outerConeVolume = 1.0f,
+    int mode3D = 0)
+
+public static void PauseSpatialOperator(Guid operatorId)
+public static void ResumeSpatialOperator(Guid operatorId)
+```
+
+#### State Queries
+```csharp
+public static bool IsSpatialOperatorStreamPlaying(Guid operatorId)
+public static bool IsSpatialOperatorPaused(Guid operatorId)
+```
+
+#### Analysis Outputs
+```csharp
+public static float GetSpatialOperatorLevel(Guid operatorId)
+public static float[] GetSpatialOperatorWaveform(Guid operatorId)
+public static float[] GetSpatialOperatorSpectrum(Guid operatorId)
+```
 
 #### 3D Listener Management
-- `Set3DListenerPosition()`: Set the 3D audio listener position and orientation
-- `Get3DListenerPosition()`: Get current listener position
+```csharp
+public static void Set3DListenerPosition(Vector3 position, Vector3 forward, Vector3 up)
+public static Vector3 Get3DListenerPosition()
+public static Vector3 Get3DListenerForward()
+public static Vector3 Get3DListenerUp()
+```
 
-**New State Tracking:**
-- `_spatialOperatorAudioStates`: Dictionary tracking spatial audio stream states per operator
-- `_listenerPosition`: Current 3D listener position
-- `_listenerForward`: Listener forward direction vector
-- `_listenerUp`: Listener up direction vector
-
-### 3. SpatialAudioPlayer.cs (MODIFIED)
+### 3. SpatialAudioPlayer.cs
 **Location:** `Operators/Lib/io/audio/SpatialAudioPlayer.cs`
 
-**Updated Features:**
-- Uses `UpdateSpatialOperatorPlayback()` instead of regular playback
-- Passes 3D position, minDistance, and maxDistance parameters
-- Validates and clamps distance parameters
-- Enhanced debug output showing position and distance info
+**Purpose:** Operator interface for 3D spatial audio with full parameter control
+
+**Features:**
+- Uses `UpdateSpatialOperatorPlayback()` with full 3D parameter support
+- Passes position, orientation, cone angles, and 3D mode to engine
+- Validates and clamps all 3D parameters
+- Enhanced debug output showing all 3D parameters
 - Updates listener position in AudioEngine each frame
 
-**Input Parameters:**
-- `SourcePosition` (Vector3): 3D position of the audio source
-- `ListenerPosition` (Vector3): 3D position of the listener (e.g., camera or player position)
-- `ListenerForward` (Vector3): Forward direction vector of the listener (normalized)
-- `ListenerUp` (Vector3): Up direction vector of the listener (normalized)
-- `MinDistance` (float): Distance where attenuation begins
-- `MaxDistance` (float): Distance where sound becomes inaudible
+## Input Parameters
+
+### Basic Playback Controls
+- **AudioFile** (string): Path to audio file
+- **PlayAudio** (bool): Trigger playback
+- **StopAudio** (bool): Stop playback
+- **PauseAudio** (bool): Pause/resume
+- **Volume** (float): Base volume (0-1)
+- **Mute** (bool): Mute the sound
+- **Speed** (float): Playback speed (0.1-4.0)
+- **Seek** (float): Playback position (0-1 normalized)
+
+### Basic 3D Parameters
+- **SourcePosition** (Vector3): 3D position of the audio source
+- **ListenerPosition** (Vector3): 3D position of the listener (e.g., camera or player position)
+- **ListenerForward** (Vector3): Forward direction vector of the listener (normalized)
+- **ListenerUp** (Vector3): Up direction vector of the listener (normalized)
+- **MinDistance** (float): Distance where attenuation begins (default: 1.0)
+- **MaxDistance** (float): Distance where sound becomes inaudible (default: 100.0)
+
+### Advanced 3D Parameters
+
+**SourceOrientation** (Vector3): Direction the sound source is facing
+- **GUID:** `1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e`
+- **Default:** (0, 0, -1) - facing forward
+- **Usage:** Used with cone angles for directional sound
+- **Normalized automatically**
+
+**InnerConeAngle** (float): Inner cone angle in degrees
+- **GUID:** `2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f`
+- **Range:** 0° to 360°
+- **Default:** 360° (omnidirectional)
+- **Description:** Within this cone, sound plays at full volume
+
+**OuterConeAngle** (float): Outer cone angle in degrees
+- **GUID:** `3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a`
+- **Range:** 0° to 360°
+- **Default:** 360° (omnidirectional)
+- **Description:** Between inner and outer cone, volume transitions to outer volume
+- **Must be >= Inner Cone Angle**
+
+**OuterConeVolume** (float): Volume multiplier outside outer cone
+- **GUID:** `4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b`
+- **Range:** 0.0 to 1.0
+- **Default:** 1.0 (no attenuation)
+- **Description:** Sound volume outside the outer cone
+- **Example:** 0.0 = silent outside cone, 0.5 = half volume
+
+**Audio3DMode** (enum): 3D processing mode
+- **GUID:** `5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c`
+- **Normal (0)**: Full 3D positioning with distance attenuation and panning (world coordinates)
+- **Relative (1)**: Position relative to the listener (useful for sounds that follow listener)
+- **Off (2)**: Disables 3D processing (useful for UI sounds or testing)
 
 **Note on Listener Orientation:**
 - If `ListenerForward` is zero or near-zero, defaults to `(0, 0, 1)` (facing +Z)
 - If `ListenerUp` is zero or near-zero, defaults to `(0, 1, 0)` (up is +Y)
 - Vectors are automatically normalized by the system
 
-## Technical Implementation Details
+## Output Parameters
+
+### Playback State
+- **IsPlaying** (bool): True when audio is actively playing
+- **IsPaused** (bool): True when audio is paused
+- **DebugInfo** (string): Formatted debug information
+
+### Real-time Analysis
+- **AudioLevel** (float): Current audio level (0.0 to 1.0)
+- **Waveform** (float[]): Waveform data (1024 samples)
+- **Spectrum** (float[]): FFT spectrum data (32 frequency bands)
+
+## Technical Implementation
+
+### Native BASS 3D Audio Integration
+
+**SpatialOperatorAudioStream Core Methods:**
+```csharp
+// Initialize 3D attributes
+private void Initialize3DAudio()
+
+// Update 3D position, velocity, and distance
+public void Update3DPosition(Vector3 position, float minDistance, float maxDistance)
+
+// Set sound source direction
+public void Set3DOrientation(Vector3 orientation)
+
+// Configure directional sound cone
+public void Set3DCone(float innerAngleDegrees, float outerAngleDegrees, float outerVolume)
+
+// Change 3D processing mode
+public void Set3DMode(Mode3D mode)
+
+// Vector conversion helper
+private static ManagedBass.Vector3D To3DVector(Vector3 v)
+```
+
+**ManagedBass Native Functions:**
+- `Bass.ChannelSet3DAttributes()` - Sets min/max distance, cone angles, and 3D mode
+- `Bass.ChannelSet3DPosition()` - Sets position, orientation, and velocity vectors
+- `Bass.Apply3D()` - Applies 3D calculations (called after parameter updates)
+- `Bass.CreateStream()` with `BassFlags.Mono` - Creates mono stream for 3D audio
+
+### Velocity Calculation (Doppler Effect)
+```csharp
+// Automatic velocity calculation from position changes
+var deltaPos = position - _position;
+var timeDelta = 1.0f / 60.0f; // Assume ~60fps
+_velocity = deltaPos / timeDelta;
+```
 
 ### Distance Calculation
 ```csharp
 var distance = Vector3.Distance(listenerPos, sourcePos);
 ```
 
-### Attenuation Formula
-```csharp
-if (distance > minDistance) {
-    if (distance >= maxDistance) {
-        attenuation = 0.0f;
-    } else {
-        attenuation = 1.0f - ((distance - minDistance) / (maxDistance - minDistance));
-    }
-}
-```
-
-### Panning Calculation
-```csharp
-// Get listener's right vector (cross product of forward and up)
-var listenerRight = Vector3.Normalize(Vector3.Cross(listenerForward, listenerUp));
-
-// Project sound direction onto listener's right vector
-var toSound = Vector3.Normalize(sourcePos - listenerPos);
-float panValue = Vector3.Dot(toSound, listenerRight);
-panValue = Math.Clamp(panValue, -1.0f, 1.0f);
-```
-
-**Panning Behavior:**
-- Sound to the listener's **right**: Positive pan value (→ right speaker)
-- Sound to the listener's **left**: Negative pan value (→ left speaker)
-- Sound directly in front/behind: Near-zero pan value (→ center)
-- Takes into account which way the listener is facing
-
 ## Performance Optimizations
 
-1. **Cached Channel Info**: Channel information is cached to avoid expensive API calls
+1. **Cached Channel Info**: Channel information cached to avoid expensive API calls
 2. **Stale Detection**: Automatic muting of inactive streams to save CPU
-3. **Update Throttling**: Position logging limited to once per second
-4. **Efficient Distance Calculations**: Using Vector3.Distance for optimized math
+3. **Update Throttling**: Position logging limited to once per second (every 60 updates)
+4. **Conditional Parameter Updates**: Only applies orientation/cone/mode when values change
+5. **Single Apply3D Call**: Called once per stream update for immediate 3D effect application
+6. **Efficient Distance Calculations**: Using Vector3.Distance for optimized math
 
-## Usage Example
+## Usage Examples
 
+### Example 1: Basic 3D Sound (Omnidirectional)
 ```csharp
-// In your operator graph:
 SpatialAudioPlayer
 {
-    AudioFile = "path/to/audio.wav"
+    AudioFile = "ambient.wav"
     PlayAudio = true
-    SourcePosition = (x: 10, y: 0, z: 5)        // Sound source: 10 units right, 5 units forward
-    ListenerPosition = (x: 0, y: 0, z: 0)       // Listener at origin (e.g., camera position)
-    ListenerForward = (x: 0, y: 0, z: 1)        // Facing forward (+Z direction)
-    ListenerUp = (x: 0, y: 1, z: 0)             // Up is +Y direction
-    MinDistance = 1.0   // Full volume within 1 unit
-    MaxDistance = 50.0  // Silent beyond 50 units
+    SourcePosition = (x: 10, y: 0, z: 5)
+    ListenerPosition = (x: 0, y: 0, z: 0)
+    ListenerForward = (x: 0, y: 0, z: 1)
+    ListenerUp = (x: 0, y: 1, z: 0)
+    MinDistance = 1.0
+    MaxDistance = 50.0
     Volume = 1.0
+    
+    // Default 3D parameters (omnidirectional)
+    InnerConeAngle = 360
+    OuterConeAngle = 360
+    OuterConeVolume = 1.0
+    Audio3DMode = 0 // Normal
 }
-
-// Listener position and orientation are set per-operator via inputs
-// This allows different spatial audio sources to have different listener references if needed
-// The AudioEngine.Set3DListenerPosition() is called automatically during Update()
 ```
 
-## Advanced Usage: Dynamic Listener Position and Orientation
+### Example 2: Directional Sound (Spotlight Effect)
+```csharp
+SpatialAudioPlayer
+{
+    AudioFile = "flashlight.wav"
+    PlayAudio = true
+    SourcePosition = (x: 0, y: 0, z: 0)
+    SourceOrientation = (x: 1, y: 0, z: 0)  // Facing right
+    
+    ListenerPosition = cameraPosition
+    ListenerForward = cameraForward
+    ListenerUp = cameraUp
+    
+    MinDistance = 1.0
+    MaxDistance = 30.0
+    
+    // Narrow beam of sound
+    InnerConeAngle = 30      // Full volume in 30° cone
+    OuterConeAngle = 60      // Falloff to outer volume by 60°
+    OuterConeVolume = 0.1    // Very quiet outside cone
+    Audio3DMode = 0          // Normal
+}
+```
 
+### Example 3: Megaphone/Speaker
+```csharp
+SpatialAudioPlayer
+{
+    AudioFile = "announcement.wav"
+    PlayAudio = true
+    SourcePosition = speakerPosition
+    SourceOrientation = (x: 0, y: 0, z: 1)  // Facing forward
+    
+    MinDistance = 2.0
+    MaxDistance = 50.0
+    
+    // Speaker cone
+    InnerConeAngle = 45      // Clear audio in front
+    OuterConeAngle = 90      // Gradual falloff
+    OuterConeVolume = 0.3    // Reduced volume behind
+    Audio3DMode = 0          // Normal
+}
+```
+
+### Example 4: Listener-Relative Sound
+```csharp
+SpatialAudioPlayer
+{
+    AudioFile = "engine.wav"
+    PlayAudio = true
+    SourcePosition = (x: 0, y: 2, z: 0)  // 2 units above listener
+    
+    MinDistance = 1.0
+    MaxDistance = 10.0
+    
+    Audio3DMode = 1  // Relative - follows listener
+}
+// Sound stays 2 units above listener as they move
+```
+
+### Example 5: Dynamic Moving Sound with Doppler
+```csharp
+// Moving sound source (e.g., racing car)
+SpatialAudioPlayer
+{
+    AudioFile = "car_engine.wav"
+    PlayAudio = true
+    SourcePosition = carPosition  // Updated each frame
+    
+    ListenerPosition = cameraPosition
+    ListenerForward = cameraForward
+    ListenerUp = cameraUp
+    
+    MinDistance = 2.0
+    MaxDistance = 100.0
+    
+    // Velocity automatically calculated from position changes
+    // Doppler effect applied automatically by BASS 3D
+}
+```
+
+### Example 6: Dynamic Listener with Directional Sounds
 ```csharp
 // Connect camera position and orientation to listener inputs
 SpatialAudioPlayer
@@ -154,160 +341,198 @@ SpatialAudioPlayer
     AudioFile = "footsteps.wav"
     PlayAudio = true
     SourcePosition = enemyPosition              // Enemy's position
-    ListenerPosition = cameraPosition           // Camera/player position (updated each frame)
+    SourceOrientation = enemyForward            // Direction enemy is facing
+    
+    ListenerPosition = cameraPosition           // Camera/player position
     ListenerForward = cameraForwardVector       // Camera's forward direction
     ListenerUp = cameraUpVector                 // Camera's up direction
+    
     MinDistance = 2.0
     MaxDistance = 30.0
     Volume = 0.8
+    
+    InnerConeAngle = 180    // Sound emits forward from enemy
+    OuterConeAngle = 270
+    OuterConeVolume = 0.5
+    Audio3DMode = 0          // Normal
 }
 
-// The spatial audio will automatically:
-// 1. Calculate distance between listener and source
-// 2. Apply distance-based volume attenuation
-// 3. Calculate stereo panning based on listener's local coordinate system:
-//    - Sounds to the right of where you're facing → right speaker
-//    - Sounds to the left of where you're facing → left speaker
-//    - Works correctly even when listener rotates!
+// The spatial audio automatically:
+// 1. Calculates distance between listener and source
+// 2. Applies BASS native 3D distance attenuation
+// 3. Calculates stereo panning based on 3D positions
+// 4. Applies directional cone attenuation
+// 5. Calculates Doppler shift from velocity
 ```
 
-## Example: Rotating Listener
-```csharp
-// Listener facing North (forward = 0, 0, 1)
-// Sound at (5, 0, 0) → Pans RIGHT (positive pan)
+## Comparison: StereoAudioPlayer vs SpatialAudioPlayer
 
-// Listener rotates 90° to face East (forward = 1, 0, 0)
-// Same sound at (5, 0, 0) → Now pans FORWARD (near-zero pan)
-// This is because the sound is now ahead of the listener, not to the right
-```
+| Feature                | StereoAudioPlayer                | SpatialAudioPlayer                                      |
+|------------------------|----------------------------------|---------------------------------------------------------|
+| Audio Format           | Stereo (2-channel)               | Mono (required for 3D, auto-converted)                  |
+| Panning Control        | Manual pan slider (-1 to +1)     | Automatic BASS 3D positioning                           |
+| Distance Attenuation   | None                             | BASS native 3D attenuation                              |
+| Volume Control         | Direct volume only               | Volume × 3D attenuation × cone attenuation              |
+| Position Inputs        | None                             | SourcePosition + ListenerPosition (Vector3)             |
+| Orientation            | None                             | Source & Listener orientation vectors                   |
+| Directional Sound      | None                             | Cone angles (inner/outer)                               |
+| Doppler Effect         | None                             | Automatic from velocity                                 |
+| 3D Modes               | None                             | Normal, Relative, Off                                   |
+| Use Case               | Music, ambient sounds            | Positioned sound effects, 3D audio, spatial soundscapes |
 
-## Differences from StereoAudioPlayer
+## Parameter Summary
 
-| Feature | StereoAudioPlayer | SpatialAudioPlayer |
-|---------|-------------------|-------------------|
-| Audio Format | Stereo (2-channel) | Any format (mono recommended for best 3D effect) |
-| Panning Control | Manual pan slider (-1 to +1) | Automatic based on 3D position |
-| Distance Attenuation | None | Automatic (min/max distance) |
-| Volume Control | Direct volume only | Volume × Distance attenuation |
-| Position Inputs | None | SourcePosition + ListenerPosition (Vector3) |
-| Use Case | Music, ambient sounds | Positioned sound effects, 3D audio, spatial soundscapes |
+### All Input Parameters
 
-## Key Features Summary
-
-### Inputs
-- **SourcePosition** (Vector3): Where the sound is coming from in 3D space
-- **ListenerPosition** (Vector3): Where the listener (camera/player) is located
-- **ListenerForward** (Vector3): Direction the listener is facing (normalized automatically)
-- **ListenerUp** (Vector3): Listener's up direction (normalized automatically)
-- **MinDistance** (float): Distance within which sound is at full volume
-- **MaxDistance** (float): Distance beyond which sound is silent
-- **Volume** (float): Base volume multiplier (0-1)
+#### Basic Controls
+- **AudioFile** (string): Path to audio file
+- **PlayAudio** (bool): Trigger playback
+- **StopAudio** (bool): Stop playback
+- **PauseAudio** (bool): Pause/resume
+- **Volume** (float): Base volume (0-1)
 - **Mute** (bool): Mute the sound
 - **Speed** (float): Playback speed (0.1-4.0)
 - **Seek** (float): Playback position (0-1 normalized)
 
-### Automatic Calculations
-- **Distance**: `Vector3.Distance(ListenerPosition, SourcePosition)`
-- **Attenuation**: Linear falloff between MinDistance and MaxDistance
-- **Panning**: Based on dot product of sound direction with listener's right vector
-  - Right vector = `Cross(ListenerForward, ListenerUp)`
-  - Takes into account which way the listener is facing
+#### 3D Position & Listener
+- **SourcePosition** (Vector3): Where the sound is coming from
+- **ListenerPosition** (Vector3): Where the listener is
+- **ListenerForward** (Vector3): Listener facing direction
+- **ListenerUp** (Vector3): Listener up direction
+- **MinDistance** (float): Full volume distance
+- **MaxDistance** (float): Silent distance
 
-## Limitations & Future Enhancements
+#### Advanced 3D
+- **SourceOrientation** (Vector3): Sound source facing direction
+- **InnerConeAngle** (float): Full volume cone (0-360°)
+- **OuterConeAngle** (float): Transition cone (0-360°)
+- **OuterConeVolume** (float): Volume outside cone (0-1)
+- **Audio3DMode** (enum): Normal/Relative/Off
 
-### Current Limitations:
-1. **Simple Attenuation Model**: Linear falloff (could be logarithmic for more realistic behavior)
-2. **Basic Panning**: Only left-right panning (no elevation or behind-listener positioning)
-3. **No Doppler Effect**: Moving sound sources don't change pitch
-4. **No Environmental Effects**: No reverb or occlusion based on geometry
+### Automatic Features
+- **Distance Attenuation**: BASS native 3D distance model
+- **Stereo Panning**: BASS 3D engine calculates from positions
+- **Doppler Effect**: Automatic pitch shift from velocity
+- **Cone Attenuation**: Volume reduction outside directional cone
+- **Velocity Calculation**: Derived from position changes (~60fps)
 
-### Potential Enhancements:
-1. **Advanced Attenuation Models**:
-   - Logarithmic distance falloff
-   - Exponential rolloff options
-   - Custom attenuation curves
+## Limitations & Future Enhancement Opportunities
 
-2. **Full 3D Panning**:
-   - HRTF (Head-Related Transfer Function) for elevation
-   - Behind-listener sound localization
-   - Surround sound support (5.1, 7.1)
+### Current Capabilities
+1. ✅ **Native BASS 3D Audio**: Hardware-accelerated 3D positioning
+2. ✅ **Directional Sound**: Full cone angle support
+3. ✅ **Doppler Effect**: Automatic velocity-based pitch shifting
+4. ✅ **Multiple 3D Modes**: Normal, Relative, Off
+5. ✅ **Mono Requirement**: Auto-converted from stereo files
 
-3. **Environmental Audio**:
-   - Reverb zones
-   - Occlusion/obstruction
-   - Material-based sound absorption
-
-4. **Performance Features**:
-   - Sound culling (auto-stop distant sounds)
-   - Priority system for sound limit management
-   - LOD (Level of Detail) for distant sounds
+### Potential Future Enhancements
+1. **EAX Environmental Effects**: Reverb zones, room acoustics, environmental presets
+2. **Advanced Distance Models**: Custom rolloff curves, logarithmic/exponential falloff
+3. **Doppler Control**: Adjustable Doppler intensity, per-source control
+4. **Performance Optimization**: Centralized `Bass.Apply3D()`, sound culling, LOD system
+5. **Full Surround Support**: 5.1/7.1 configurations, HRTF for headphones
+6. **Occlusion/Obstruction**: Geometry-based blocking, material absorption, ray-casting
 
 ## Testing Recommendations
 
-1. **Distance Test**:
-   - Place sound at increasing distances
-   - Verify smooth attenuation
-   - Check min/max distance boundaries
+### Distance Testing
+- Place sound at increasing distances
+- Verify smooth BASS 3D attenuation
+- Check min/max distance boundaries
+- Test Doppler effect with moving sources
 
-2. **Panning Test**:
-   - Move sound left-to-right
-   - Verify correct channel distribution
-   - Check center position (0 pan)
+### Directional Testing
+- Rotate sound source orientation
+- Walk around directional sound
+- Verify cone angle behavior
+- Test inner/outer cone transition
 
-3. **Performance Test**:
-   - Multiple spatial sounds simultaneously
-   - Rapid position changes
-   - Monitor CPU usage
+### 3D Mode Testing
+- Switch between Normal, Relative, Off modes
+- Verify Relative mode follows listener
+- Test Off mode (no 3D processing)
 
-4. **Edge Cases**:
-   - Sound at listener position (distance = 0)
-   - Sound beyond max distance
-   - Rapid on/off toggling
+### Performance Testing
+- Multiple spatial sounds simultaneously
+- Rapid position/orientation changes
+- Monitor CPU usage with many streams
+- Test `Bass.Apply3D()` impact
+
+### Edge Cases
+- Sound at listener position (distance = 0)
+- Sound beyond max distance
+- Cone angle extremes (0°, 360°)
+- Rapid velocity changes (Doppler)
+- Listener rotation with directional sounds
+
+## Debug Output Format
+
+When `LogDebugInfo` is enabled:
+```
+File: test.wav | Playing: True | Level: 0.523 | 
+Source: (10, 0, 5) | Listener: (0, 0, 0) | 
+MinDist: 1.0 | MaxDist: 50.0 | 
+Orient: (1, 0, 0) | Cone: 45°/90° | Mode: Normal
+```
+
+Shows:
+- Source and listener positions
+- Distance parameters
+- Source orientation vector
+- Cone angles (inner/outer)
+- 3D processing mode
+- Current playback level
+- Playback state
+
+## Configuration
+
+Spatial audio uses the same configuration as stereo audio through `AudioConfig.cs`:
+
+```csharp
+// Mixer settings
+AudioConfig.MixerFrequency = 48000           // 48kHz professional audio
+AudioConfig.PlaybackBufferLengthMs = 100     // Balanced latency
+AudioConfig.DeviceBufferLengthMs = 20        // Low device latency
+
+// Analysis settings
+AudioConfig.FftBufferSize = 1024             // FFT resolution
+AudioConfig.FrequencyBandCount = 32          // Spectrum bands
+AudioConfig.WaveformSampleCount = 1024       // Waveform samples
+
+// Logging
+AudioConfig.SuppressDebugLogs = false        // Console debug control
+```
+
+## System Requirements
+
+- **ManagedBass**: Native 3D audio support via BASS library
+- **Mono Audio**: Required for BASS 3D positioning (auto-converted)
+- **Listener Position**: Must be set via `AudioEngine.Set3DListenerPosition()`
+- **.NET 9**: Uses modern C# features
+- **Vector3D Conversion**: Helper method converts System.Numerics.Vector3 to ManagedBass.Vector3D
 
 ## Compatibility
 
-- **BASS Version**: Compatible with current ManagedBass implementation
+- **BASS Version**: ManagedBass with native 3D audio support
 - **.NET Version**: .NET 9
 - **C# Version**: 13.0
-- **Audio Formats**: All formats supported by BASS (WAV, MP3, OGG, FLAC, etc.)
+- **Audio Formats**: All BASS formats (WAV, MP3, OGG, FLAC, etc.)
+- **Mono Requirement**: Stereo files automatically converted to mono with `BassFlags.Mono`
 
-## Build Status
-✅ **Build Successful** - All compilation errors resolved
+## Related Documentation
 
-## Known Issues & Fixes
+- **[STEREO_AUDIO_IMPLEMENTATION.md](STEREO_AUDIO_IMPLEMENTATION.md)** - Stereo audio documentation
+- **[AUDIO_ARCHITECTURE.md](AUDIO_ARCHITECTURE.md)** - Overall audio system architecture
+- **[CHANGELOG_UPDATE_SUMMARY.md](CHANGELOG_UPDATE_SUMMARY.md)** - Version history and changes
+- **`Core/Audio/AudioConfig.cs`** - Configuration reference
 
-### Issue: "No3D" Error on Stream Creation
-**Error Message:** `[SpatialAudio] Error loading audio stream 'filename.wav': No3D`
+## Additional Resources
 
-**Cause:** Initial implementation attempted to use `BassFlags.Bass3D` flag which requires BASS to be initialized with 3D support (`DeviceInitFlags.Device3D`).
+- **BASS 3D Audio Documentation**: https://www.un4seen.com/doc/
+- **ManagedBass Repository**: https://github.com/ManagedBass/ManagedBass
+- **3D Audio Theory**: HRTF, Doppler effect, distance models
 
-**Fix:** Removed `BassFlags.Bass3D` from stream creation. The implementation now uses software-based 3D positioning through:
-- Distance-based volume attenuation
-- Automatic stereo panning based on X-axis position
-- No dependency on BASS's native 3D audio system
+---
 
-**Benefits of Software-Based Approach:**
-- ✅ Works with any BASS initialization mode
-- ✅ More predictable and portable across platforms
-- ✅ Full control over attenuation curves and panning algorithms
-- ✅ No additional BASS configuration required
-
-### Enhancement: Orientation-Aware Panning (v2)
-**Feature:** Panning now takes into account listener orientation (forward and up vectors)
-
-**How it works:**
-1. Calculates listener's local coordinate system (right vector = forward × up)
-2. Projects sound direction onto the right vector
-3. Panning adapts correctly when listener rotates
-
-**Before:** Panning was based solely on X-axis (world coordinates)
-- Sound at (10, 0, 0) always panned right, regardless of listener orientation
-
-**After:** Panning is based on listener's local right direction
-- Sound pans right/left relative to where the listener is facing
-- If listener rotates 180°, a sound that was "to the right" becomes "to the left"
-
-**Benefits:**
-- ✅ More realistic 3D audio experience
-- ✅ Works correctly with rotating cameras/players
-- ✅ Matches user expectations for spatial audio in games/VR
+**Last Updated:** 2026-01-10  
+**Status:** Production Ready
