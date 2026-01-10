@@ -8,20 +8,21 @@
 
 ## Table of Contents
 1. [Executive Summary](#executive-summary)
-2. [Architecture Overview](#architecture-overview)
-3. [New Components](#new-components)
-4. [Latency Optimizations](#latency-optimizations)
-5. [Deadlock Fixes](#deadlock-fixes)
-6. [Performance Metrics](#performance-metrics)
-7. [Breaking Changes](#breaking-changes)
-8. [Migration Guide](#migration-guide)
-9. [Technical Details](#technical-details)
-10. [Configuration Centralization](#configuration-centralization)
-11. [Logging Configuration](#logging-configuration)
-12. [UI Settings Integration](#ui-settings-integration)
-13. [Future Improvements](#future-improvements)
-14. [Appendix: Log Examples](#appendix-log-examples)
-15. [Conclusion](#conclusion)
+2. [Detailed Implementation Documentation](#detailed-implementation-documentation)
+3. [Architecture Overview](#architecture-overview)
+4. [New Components](#new-components)
+5. [Latency Optimizations](#latency-optimizations)
+6. [Deadlock Fixes](#deadlock-fixes)
+7. [Performance Metrics](#performance-metrics)
+8. [Breaking Changes](#breaking-changes)
+9. [Migration Guide](#migration-guide)
+10. [Technical Details](#technical-details)
+11. [Configuration Centralization](#configuration-centralization)
+12. [Logging Configuration](#logging-configuration)
+13. [UI Settings Integration](#ui-settings-integration)
+14. [Future Improvements](#future-improvements)
+15. [Appendix: Log Examples](#appendix-log-examples)
+16. [Conclusion](#conclusion)
 
 ---
 
@@ -46,6 +47,30 @@ This document describes a comprehensive redesign of the T3 audio system, introdu
 - ✅ **48kHz professional audio** for better quality and plugin compatibility
 - ✅ **Suppressible debug logs** for cleaner development experience
 - ✅ **Centralized audio configuration** for easier maintenance and modification
+
+---
+
+## Detailed Implementation Documentation
+
+For comprehensive implementation details, usage examples, and technical specifications of individual audio operators, see:
+
+### Audio Operators
+- **[StereoAudioPlayer Implementation](STEREO_AUDIO_IMPLEMENTATION.md)** - Detailed documentation for stereo audio playback
+  - Playback controls (Play, Pause, Stop, Resume)
+  - Audio parameters (Volume, Panning, Speed, Seek)
+  - Real-time analysis (Level, Waveform, Spectrum)
+  - Test tone generation and debugging features
+  - Performance optimizations and latency characteristics
+  - Complete usage examples and best practices
+
+- **[SpatialAudioPlayer Implementation](SPATIAL_AUDIO_IMPLEMENTATION.md)** - Detailed documentation for 3D spatial audio
+  - 3D positional audio with distance attenuation
+  - Listener orientation and spatial panning
+  - MinDistance/MaxDistance configuration
+  - Advanced spatial audio techniques
+  - Performance considerations for 3D audio
+
+This changelog focuses on the overall audio architecture changes, configuration system, and integration with the T3 framework. For operator-specific details, refer to the dedicated implementation documents above.
 
 ---
 
