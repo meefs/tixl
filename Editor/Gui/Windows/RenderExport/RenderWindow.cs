@@ -7,8 +7,7 @@ using T3.Editor.Gui.Styling;
 using T3.Editor.Gui.UiHelpers;
 using T3.Core.Utils;
 using T3.Core.Animation;
-using T3.Editor.UiModel.ProjectHandling;
-using System.Threading.Tasks;
+using T3.Core.SystemUi;
 
 namespace T3.Editor.Gui.Windows.RenderExport;
 
@@ -24,7 +23,6 @@ internal sealed class RenderWindow : Window
         FormInputs.AddVerticalSpace(15);
         DrawTimeSetup();
         
-        // FormInputs.AddVerticalSpace(10);
         DrawInnerContent();
         
     }
@@ -62,23 +60,35 @@ internal sealed class RenderWindow : Window
         else
             DrawImageSequenceSettings();
 
-        FormInputs.AddVerticalSpace(10);
+        FormInputs.AddVerticalSpace(2);
         
         // Final Summary Card
-        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.12f, 0.6f));
+        ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.12f, 0.12f, 0.12f, 0.45f));
         ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 4f);
         
-        ImGui.BeginChild("Summary", new Vector2(-1, 85 * T3Ui.UiScaleFactor), false, ImGuiWindowFlags.NoScrollbar);
-        DrawRenderSummary();
-        ImGui.EndChild();
+        if (ImGui.BeginChild("Summary", new Vector2(-1, 64 * T3Ui.UiScaleFactor), false, ImGuiWindowFlags.NoScrollbar))
+        {
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 4);
+            DrawRenderSummary();
+            ImGui.EndChild();
+        }
         
         ImGui.PopStyleVar();
         ImGui.PopStyleColor();
 
+        FormInputs.AddVerticalSpace(5);
         DrawRenderingControls();
         DrawOverwriteDialog();
 
         CustomComponents.HelpText(RenderProcess.IsExporting ? RenderProcess.LastHelpString : _uiState.LastHelpString);
+        
+        if (!RenderProcess.IsExporting && !string.IsNullOrEmpty(RenderProcess.LastTargetDirectory) && Directory.Exists(RenderProcess.LastTargetDirectory))
+        {
+            if (ImGui.Button(RenderWindowStrings.OpenOutputFolderButton))
+            {
+                CoreUi.Instance.OpenWithDefaultApplication(RenderProcess.LastTargetDirectory);
+            }
+        }
     }
 
     private void DrawTimeSetup()
@@ -126,9 +136,7 @@ internal sealed class RenderWindow : Window
         DrawResolutionPopoverCompact(resSize.X); 
         
         FormInputs.AddVerticalSpace(10);
-
         RenderSettings.FrameCount = RenderTiming.ComputeFrameCount(RenderSettings);
-
         FormInputs.AddVerticalSpace(5);
         
         // Motion Blur Samples
@@ -145,7 +153,7 @@ internal sealed class RenderWindow : Window
         }
     }
 
-    private void DrawResolutionPopoverCompact(float width)
+    private static void DrawResolutionPopoverCompact(float width)
     {
         var currentPct = (int)(RenderSettings.ResolutionFactor * 100);
         ImGui.SetNextItemWidth(width);
@@ -189,11 +197,13 @@ internal sealed class RenderWindow : Window
         var endSec = RenderTiming.ReferenceTimeToSeconds(RenderSettings.EndInBars, RenderSettings.Reference, RenderSettings.Fps);
         var duration = Math.Max(0, endSec - startSec);
 
-        double bpp = size.Width <= 0 || size.Height <= 0 || RenderSettings.Fps <= 0
-                         ? 0
-                         : RenderSettings.Bitrate / (double)(size.Width * size.Height) / RenderSettings.Fps;
+        var totalPixels = (long)size.Width * size.Height;
+        bool isValidSize = totalPixels > 0 && RenderSettings.Fps > 0;
+        double bitsPerPixel = isValidSize 
+                                  ? RenderSettings.Bitrate / (double)totalPixels / RenderSettings.Fps 
+                                  : 0;
 
-        var q = GetQualityLevelFromRate((float)bpp);
+        var q = GetQualityLevelFromRate((float)bitsPerPixel);
         FormInputs.AddHint($"{q.Title} quality (Est. {RenderSettings.Bitrate * duration / 1024 / 1024 / 8:0.#} MB)");
         CustomComponents.TooltipForLastItem(q.Description);
 
@@ -221,7 +231,7 @@ internal sealed class RenderWindow : Window
         FormInputs.AddCheckBox(RenderWindowStrings.ExportAudioLabel, ref RenderSettings.ExportAudio);
     }
 
-    private void DrawImageSequenceSettings()
+    private static void DrawImageSequenceSettings()
     {
         FormInputs.AddEnumDropdown(ref RenderSettings.FileFormat, RenderWindowStrings.FormatLabel);
 
@@ -237,26 +247,22 @@ internal sealed class RenderWindow : Window
     private void DrawRenderSummary()
     {
         var size = RenderProcess.MainOutputOriginalSize;
-        var scaledWidth = ((int)(size.Width * RenderSettings.ResolutionFactor) / 2 * 2).Clamp(2, 16384);
-        var scaledHeight = ((int)(size.Height * RenderSettings.ResolutionFactor) / 2 * 2).Clamp(2, 16384);
+        var scaledWidthRaw = (int)(size.Width * RenderSettings.ResolutionFactor);
+        var scaledHeightRaw = (int)(size.Height * RenderSettings.ResolutionFactor);
+        
+        // Ensure even dimensions and clamp to valid range
+        var scaledWidth = (scaledWidthRaw / 2 * 2).Clamp(2, 16384);
+        var scaledHeight = (scaledHeightRaw / 2 * 2).Clamp(2, 16384);
 
         var startSec = RenderTiming.ReferenceTimeToSeconds(RenderSettings.StartInBars, RenderSettings.Reference, RenderSettings.Fps);
         var endSec = RenderTiming.ReferenceTimeToSeconds(RenderSettings.EndInBars, RenderSettings.Reference, RenderSettings.Fps);
         var duration = Math.Max(0, endSec - startSec);
 
         var outputPath = GetCachedTargetFilePath(RenderSettings.RenderMode);
-        string format;
-        if (RenderSettings.RenderMode == RenderSettings.RenderModes.Video)
-        {
-            format = "MP4 Video";
-        }
-        else
-        {
-            format = $"{RenderSettings.FileFormat} Sequence";
-        }
+        string format = RenderSettings.RenderMode == RenderSettings.RenderModes.Video 
+                            ? "MP4 Video" 
+                            : $"{RenderSettings.FileFormat} Sequence";
 
-        ImGui.Unindent(5);
-        ImGui.Indent(5);
         ImGui.PushStyleColor(ImGuiCol.Text, UiColors.TextMuted.Rgba);
         ImGui.TextUnformatted($"{format} - {scaledWidth}×{scaledHeight} @ {RenderSettings.Fps:0}fps");
         ImGui.TextUnformatted($"{duration / 60:0}:{duration % 60:00.0}s ({RenderSettings.FrameCount} frames)");
@@ -266,7 +272,6 @@ internal sealed class RenderWindow : Window
         ImGui.PopFont();
         
         ImGui.PopStyleColor();
-        ImGui.Unindent(5);
     }
     
     private string GetCachedTargetFilePath(RenderSettings.RenderModes mode)
@@ -316,7 +321,10 @@ internal sealed class RenderWindow : Window
                 timeRemainingStr = StringUtils.HumanReadableDurationFromSeconds(remaining) + RenderWindowStrings.Remaining;
             }
 
-            ImGui.ProgressBar(progress, new Vector2(-1, 16 * T3Ui.UiScaleFactor), $"{progress * 100:0}%");
+            ImGui.PushStyleColor(ImGuiCol.PlotHistogram, UiColors.StatusAutomated.Rgba);
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, UiColors.BackgroundInputField.Rgba);
+            ImGui.ProgressBar(progress, new Vector2(-1, 4 * T3Ui.UiScaleFactor), "");
+            ImGui.PopStyleColor(2);
 
             ImGui.PushFont(Fonts.FontSmall);
             ImGui.PushStyleColor(ImGuiCol.Text, UiColors.TextMuted.Rgba);
@@ -408,7 +416,7 @@ internal sealed class RenderWindow : Window
     private static RenderSettings RenderSettings => RenderSettings.Current;
 
     private readonly RenderSettings.QualityLevel[] _qualityLevels =
-        {
+        [
             new(0.01, "Poor", "Very low quality. Consider lower resolution."),
             new(0.02, "Low", "Probable strong artifacts"),
             new(0.05, "Medium", "Will exhibit artifacts in noisy regions"),
@@ -416,7 +424,7 @@ internal sealed class RenderWindow : Window
             new(0.12, "Good", "Good quality. Probably sufficient for YouTube."),
             new(0.5, "Very good", "Excellent quality, but large."),
             new(1, "Reference", "Indistinguishable. Very large files."),
-        };
+        ];
 
     private sealed class WindowUiState
     {
@@ -466,7 +474,7 @@ internal sealed class RenderWindow : Window
         public const string FormatLabel = "Format";
         public const string NameLabel = "Name";
         public const string AutoIncrementLabel = "Auto-increment version";
-        public const string ExportAudioLabel = "Export Audio";
+        public const string ExportAudioLabel = "Export Audio (experimental)";
         
         public const string Calculating = "Calculating...";
         public const string Remaining = " remaining";
@@ -477,5 +485,6 @@ internal sealed class RenderWindow : Window
         public const string OverwriteConfirm = "Do you want to overwrite it?";
         public const string OverwriteButton = "Overwrite";
         public const string CancelButton = "Cancel";
+        public const string OpenOutputFolderButton = "Open output folder";
     }
 }

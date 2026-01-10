@@ -17,6 +17,7 @@ namespace T3.Editor.Gui.Windows.RenderExport;
 internal static class RenderProcess
 {
     public static string LastHelpString { get; private set; } = string.Empty;
+    public static string LastTargetDirectory { get; private set; } = string.Empty;
 
 
     
@@ -196,6 +197,12 @@ internal static class RenderProcess
         {
             var directory = Path.GetDirectoryName(targetFilePath);
             _activeSession.TargetFolder = directory ?? targetFilePath;
+        }
+
+        LastTargetDirectory = _activeSession.TargetFolder;
+        if (_activeSession.Settings.RenderMode == RenderSettings.RenderModes.Video)
+        {
+            LastTargetDirectory = Path.GetDirectoryName(targetFilePath) ?? string.Empty;
         }
 
         ScreenshotWriter.ClearQueue();
