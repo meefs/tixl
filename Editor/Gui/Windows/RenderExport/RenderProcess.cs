@@ -71,12 +71,11 @@ internal static class RenderProcess
 
         if (!IsExporting)
         {
-            var desc = MainOutputTexture.Description;
-            MainOutputOriginalSize.Width = desc.Width;
-            MainOutputOriginalSize.Height = desc.Height;
+            var baseResolution = outputWindow.GetResolution();
+            MainOutputOriginalSize = baseResolution;
 
-            MainOutputRenderedSize = new Int2(((int)(desc.Width * RenderSettings.Current.ResolutionFactor)).Clamp(1,16384),
-                                              ((int)(desc.Height * RenderSettings.Current.ResolutionFactor)).Clamp(1,16384));
+            MainOutputRenderedSize = new Int2(((int)(baseResolution.Width * RenderSettings.Current.ResolutionFactor) / 2 * 2).Clamp(2,16384),
+                                              ((int)(baseResolution.Height * RenderSettings.Current.ResolutionFactor) / 2 * 2).Clamp(2,16384));
             
             State = States.WaitingForExport;
             return;
@@ -148,18 +147,32 @@ internal static class RenderProcess
             Log.Warning("Export is already in progress");
             return;
         }
+
+        if (!OutputWindow.TryGetPrimaryOutputWindow(out var outputWindow))
+        {
+            Log.Warning("No output window found to start export");
+            return;
+        }
         
         var targetFilePath = GetTargetFilePath(renderSettings.RenderMode);
         if (!RenderPaths.ValidateOrCreateTargetFolder(targetFilePath))
             return;
 
-        renderSettings.FrameCount = RenderTiming.ComputeFrameCount(renderSettings);
+        _renderSettings = renderSettings;
+        
+        // Lock the resolution at the start of export
+        var baseResolution = outputWindow.GetResolution();
+        MainOutputOriginalSize = baseResolution;
+        MainOutputRenderedSize = new Int2(
+            ((int)(baseResolution.Width * _renderSettings.ResolutionFactor) / 2 * 2).Clamp(2, 16384),
+            ((int)(baseResolution.Height * _renderSettings.ResolutionFactor) / 2 * 2).Clamp(2, 16384)
+        );
+
+        _renderSettings.FrameCount = RenderTiming.ComputeFrameCount(_renderSettings);
         
         IsToollRenderingSomething = true;
         ExportStartedTimeLocal = Core.Animation.Playback.RunTimeInSecs;
 
-        _renderSettings = renderSettings;
-        
         _frameIndex = 0;
         _frameCount = Math.Max(_renderSettings.FrameCount, 0);
 
@@ -167,10 +180,10 @@ internal static class RenderProcess
 
         if (_renderSettings.RenderMode == RenderSettings.RenderModes.Video)
         {
-            _videoWriter = new Mp4VideoWriter(targetFilePath, MainOutputOriginalSize, _renderSettings.ExportAudio)
+            _videoWriter = new Mp4VideoWriter(targetFilePath, MainOutputRenderedSize, _renderSettings.ExportAudio)
                                {
                                    Bitrate = _renderSettings.Bitrate,
-                                   Framerate = (int)renderSettings.Fps
+                                   Framerate = (int)_renderSettings.Fps
                                };
         }
         else
@@ -183,8 +196,12 @@ internal static class RenderProcess
         // set playback to the first frame
         RenderTiming.SetPlaybackTimeForFrame(ref _renderSettings, _frameIndex, _frameCount, ref _runtime);
         IsExporting = true;
+        _resolutionMismatchCount = 0;
         LastHelpString = "Rendering…";
     }
+
+    private static int _resolutionMismatchCount = 0;
+    private const int MaxResolutionMismatchRetries = 10;
 
     private static int GetRealFrame() => _frameIndex - MfVideoWriter.SkipImages;
     
@@ -227,9 +244,34 @@ internal static class RenderProcess
 
         try
         {
+            // Explicitly check for resolution mismatch BEFORE calling video writer
+            // This prevents passing bad frames to the writer and allows us to handle the "wait" logic here
+            var currentDesc = MainOutputTexture.Description;
+            if (currentDesc.Width != MainOutputRenderedSize.Width || currentDesc.Height != MainOutputRenderedSize.Height)
+            {
+                _resolutionMismatchCount++;
+                if (_resolutionMismatchCount > MaxResolutionMismatchRetries)
+                {
+                    Log.Warning($"Resolution mismatch timed out after {_resolutionMismatchCount} frames ({currentDesc.Width}x{currentDesc.Height} vs {MainOutputRenderedSize.Width}x{MainOutputRenderedSize.Height}). Forcing advance.");
+                    _frameIndex++;
+                    RenderTiming.SetPlaybackTimeForFrame(ref _renderSettings, _frameIndex, _frameCount, ref _runtime);
+                    _resolutionMismatchCount = 0;
+                }
+                else
+                {
+                    // Stay on same frame, wait for engine to resize
+                    // Log.Debug($"Waiting for resolution match... ({currentDesc.Width}x{currentDesc.Height} vs {MainOutputRenderedSize.Width}x{MainOutputRenderedSize.Height})");
+                }
+                return true;
+            }
+
+            // Resolution matches, proceed with write and advance
+            _resolutionMismatchCount = 0;
             _videoWriter?.ProcessFrames( MainOutputTexture, ref audioFrame, channels, sampleRate);
+            
             _frameIndex++;
             RenderTiming.SetPlaybackTimeForFrame(ref _renderSettings, _frameIndex, _frameCount, ref _runtime);
+            
             return true;
         }
         catch (Exception e)

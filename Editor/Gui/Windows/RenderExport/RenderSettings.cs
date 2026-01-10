@@ -26,7 +26,7 @@ internal sealed class RenderSettings
     public  bool ExportAudio = true;
     public  ScreenshotWriter.FileFormats FileFormat;
     public  RenderSettings.TimeRanges TimeRange = RenderSettings.TimeRanges.Custom;
-    public  float ResolutionFactor = 1f;     // currently UI-only hint
+    public  float ResolutionFactor = 1f; 
 
     public int FrameCount;
     

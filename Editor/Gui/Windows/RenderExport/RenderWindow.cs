@@ -57,7 +57,7 @@ internal sealed class RenderWindow : Window
         FormInputs.AddVerticalSpace();
 
         if (RenderSettings.RenderMode == RenderSettings.RenderModes.Video)
-            DrawVideoSettings(RenderProcess.MainOutputOriginalSize);
+            DrawVideoSettings(RenderProcess.MainOutputRenderedSize);
         else
             DrawImageSequenceSettings();
 
