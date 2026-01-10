@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ManagedBass;
@@ -20,7 +20,7 @@ public static class AudioRendering
         Bass.Configure(Configuration.UpdatePeriod, 0);
         Bass.Configure(Configuration.GlobalStreamVolume, 0);
 
-        foreach (var (_, clipStream) in AudioEngine.ClipStreams)
+        foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
         {
             _settingsBeforeExport.BufferLengthInSeconds = Bass.ChannelGetAttribute(clipStream.StreamHandle, ChannelAttribute.Buffer);
 
@@ -39,7 +39,7 @@ public static class AudioRendering
         _fifoBuffersForClips.Clear();
     }
 
-    internal static void ExportAudioFrame(Playback playback, double frameDurationInSeconds, AudioClipStream clipStream)
+    internal static void ExportAudioFrame(Playback playback, double frameDurationInSeconds, SoundtrackClipStream clipStream)
     {
         // Create buffer if necessary
         if (!_fifoBuffersForClips.TryGetValue(clipStream.ResourceHandle, out var buffer))
@@ -118,7 +118,7 @@ public static class AudioRendering
         // TODO: Find this in Managed Bass library. It doesn't seem to be present.
         const int tailAttribute = 16;
 
-        foreach (var (_, clipStream) in AudioEngine.ClipStreams)
+        foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
         {
             // Bass.ChannelPause(clipStream.StreamHandle);
             clipStream.UpdateTimeWhileRecording(playback, fps, false);
@@ -136,7 +136,7 @@ public static class AudioRendering
 
     public static byte[] GetLastMixDownBuffer(double frameDurationInSeconds)
     {
-        if (AudioEngine.ClipStreams.Count == 0)
+        if (AudioEngine.SoundtrackClipStreams.Count == 0)
         {
             // Get default sample rate
             var channels = AudioEngine.GetClipChannelCount(null);
@@ -147,7 +147,7 @@ public static class AudioRendering
             return new byte[bytes];
         }
 
-        foreach (var (_, clipStream) in AudioEngine.ClipStreams)
+        foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
         {
             if (!_fifoBuffersForClips.TryGetValue(clipStream.ResourceHandle, out var buffer))
                 continue;

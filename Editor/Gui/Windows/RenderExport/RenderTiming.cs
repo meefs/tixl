@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using T3.Core.Animation;
 using T3.Core.Audio;
 using T3.Core.Utils;
@@ -134,7 +134,7 @@ internal static class RenderTiming
 
         // audio clip for preview
         if (playbackSettings.TryGetMainSoundtrack(instanceWithSettings, out var soundtrack))
-            AudioEngine.UseAudioClip(soundtrack, Playback.Current.TimeInSecs);
+            AudioEngine.UseSoundtrackClip(soundtrack, Playback.Current.TimeInSecs);
 
         if (!rt.AudioRecording)
         {

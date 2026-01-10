@@ -143,7 +143,7 @@ internal static class PlaybackSettingsPopup
                     if (ImGui.Button("Add soundtrack to composition"))
                     {
                         modified = true;
-                        settings.AudioClips.Add(new AudioClipDefinition()
+                        settings.AudioClips.Add(new SoundtrackClipDefinition()
                                                     {
                                                         IsSoundtrack = true,
                                                     });
@@ -198,7 +198,7 @@ internal static class PlaybackSettingsPopup
                     FormInputs.ApplyIndent();
                     if (ImGui.Button("Reload"))
                     {
-                        AudioEngine.ReloadClip(soundtrackHandle);
+                        AudioEngine.ReloadSoundtrackClip(soundtrackHandle);
                         AudioImageFactory.ResetImageCache();
                         modified = true;
                         filepathModified = true;
@@ -268,7 +268,7 @@ internal static class PlaybackSettingsPopup
                     if (filepathModified)
                     {
                         composition.Symbol.GetSymbolUi().FlagAsModified();
-                        AudioEngine.ReloadClip(soundtrackHandle);
+                        AudioEngine.ReloadSoundtrackClip(soundtrackHandle);
                         UpdateBpmFromSoundtrackConfig(soundtrackHandle.Clip);
                         UpdatePlaybackAndTimeline(settings);
                     }
@@ -488,7 +488,7 @@ internal static class PlaybackSettingsPopup
         }
     }
 
-    private static void UpdateBpmFromSoundtrackConfig(AudioClipDefinition? audioClip)
+    private static void UpdateBpmFromSoundtrackConfig(SoundtrackClipDefinition? audioClip)
     {
         if (audioClip == null || string.IsNullOrEmpty(audioClip.FilePath))
         {

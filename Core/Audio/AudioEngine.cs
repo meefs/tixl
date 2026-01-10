@@ -15,20 +15,25 @@ namespace T3.Core.Audio;
 /// </summary>
 public static class AudioEngine
 {
-    public static void UseAudioClip(AudioClipResourceHandle handle, double time)
+    // --- Soundtrack (Timeline) Audio ---
+    internal static readonly Dictionary<AudioClipResourceHandle, SoundtrackClipStream> SoundtrackClipStreams = new();
+    private static readonly Dictionary<AudioClipResourceHandle, double> _updatedSoundtrackClipTimes = new();
+    private static readonly List<AudioClipResourceHandle> _obsoleteSoundtrackHandles = new();
+
+    public static void UseSoundtrackClip(AudioClipResourceHandle handle, double time)
     {
-        _updatedClipTimes[handle] = time;
+        _updatedSoundtrackClipTimes[handle] = time;
     }
 
-    public static void ReloadClip(AudioClipResourceHandle handle)
+    public static void ReloadSoundtrackClip(AudioClipResourceHandle handle)
     {
-        if (ClipStreams.TryGetValue(handle, out var stream))
+        if (SoundtrackClipStreams.TryGetValue(handle, out var stream))
         {
             Bass.StreamFree(stream.StreamHandle);
-            ClipStreams.Remove(handle);
+            SoundtrackClipStreams.Remove(handle);
         }
 
-        UseAudioClip(handle, 0);
+        UseSoundtrackClip(handle, 0);
     }
 
     public static void CompleteFrame(Playback playback, double frameDurationInSeconds)
@@ -58,38 +63,37 @@ public static class AudioEngine
                AudioSource: PlaybackSettings.AudioSources.ProjectSoundTrack })
             AudioAnalysis.ProcessUpdate(playback.Settings.AudioGainFactor, playback.Settings.AudioDecayFactor);
 
-        // Create new streams
-        foreach (var (handle, time) in _updatedClipTimes)
+        // Create new soundtrack streams
+        foreach (var (handle, time) in _updatedSoundtrackClipTimes)
         {
-            if (ClipStreams.TryGetValue(handle, out var clip))
+            if (SoundtrackClipStreams.TryGetValue(handle, out var clip))
             {
                 clip.TargetTime = time;
             }
             else if(!string.IsNullOrEmpty(handle.Clip.FilePath))
             {
-                if (AudioClipStream.TryLoadClip(handle, out var audioClipStream))
+                if (SoundtrackClipStream.TryLoadSoundtrackClip(handle, out var soundtrackClipStream))
                 {
-                    ClipStreams[handle] = audioClipStream;
+                    SoundtrackClipStreams[handle] = soundtrackClipStream;
                 }
             }
         }
-
 
         var playbackSpeedChanged = Math.Abs(_lastPlaybackSpeed - playback.PlaybackSpeed) > 0.001f;
         _lastPlaybackSpeed = playback.PlaybackSpeed;
 
         var handledMainSoundtrack = false;
-        foreach (var (handle, clipStream) in ClipStreams)
+        foreach (var (handle, clipStream) in SoundtrackClipStreams)
         {
-            clipStream.IsInUse = _updatedClipTimes.ContainsKey(clipStream.ResourceHandle);
+            clipStream.IsInUse = _updatedSoundtrackClipTimes.ContainsKey(clipStream.ResourceHandle);
             if (!clipStream.IsInUse && clipStream.ResourceHandle.Clip.DiscardAfterUse)
             {
-                _obsoleteHandles.Add(handle);
+                _obsoleteSoundtrackHandles.Add(handle);
             }
             else
             {
                 if (!playback.IsRenderingToFile && playbackSpeedChanged)
-                    clipStream.UpdatePlaybackSpeed(playback.PlaybackSpeed);
+                    clipStream.UpdateSoundtrackPlaybackSpeed(playback.PlaybackSpeed);
 
                 if (handledMainSoundtrack || !clipStream.ResourceHandle.Clip.IsSoundtrack)
                     continue;
@@ -103,23 +107,23 @@ public static class AudioEngine
                 else
                 {
                     UpdateFftBufferFromSoundtrack(clipStream.StreamHandle, playback);
-                    clipStream.UpdateTime(playback);
+                    clipStream.UpdateSoundtrackTime(playback);
                 }
             }
         }
 
-        foreach (var handle in _obsoleteHandles)
+        foreach (var handle in _obsoleteSoundtrackHandles)
         {
-            ClipStreams[handle].Disable();
-            ClipStreams.Remove(handle);
+            SoundtrackClipStreams[handle].DisableSoundtrackStream();
+            SoundtrackClipStreams.Remove(handle);
         }
         
         // STALE DETECTION: Check all operator streams and mute those that weren't updated this frame
         CheckAndMuteStaleOperators(playback.FxTimeInBars);
         
         // Clear after loop to avoid keeping open references
-        _obsoleteHandles.Clear();
-        _updatedClipTimes.Clear();
+        _obsoleteSoundtrackHandles.Clear();
+        _updatedSoundtrackClipTimes.Clear();
     }
 
     public static void SetMute(bool configSoundtrackMute)
@@ -168,7 +172,7 @@ public static class AudioEngine
     public static int GetClipChannelCount(AudioClipResourceHandle? handle)
     {
         // By default, use stereo
-        if (handle == null || !ClipStreams.TryGetValue(handle, out var clipStream))
+        if (handle == null || !SoundtrackClipStreams.TryGetValue(handle, out var clipStream))
             return 2;
 
         Bass.ChannelGetInfo(clipStream.StreamHandle, out var info);
@@ -178,7 +182,7 @@ public static class AudioEngine
     // TODO: Rename to GetClipOrDefaultSampleRate
     public static int GetClipSampleRate(AudioClipResourceHandle? clip)
     {
-        if (clip == null || !ClipStreams.TryGetValue(clip, out var stream))
+        if (clip == null || !SoundtrackClipStreams.TryGetValue(clip, out var stream))
             return 48000;
 
         Bass.ChannelGetInfo(stream.StreamHandle, out var info);
@@ -688,11 +692,6 @@ public static class AudioEngine
 
     private static double _lastPlaybackSpeed = 1;
     private static bool _bassInitialized;
-    internal static readonly Dictionary<AudioClipResourceHandle, AudioClipStream> ClipStreams = new();
-    private static readonly Dictionary<AudioClipResourceHandle, double> _updatedClipTimes = new();
-
-    // reused list to avoid allocations
-    private static readonly List<AudioClipResourceHandle> _obsoleteHandles = [];
 
     /// <summary>
     /// Check all operator audio streams and mute those that weren't updated this frame

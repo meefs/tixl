@@ -242,7 +242,7 @@ internal static partial class Program
                 {
                     _playback.Bpm = _soundtrackHandle.Clip.Bpm;
                     // Trigger loading clip
-                    AudioEngine.UseAudioClip(_soundtrackHandle, 0);
+                    AudioEngine.UseSoundtrackClip(_soundtrackHandle, 0);
                     AudioEngine.CompleteFrame(_playback, Playback.LastFrameDuration); // Initialize
                     prerenderRequired = true;
                 }
