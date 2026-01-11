@@ -17,14 +17,14 @@ internal static class DragAndDropHandling
         {
             FreeData();
             _stopRequested = false;
-            _activeDraggingId = string.Empty;
+            _activeDraggingId =DragTypes.None;
         }
     }
     
     /// <summary>
     /// This should be called right after an ImGui item that is a drag source (e.g. a button).
     /// </summary>
-    internal static void HandleDragSourceForLastItem(string dragId, string data, string dragLabel)
+    internal static void HandleDragSourceForLastItem(DragTypes dragType, string data, string dragLabel)
     {
         if (ImGui.IsItemActive())
         {
@@ -35,9 +35,9 @@ internal static class DragAndDropHandling
                 FreeData();
             
             _dropData = Marshal.StringToHGlobalUni(data);
-            _activeDraggingId = dragId;
+            _activeDraggingId = dragType;
 
-            ImGui.SetDragDropPayload(dragId, _dropData, (uint)((data.Length +1) * sizeof(char)));
+            ImGui.SetDragDropPayload(dragType.ToString(), _dropData, (uint)((data.Length +1) * sizeof(char)));
 
             ImGui.Button(dragLabel);
             ImGui.EndDragDropSource();
@@ -48,14 +48,19 @@ internal static class DragAndDropHandling
         }
     }
 
-    internal static bool TryGetDataDroppedLastItem(string dragId, [NotNullWhen(true)] out string? data)
+    /// <summary>
+    /// Checks if data is valid for the passed DragId
+    /// </summary>
+    /// <returns>
+    /// True if dropped
+    /// </returns>
+    internal static bool TryHandleItemDrop(DragTypes dragType, [NotNullWhen(true)] out string? data)
     {
         data = string.Empty;
         
         if (!IsDragging)
             return false;
-
-
+        
         var isHovered = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByActiveItem);
         var fade = isHovered ? 1 : 0.5f;
         
@@ -70,7 +75,7 @@ internal static class DragAndDropHandling
             return false;
         
         var success = false;
-        var payload = ImGui.AcceptDragDropPayload(dragId);
+        var payload = ImGui.AcceptDragDropPayload(dragType.ToString());
         if (ImGui.IsMouseReleased(0))
         {
             if (HasData)
@@ -89,12 +94,20 @@ internal static class DragAndDropHandling
             {
                 Log.Warning("No data for drop?");
             }
-            _activeDraggingId = string.Empty;
+            _activeDraggingId = DragTypes.None;
         }
 
         ImGui.EndDragDropTarget();
 
         return success;
+    }
+
+    internal enum DragInteractionResult
+    {
+        None,
+        Invalid,
+        Hovering,
+        Dropped,
     }
     
     /// <summary>
@@ -116,12 +129,12 @@ internal static class DragAndDropHandling
     }
 
 
-    private static string _activeDraggingId = string.Empty; 
-    internal static bool IsDragging => !string.IsNullOrEmpty(_activeDraggingId);
+    private static DragTypes _activeDraggingId = DragTypes.None; 
+    internal static bool IsDragging => _activeDraggingId != DragTypes.None;
 
-    internal static bool IsDraggingWith(string dragId)
+    internal static bool IsDraggingWith(DragTypes dragType)
     {
-        return _activeDraggingId == dragId;
+        return _activeDraggingId == dragType;
     }
     
     private static bool HasData => _dropData != IntPtr.Zero;
@@ -129,6 +142,14 @@ internal static class DragAndDropHandling
     private static IntPtr _dropData = new(0);
     private static bool _stopRequested;
 
-    internal const string SymbolDraggingId = "symbol";
-    internal const string AssetDraggingId = "fileAsset";
+    // TODO: Should be an enumeration
+    internal enum DragTypes
+    {
+        None,
+        Symbol,
+        FileAsset,
+        ExternalFile,
+    }
+    // internal const string SymbolDraggingId = "symbol";
+    // internal const string AssetDraggingId = "fileAsset";
 }

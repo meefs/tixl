@@ -229,7 +229,7 @@ internal sealed partial class MagGraphView : ScalableCanvas, IGraphView
     //     var scope = GetScopeForCanvasArea(newViewArea);
     //     context.Canvas.SetScopeWithTransition(scope, ICanvas.Transition.Instant);
     // }
-    private void HandleSymbolDropping(GraphUiContext context)
+    private void HandleDropping(GraphUiContext context)
     {
         if (!DragAndDropHandling.IsDragging)
             return;
@@ -237,9 +237,9 @@ internal sealed partial class MagGraphView : ScalableCanvas, IGraphView
         ImGui.SetCursorPos(Vector2.Zero);
         ImGui.InvisibleButton("## drop", ImGui.GetWindowSize());
         
-        if (DragAndDropHandling.IsDraggingWith(DragAndDropHandling.SymbolDraggingId))
+        if (DragAndDropHandling.IsDraggingWith(DragAndDropHandling.DragTypes.Symbol))
         {
-            if (!DragAndDropHandling.TryGetDataDroppedLastItem(DragAndDropHandling.SymbolDraggingId, out var data))
+            if (!DragAndDropHandling.TryHandleItemDrop(DragAndDropHandling.DragTypes.Symbol, out var data))
                 return;
 
             if (!Guid.TryParse(data, out var symbolId))
@@ -250,9 +250,9 @@ internal sealed partial class MagGraphView : ScalableCanvas, IGraphView
 
             TryCreateSymbolInstanceOnGraph(context, symbolId, out _);
         }
-        else if (DragAndDropHandling.IsDraggingWith(DragAndDropHandling.AssetDraggingId))
+        else if (DragAndDropHandling.IsDraggingWith(DragAndDropHandling.DragTypes.FileAsset))
         {
-            if (!DragAndDropHandling.TryGetDataDroppedLastItem(DragAndDropHandling.AssetDraggingId, out var aliasPath))
+            if (!DragAndDropHandling.TryHandleItemDrop(DragAndDropHandling.DragTypes.FileAsset, out var aliasPath))
                 return;
 
             if (!AssetLibrary.GetAssetFromAliasPath(aliasPath, out var asset))

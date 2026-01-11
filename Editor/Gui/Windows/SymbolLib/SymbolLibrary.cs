@@ -240,7 +240,7 @@ internal sealed class SymbolLibrary : Window
     /// </summary>
     private static void HandleDropTarget(NamespaceTreeNode subtree)
     {
-        if (!DragAndDropHandling.TryGetDataDroppedLastItem(DragAndDropHandling.SymbolDraggingId, out var data))
+        if (!DragAndDropHandling.TryHandleItemDrop(DragAndDropHandling.DragTypes.Symbol, out var data))
             return;
 
         if (!Guid.TryParse(data, out var symbolId))
@@ -528,7 +528,7 @@ internal sealed class SymbolLibrary : Window
             return;
 
         DragAndDropHandling.HandleDragSourceForLastItem(
-            DragAndDropHandling.SymbolDraggingId,
+            DragAndDropHandling.DragTypes.Symbol,
             symbol.Id.ToString(),
             "Create instance");
 
