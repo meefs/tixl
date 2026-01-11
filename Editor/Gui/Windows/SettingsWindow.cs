@@ -675,11 +675,11 @@ internal sealed class SettingsWindow : Window
                         changed = true;
                     }
                     // Change label for video rendering logs
-                    var renderProfilingChanged = FormInputs.AddCheckBox("Show Video Render Logs",
-                        ref UserSettings.Config.ShowRenderProfilingLogs,
-                        "Shows Debug and Info log messages from rendering export (e.g., SaveVideoFrameAndAdvance).",
-                        false);
-                    if (renderProfilingChanged)
+                    var videoRenderingDebugChanged = FormInputs.AddCheckBox("Show Video Render Logs",
+                        ref UserSettings.Config.ShowVideoRenderingDebugLogs,
+                        "Shows Debug and Info log messages from video rendering/export (e.g., Mp4VideoWriter, RenderProcess).",
+                        UserSettings.Defaults.ShowVideoRenderingDebugLogs);
+                    if (videoRenderingDebugChanged)
                     {
                         changed = true;
                     }

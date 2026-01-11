@@ -149,9 +149,12 @@ internal static class RenderTiming
             var requestedEndSecs = ReferenceTimeToSeconds(s.EndInBars, s.Reference, s.Fps);
             var actualEndSecs = startSecs + ComputeFrameCount(s) / s.Fps;
 
-            Log.Debug($"Requested recording from {startSecs:0.0000} to {requestedEndSecs:0.0000} seconds");
-            Log.Debug($"Actually recording from {startSecs:0.0000} to {actualEndSecs:0.0000} seconds due to frame raster");
-            Log.Debug($"Using {Playback.Current.Bpm} bpm");
+            if (T3.Editor.Gui.UiHelpers.UserSettings.Config.ShowVideoRenderingDebugLogs)
+            {
+                Log.Debug($"Requested recording from {startSecs:0.0000} to {requestedEndSecs:0.0000} seconds");
+                Log.Debug($"Actually recording from {startSecs:0.0000} to {actualEndSecs:0.0000} seconds due to frame raster");
+                Log.Debug($"Using {Playback.Current.Bpm} bpm");
+            }
 
             rt.AudioRecording = true;
         }

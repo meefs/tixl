@@ -125,6 +125,7 @@ public sealed class UserSettings : Settings<UserSettings.ConfigData>
         // Audio
         public bool ShowAudioDebugLogs = false;
         public bool ShowAudioRenderingDebugLogs = false;
+        public bool ShowVideoRenderingDebugLogs = false;
         
         // Audio Advanced Settings
         public int AudioMixerFrequency = 48000;
@@ -192,6 +193,7 @@ public sealed class UserSettings : Settings<UserSettings.ConfigData>
     {
         public static bool ShowAudioDebugLogs = false;
         public static bool ShowAudioRenderingDebugLogs = false;
+        public static bool ShowVideoRenderingDebugLogs = false;
         public static bool ShowThumbnails = true;
         public static float UiScaleFactor = 1;
         public static int ValueEditSmoothing = 6;
