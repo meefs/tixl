@@ -306,7 +306,7 @@ internal sealed class SettingsWindow : Window
 
                 case Categories.Project:
                 {
-                    var projectSettingsChanged = false;
+                    bool projectSettingsChanged = false;
                     FormInputs.AddSectionHeader("Project specific settings");
                     FormInputs.AddVerticalSpace();
 
@@ -409,7 +409,6 @@ internal sealed class SettingsWindow : Window
                 {
                     FormInputs.AddSectionHeader("Audio System");
                     FormInputs.AddVerticalSpace();
-                    
                     FormInputs.SetIndentToParameters();
                     changed |= FormInputs.AddFloat("Global Volume",
                                                    ref ProjectSettings.Config.GlobalPlaybackVolume,
@@ -435,99 +434,72 @@ internal sealed class SettingsWindow : Window
                     
                     FormInputs.AddVerticalSpace();
                     FormInputs.SetIndentToLeft();
-                    
-                    var audioDebugChanged = FormInputs.AddCheckBox("Suppress Audio Debug Logs",
-                                                      ref UserSettings.Config.SuppressAudioDebugLogs,
-                                                      "Suppresses Debug and Info log messages from audio system classes. Warning and Error messages will still be logged.",
-                                                      UserSettings.Defaults.SuppressAudioDebugLogs);
-                    
-                    if (audioDebugChanged)
-                    {
-                        T3.Core.Audio.AudioConfig.SuppressDebugLogs = UserSettings.Config.SuppressAudioDebugLogs;
-                        changed = true;
-                    }
-                    
                     FormInputs.AddVerticalSpace();
                     FormInputs.AddSectionSubHeader("Advanced Settings");
                     FormInputs.SetIndentToLeft();
-                    
 #if DEBUG
                     if (!_showAdvancedAudioSettings.HasValue)
                         _showAdvancedAudioSettings = false;
-                    
                     var showAdvanced = _showAdvancedAudioSettings.Value;
                     changed |= FormInputs.AddCheckBox("Show Advanced Audio Settings",
                                                       ref showAdvanced,
                                                       "Shows advanced audio configuration options. Changes to these settings require a restart.",
                                                       false);
                     _showAdvancedAudioSettings = showAdvanced;
-                    
                     if (showAdvanced)
                     {
                         FormInputs.AddVerticalSpace();
                         FormInputs.SetIndentToParameters();
                         CustomComponents.HelpText("⚠ Warning: Changes to these settings require a restart of the application.");
                         FormInputs.AddVerticalSpace();
-                        
                         FormInputs.AddSectionSubHeader("Mixer Configuration");
-                        
                         changed |= FormInputs.AddInt("Sample Rate (Hz)",
                                                      ref UserSettings.Config.AudioMixerFrequency,
                                                      8000, 192000, 1f,
                                                      "Sample rate for all mixer streams. Common values: 44100, 48000, 96000",
                                                      UserSettings.Defaults.AudioMixerFrequency);
-                        
                         changed |= FormInputs.AddInt("Update Period (ms)",
                                                      ref UserSettings.Config.AudioUpdatePeriodMs,
                                                      1, 100, 0.1f,
                                                      "BASS update period in milliseconds for low-latency playback. Lower values reduce latency but increase CPU usage.",
                                                      UserSettings.Defaults.AudioUpdatePeriodMs);
-                        
                         changed |= FormInputs.AddInt("Update Threads",
                                                      ref UserSettings.Config.AudioUpdateThreads,
                                                      1, 8, 0.1f,
                                                      "Number of BASS update threads",
                                                      UserSettings.Defaults.AudioUpdateThreads);
-                        
                         changed |= FormInputs.AddInt("Playback Buffer Length (ms)",
                                                      ref UserSettings.Config.AudioPlaybackBufferLengthMs,
                                                      10, 1000, 1f,
                                                      "Playback buffer length in milliseconds",
                                                      UserSettings.Defaults.AudioPlaybackBufferLengthMs);
-                        
                         changed |= FormInputs.AddInt("Device Buffer Length (ms)",
                                                      ref UserSettings.Config.AudioDeviceBufferLengthMs,
                                                      5, 500, 1f,
                                                      "Device buffer length in milliseconds for low-latency output",
                                                      UserSettings.Defaults.AudioDeviceBufferLengthMs);
-                        
                         FormInputs.AddVerticalSpace();
                         FormInputs.AddSectionSubHeader("FFT and Analysis");
-                        
                         changed |= FormInputs.AddInt("FFT Buffer Size",
                                                      ref UserSettings.Config.AudioFftBufferSize,
                                                      256, 8192, 1f,
                                                      "FFT buffer size for frequency analysis. Must be a power of 2.",
                                                      UserSettings.Defaults.AudioFftBufferSize);
-                        
                         changed |= FormInputs.AddInt("Frequency Band Count",
                                                      ref UserSettings.Config.AudioFrequencyBandCount,
                                                      8, 128, 1f,
                                                      "Number of frequency bands for audio analysis",
                                                      UserSettings.Defaults.AudioFrequencyBandCount);
-                        
                         changed |= FormInputs.AddInt("Waveform Sample Count",
                                                      ref UserSettings.Config.AudioWaveformSampleCount,
                                                      256, 8192, 1f,
                                                      "Waveform sample buffer size",
                                                      UserSettings.Defaults.AudioWaveformSampleCount);
-                        
                         changed |= FormInputs.AddFloat("Low-Pass Cutoff Frequency (Hz)",
                                                        ref UserSettings.Config.AudioLowPassCutoffFrequency,
                                                        20f, 1000f, 1f, true, true,
                                                        "Low-pass filter cutoff frequency for low frequency separation",
                                                        UserSettings.Defaults.AudioLowPassCutoffFrequency);
-                        
                         changed |= FormInputs.AddFloat("High-Pass Cutoff Frequency (Hz)",
                                                        ref UserSettings.Config.AudioHighPassCutoffFrequency,
                                                        1000f, 20000f, 1f, true, true,
@@ -535,9 +507,8 @@ internal sealed class SettingsWindow : Window
                                                        UserSettings.Defaults.AudioHighPassCutoffFrequency);
                     }
 #endif
-                    
-                    break;
                 }
+                    break;
                 case Categories.Midi:
                 {
                     FormInputs.AddSectionHeader("Midi");
@@ -615,103 +586,91 @@ internal sealed class SettingsWindow : Window
                 case Categories.Keyboard:
                     FormInputs.AddSectionHeader("Keyboard Shortcuts");
                     CustomComponents.HelpText("The keyboard layout can't be edited yet. Working on it");
-
                     KeyMapEditor.DrawEditor();
-
                     break;
-
                 case Categories.Profiling:
                 {
                     FormInputs.AddSectionHeader("Profiling and debugging");
-
-                    CustomComponents.HelpText("Enabling this will add slight performance overhead.\nChanges will require a restart of Tooll.");
                     FormInputs.AddVerticalSpace();
 
-                    FormInputs.SetIndentToParameters();
-                    FormInputs.AddSectionSubHeader("Log events");
+                    // Profiling group
                     FormInputs.SetIndentToLeft();
+                    FormInputs.AddSectionSubHeader("Profiling");
+                    FormInputs.AddVerticalSpace();
                     changed |= FormInputs.AddCheckBox("Enable Frame Profiling",
-                                                      ref UserSettings.Config.EnableFrameProfiling,
-                                                      "A basic frame profile for the duration of frame processing. Overhead is minimal.",
-                                                      UserSettings.Defaults.EnableFrameProfiling);
-
+                        ref UserSettings.Config.EnableFrameProfiling,
+                        "A basic frame profile for the duration of frame processing. Overhead is minimal.",
+                        UserSettings.Defaults.EnableFrameProfiling);
                     changed |= FormInputs.AddCheckBox("Keep Log Messages",
-                                                      ref UserSettings.Config.KeepTraceForLogMessages,
-                                                      "Store log messages in the profiling data. This can be useful to see correlation between frame drops and log messages.",
-                                                      UserSettings.Defaults.KeepTraceForLogMessages);
-
+                        ref UserSettings.Config.KeepTraceForLogMessages,
+                        "Store log messages in the profiling data. This can be useful to see correlation between frame drops and log messages.",
+                        UserSettings.Defaults.KeepTraceForLogMessages);
                     changed |= FormInputs.AddCheckBox("Log GC Profiling",
-                                                      ref UserSettings.Config.EnableGCProfiling,
-                                                      "Log garbage collection information. This can be useful to see correlation between frame drops and GC activity.",
-                                                      UserSettings.Defaults.EnableGCProfiling);
-
-                    changed |= FormInputs.AddCheckBox("Profile Beat Syncing",
-                                                      ref ProjectSettings.Config.EnableBeatSyncProfiling,
-                                                      "Logs beat sync timing to IO Window",
-                                                      ProjectSettings.Defaults.EnableBeatSyncProfiling);
-                    
+                        ref UserSettings.Config.EnableGCProfiling,
+                        "Log garbage collection information. This can be useful to see correlation between frame drops and GC activity.",
+                        UserSettings.Defaults.EnableGCProfiling);
                     FormInputs.AddVerticalSpace();
-                    FormInputs.AddSectionSubHeader("Audio System");
+
+                    // Audio System group
                     FormInputs.SetIndentToLeft();
-                    
-                    var audioDebugChanged = FormInputs.AddCheckBox("Suppress Audio Debug Logs",
-                                                      ref UserSettings.Config.SuppressAudioDebugLogs,
-                                                      "Suppresses Debug and Info log messages from audio system classes. Warning and Error messages will still be logged.",
-                                                      UserSettings.Defaults.SuppressAudioDebugLogs);
-                    
+                    FormInputs.AddSectionSubHeader("Audio System");
+                    FormInputs.AddVerticalSpace();
+                    var audioDebugChanged = FormInputs.AddCheckBox("Show Logs",
+                        ref UserSettings.Config.ShowAudioDebugLogs,
+                        "Shows Debug and Info log messages from audio system classes. Warning and Error messages will still be logged.",
+                        UserSettings.Defaults.ShowAudioDebugLogs);
                     if (audioDebugChanged)
                     {
-                        T3.Core.Audio.AudioConfig.SuppressDebugLogs = UserSettings.Config.SuppressAudioDebugLogs;
+                        T3.Core.Audio.AudioConfig.ShowLogs = UserSettings.Config.ShowAudioDebugLogs;
                         changed = true;
                     }
-
-                    FormInputs.AddSectionSubHeader("Compilation");
-
-                    // Compilation details
+                    var audioRenderingDebugChanged = FormInputs.AddCheckBox("Show Render Logs",
+                        ref UserSettings.Config.ShowAudioRenderingDebugLogs,
+                        "Shows Debug and Info log messages from audio rendering classes (e.g., export, offline rendering).",
+                        UserSettings.Defaults.ShowAudioRenderingDebugLogs);
+                    if (audioRenderingDebugChanged)
                     {
-                        changed |= FormInputs.AddCheckBox("Log Assembly Version mismatches",
-                                                          ref ProjectSettings.Config.LogAssemblyVersionMismatches,
-                                                          """
-                                                          Version mismatches are frequently caused by slightly outdated 3rd party library that we depend on.
-                                                          These are only relevant in situations where you need to debug or analyse assembly loading problems. 
-                                                          """,
-                                                          ProjectSettings.Defaults.LogAssemblyVersionMismatches);
+                        T3.Core.Audio.AudioConfig.ShowRenderLogs = UserSettings.Config.ShowAudioRenderingDebugLogs;
+                        changed = true;
+                    }
+                    changed |= FormInputs.AddCheckBox("Profile Beat Syncing",
+                        ref ProjectSettings.Config.EnableBeatSyncProfiling,
+                        "Logs beat sync timing to IO Window",
+                        ProjectSettings.Defaults.EnableBeatSyncProfiling);
+                    FormInputs.AddVerticalSpace();
 
-                        changed |= FormInputs.AddCheckBox("Log Loading Details",
-                                                          ref ProjectSettings.Config.LogAssemblyLoadingDetails,
-                                                          """
-                                                          Logs additional details about resolving and identifying assemblies and other resources.
-                                                          This can be useful to debug issues related to loading projects.
-                                                          """,
-                                                          ProjectSettings.Defaults.LogAssemblyLoadingDetails);
-
-                        changed |= FormInputs.AddCheckBox("Log C# Compilation Details",
-                                                          ref ProjectSettings.Config.LogCompilationDetails,
-                                                          "Logs additional compilation details with the given severity",
-                                                          ProjectSettings.Defaults.LogCompilationDetails);
-
-                        if (ProjectSettings.Config.LogCompilationDetails)
-                        {
-                            FormInputs.SetIndentToParameters();
-                            changed |= FormInputs.AddEnumDropdown(ref UserSettings.Config.CompileCsVerbosity,
-                                                                  "C# compiler logs",
-                                                                  null,
-                                                                  UserSettings.Defaults.CompileCsVerbosity
-                                                                 );
-                        }
+                    // Compilation group
+                    FormInputs.SetIndentToLeft();
+                    FormInputs.AddSectionSubHeader("Compilation");
+                    FormInputs.AddVerticalSpace();
+                    changed |= FormInputs.AddCheckBox("Log Assembly Version mismatches",
+                        ref ProjectSettings.Config.LogAssemblyVersionMismatches,
+                        "Version mismatches are frequently caused by slightly outdated 3rd party library that we depend on.\nThese are only relevant in situations where you need to debug or analyse assembly loading problems.",
+                        ProjectSettings.Defaults.LogAssemblyVersionMismatches);
+                    changed |= FormInputs.AddCheckBox("Log Loading Details",
+                        ref ProjectSettings.Config.LogAssemblyLoadingDetails,
+                        "Logs additional details about resolving and identifying assemblies and other resources.\nThis can be useful to debug issues related to loading projects.",
+                        ProjectSettings.Defaults.LogAssemblyLoadingDetails);
+                    changed |= FormInputs.AddCheckBox("Log C# Compilation Details",
+                        ref ProjectSettings.Config.LogCompilationDetails,
+                        "Logs additional compilation details with the given severity",
+                        ProjectSettings.Defaults.LogCompilationDetails);
+                    if (ProjectSettings.Config.LogCompilationDetails)
+                    {
+                        changed |= FormInputs.AddEnumDropdown(ref UserSettings.Config.CompileCsVerbosity,
+                            "C# compiler logs",
+                            null,
+                            UserSettings.Defaults.CompileCsVerbosity);
                     }
                     FormInputs.AddVerticalSpace();
+
+                    // Operator status indicator
                     FormInputs.SetIndentToLeft();
-
                     changed |= FormInputs.AddCheckBox("Show Operator status indicators",
-                                                      ref UserSettings.Config.ShowOperatorStats,
-                                                      """
-                                                      Draws an context overlay with various operator stats. 
-                                                      """,
-                                                      UserSettings.Defaults.ShowOperatorStats);
-
+                        ref UserSettings.Config.ShowOperatorStats,
+                        "Draws an context overlay with various operator stats.",
+                        UserSettings.Defaults.ShowOperatorStats);
                     FormInputs.AddVerticalSpace();
-
                     break;
                 }
             }

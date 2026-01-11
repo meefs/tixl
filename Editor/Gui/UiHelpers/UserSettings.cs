@@ -125,7 +125,8 @@ public sealed class UserSettings : Settings<UserSettings.ConfigData>
         public bool EnableAutoBackup = true;
 
         // Audio
-        public bool SuppressAudioDebugLogs = false;
+        public bool ShowAudioDebugLogs = false;
+        public bool ShowAudioRenderingDebugLogs = false;
         
         // Audio Advanced Settings
         public int AudioMixerFrequency = 48000;
@@ -139,7 +140,6 @@ public sealed class UserSettings : Settings<UserSettings.ConfigData>
         public float AudioLowPassCutoffFrequency = 250f;
         public float AudioHighPassCutoffFrequency = 2000f;
 
-        // Other settings
         public float GizmoSize = 100;
 
         // Fullscreen settings
@@ -155,13 +155,12 @@ public sealed class UserSettings : Settings<UserSettings.ConfigData>
         public float SpaceMouseRotationSpeedFactor = 1f;
         public float SpaceMouseMoveSpeedFactor = 1f;
         public float SpaceMouseDamping = 0.5f;
-
         // Rendering (controlled from render windows)
         public string RenderVideoFilePath = "./Render/render-v01.mp4";
         public string RenderSequenceFilePath = "./ImageSequence/";
         public string RenderSequenceFileName = "Output_";
 
-        // Profiling and debugging
+
         public bool EnableFrameProfiling = true;
         public bool KeepTraceForLogMessages = false;
         public bool EnableGCProfiling = false;
@@ -182,11 +181,61 @@ public sealed class UserSettings : Settings<UserSettings.ConfigData>
 
         public bool ExpandSpectrumVisualizerVertically = true;
         public int GridOutputColumnCount = 16;
-
         //private string _defaultNewProjectDirectory = _defaultProjectFolder;
         //public string DefaultNewProjectDirectory => _defaultNewProjectDirectory ??= _defaultProjectFolder;
 
         private static readonly string _defaultProjectFolder = FileLocations.DefaultProjectFolder;
+    }
+
+    public static class Defaults
+    {
+        public static bool ShowAudioDebugLogs = false;
+        public static bool ShowAudioRenderingDebugLogs = false;
+        public static bool ShowThumbnails = true;
+        public static float UiScaleFactor = 1;
+        public static int ValueEditSmoothing = 6;
+        public static GraphStyles GraphStyle = GraphStyles.Magnetic;
+        public static bool EnableHorizontalSnapping = true;
+        public static float MaxCurveRadius = 350;
+        public static int MaxSegmentCount = 32;
+        public static bool UseArcConnections = true;
+        public static bool SmartGroupDragging = false;
+        public static bool EditorHoverPreview = true;
+        public static float ScrollSmoothing = 0.06f;
+        public static float ClickThreshold = 5;
+        public static float GizmoSize = 100;
+        public static bool EnableKeyboardShortCuts = true;
+        public static bool AddSpacesToParameterNames = true;
+        public static bool UseTouchPadPanning = false;
+        public static float TimeRasterDensity = 1f;
+        public static float SnapStrength = 5;
+        public static FrameStepAmount FrameStepAmount = FrameStepAmount.FrameAt30Fps;
+        public static bool ResetTimeAfterPlayback = false;
+        public static bool ShowSkillQuestInHub = true;
+        public static bool MouseWheelEditsNeedCtrlKey = true;
+        public static bool AdjustCameraSpeedWithMouseWheel = false;
+        public static bool MirrorUiOnSecondView = false;
+        public static bool ExpandSpectrumVisualizerVertically = true;
+        public static bool MiddleMouseButtonZooms = false;
+        public static bool WarnBeforeLibEdit = true;
+        public static bool SuspendRenderingWhenHidden = true;
+        public static bool EnableAutoBackup = true;
+        public static int AudioMixerFrequency = 48000;
+        public static int AudioUpdatePeriodMs = 10;
+        public static int AudioUpdateThreads = 2;
+        public static int AudioPlaybackBufferLengthMs = 100;
+        public static int AudioDeviceBufferLengthMs = 20;
+        public static int AudioFftBufferSize = 1024;
+        public static int AudioFrequencyBandCount = 32;
+        public static int AudioWaveformSampleCount = 1024;
+        public static float AudioLowPassCutoffFrequency = 250f;
+        public static float AudioHighPassCutoffFrequency = 2000f;
+        public static bool EnableFrameProfiling = true;
+        public static bool KeepTraceForLogMessages = false;
+        public static bool EnableGCProfiling = false;
+        public static CompilerOptions.Verbosity CompileCsVerbosity = CompilerOptions.Verbosity.Normal;
+        public static bool ShowOperatorStats = false;
+        public static float CameraSpeed = 1;
     }
 
     public enum ValueEditMethods

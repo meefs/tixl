@@ -228,9 +228,6 @@ internal static partial class Program
 
             var prerenderRequired = false;
 
-            Bass.Free();
-            Bass.Init();
-
             _resolution = new Int2(_resolvedOptions.Width, _resolvedOptions.Height);
 
             // Init wasapi input if required

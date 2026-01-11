@@ -139,8 +139,9 @@ internal static class Program
         var userSettings = new UserSettings(saveOnQuit: true);
         
         // Configure audio system based on user settings
-        T3.Core.Audio.AudioConfig.SuppressDebugLogs = UserSettings.Config.SuppressAudioDebugLogs;
-        
+        T3.Core.Audio.AudioConfig.ShowLogs = UserSettings.Config.ShowAudioDebugLogs;
+        T3.Core.Audio.AudioConfig.ShowRenderLogs = UserSettings.Config.ShowAudioRenderingDebugLogs;
+
         if (UserSettings.Config.ProjectDirectories.Count == 0)
         {
             UserSettings.Config.ProjectDirectories.Add(FileLocations.DefaultProjectFolder);

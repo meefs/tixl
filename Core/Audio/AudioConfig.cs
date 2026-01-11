@@ -9,10 +9,17 @@ namespace T3.Core.Audio;
 /// </summary>
 public static class AudioConfig
 {
+    #region Logging Configuration
     /// <summary>
-    /// When true, Debug and Info logs from audio classes will be suppressed.
+    /// When true, Debug and Info logs from audio classes will be shown.
     /// </summary>
-    public static bool SuppressDebugLogs { get; set; } = false;
+    public static bool ShowLogs { get; set; } = false;
+
+    /// <summary>
+    /// When true, Debug and Info logs from audio rendering classes will be shown.
+    /// </summary>
+    public static bool ShowRenderLogs { get; set; } = false;
+    #endregion
 
     #region Mixer Configuration
     /// <summary>
@@ -74,20 +81,20 @@ public static class AudioConfig
     #endregion
 
     /// <summary>
-    /// Helper method to log Debug messages that respect the suppression setting.
+    /// Helper method to log Debug messages that respect the show setting.
     /// </summary>
     public static void LogDebug(string message)
     {
-        if (!SuppressDebugLogs)
+        if (ShowLogs)
             Log.Debug(message);
     }
 
     /// <summary>
-    /// Helper method to log Info messages that respect the suppression setting.
+    /// Helper method to log Info messages that respect the show setting.
     /// </summary>
     public static void LogInfo(string message)
     {
-        if (!SuppressDebugLogs)
+        if (ShowLogs)
             Log.Info(message);
     }
 }

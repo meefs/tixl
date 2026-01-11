@@ -11,6 +11,9 @@ public static class AudioRendering
 {
     public static void PrepareRecording(Playback playback, double fps)
     {
+        if (AudioConfig.ShowRenderLogs)
+            Logging.Log.Debug($"[AudioRendering] PrepareRecording called with fps={fps}", typeof(AudioRendering));
+
         _settingsBeforeExport.BassUpdateThreads = Bass.GetConfig(Configuration.UpdateThreads);
         _settingsBeforeExport.BassUpdatePeriodInMs = Bass.GetConfig(Configuration.UpdatePeriod);
         _settingsBeforeExport.BassGlobalStreamVolume = Bass.GetConfig(Configuration.GlobalStreamVolume);
@@ -42,6 +45,8 @@ public static class AudioRendering
 
     internal static void ExportAudioFrame(Playback playback, double frameDurationInSeconds, SoundtrackClipStream clipStream)
     {
+        if (AudioConfig.ShowRenderLogs)
+            Logging.Log.Debug($"[AudioRendering] ExportAudioFrame called for clip {clipStream.ResourceHandle} with frameDuration={frameDurationInSeconds}", typeof(AudioRendering));
         try
         {
             if (!_fifoBuffersForClips.TryGetValue(clipStream.ResourceHandle, out var bufferQueue))
@@ -106,6 +111,9 @@ public static class AudioRendering
                 while (bufferQueue.Count > bytes)
                     bufferQueue.Dequeue();
             }
+
+            if (AudioConfig.ShowRenderLogs)
+                Logging.Log.Debug($"[AudioRendering] Exported {bytes} bytes for clip {clipStream.ResourceHandle}", typeof(AudioRendering));
         }
         catch (Exception ex)
         {
@@ -115,6 +123,8 @@ public static class AudioRendering
 
     public static void EndRecording(Playback playback, double fps)
     {
+        if (AudioConfig.ShowRenderLogs)
+            Logging.Log.Debug($"[AudioRendering] EndRecording called with fps={fps}", typeof(AudioRendering));
         // TODO: Find this in Managed Bass library. It doesn't seem to be present.
         const int tailAttribute = 16;
 
@@ -136,6 +146,8 @@ public static class AudioRendering
 
     public static byte[] GetLastMixDownBuffer(double frameDurationInSeconds)
     {
+        if (AudioConfig.ShowRenderLogs)
+            Logging.Log.Debug($"[AudioRendering] GetLastMixDownBuffer called with frameDuration={frameDurationInSeconds}", typeof(AudioRendering));
         try
         {
             if (AudioEngine.SoundtrackClipStreams.Count == 0)
@@ -200,12 +212,15 @@ public static class AudioRendering
     /// <returns>Interleaved float buffer (stereo) for the frame.</returns>
     public static float[] GetFullMixDownBuffer(double frameDurationInSeconds, double localFxTime)
     {
+        if (AudioConfig.ShowRenderLogs)
+            Logging.Log.Debug($"[AudioRendering] GetFullMixDownBuffer called with frameDuration={frameDurationInSeconds}, localFxTime={localFxTime}", typeof(AudioRendering));
         int mixerSampleRate = AudioConfig.MixerFrequency;
         int channels = AudioEngine.GetClipChannelCount(null);
         int sampleCount = (int)Math.Max(Math.Round(frameDurationInSeconds * mixerSampleRate), 0.0);
         int floatCount = sampleCount * channels;
         float[] mixBuffer = new float[floatCount];
-        Logging.Log.Debug($"[AudioRendering] Mixer sample rate: {mixerSampleRate}, channels: {channels}, frameDuration: {frameDurationInSeconds}, floatCount: {floatCount}", typeof(AudioRendering));
+        if (AudioConfig.ShowRenderLogs)
+            Logging.Log.Debug($"[AudioRendering] Mixer sample rate: {mixerSampleRate}, channels: {channels}, frameDuration: {frameDurationInSeconds}, floatCount: {floatCount}", typeof(AudioRendering));
 
         // 1. Mix all soundtrack clips (decode directly)
         foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
@@ -231,7 +246,8 @@ public static class AudioRendering
             Bass.ChannelGetInfo(decodeStream, out var info);
             int clipSampleRate = info.Frequency;
             int clipChannels = info.Channels;
-            Logging.Log.Debug($"[AudioRendering] Decoding clip: {filePath}, clipSampleRate: {clipSampleRate}, clipChannels: {clipChannels}, timeInClip: {timeInClip}", typeof(AudioRendering));
+            if (AudioConfig.ShowRenderLogs)
+                Logging.Log.Debug($"[AudioRendering] Decoding clip: {filePath}, clipSampleRate: {clipSampleRate}, clipChannels: {clipChannels}, timeInClip: {timeInClip}", typeof(AudioRendering));
             Bass.ChannelSetPosition(decodeStream, Bass.ChannelSeconds2Bytes(decodeStream, timeInClip));
             int clipSampleCount = (int)Math.Max(Math.Round(frameDurationInSeconds * clipSampleRate), 0.0);
             int clipFloatCount = clipSampleCount * clipChannels;
@@ -246,7 +262,8 @@ public static class AudioRendering
             if (clipSampleRate != mixerSampleRate && samplesRead > 0)
             {
                 int resampleSamples = (int)Math.Max(Math.Round(frameDurationInSeconds * mixerSampleRate), 0.0);
-                Logging.Log.Debug($"[AudioRendering] Resampling from {clipSampleRate} to {mixerSampleRate}, inputSamples: {samplesRead / clipChannels}, outputSamples: {resampleSamples}", typeof(AudioRendering));
+                if (AudioConfig.ShowRenderLogs)
+                    Logging.Log.Debug($"[AudioRendering] Resampling from {clipSampleRate} to {mixerSampleRate}, inputSamples: {samplesRead / clipChannels}, outputSamples: {resampleSamples}", typeof(AudioRendering));
                 resampled = LinearResample(temp, samplesRead / clipChannels, clipChannels, resampleSamples, channels);
                 samplesRead = resampleSamples * channels;
             }
@@ -274,16 +291,18 @@ public static class AudioRendering
                     filePath = filePathProp.GetValue(source) as string;
                 }
             }
-            if (!string.IsNullOrEmpty(filePath))
+            if (AudioConfig.ShowRenderLogs)
             {
-                // Try to get sample rate and channels from buffer length and duration
-                int sampleRate = mixerSampleRate;
-                int ch = channels;
-                Logging.Log.Debug($"[AudioRendering] Decoding operator: {opType}, file: {filePath}, sampleRate: {sampleRate}, channels: {ch}, time: {localFxTime}", typeof(AudioRendering));
-            }
-            else
-            {
-                Logging.Log.Debug($"[AudioRendering] Decoding operator: {opType}, file: -, sampleRate: {mixerSampleRate}, channels: {channels}, time: {localFxTime}", typeof(AudioRendering));
+                if (!string.IsNullOrEmpty(filePath))
+                {
+                    int sampleRate = mixerSampleRate;
+                    int ch = channels;
+                    Logging.Log.Debug($"[AudioRendering] Decoding operator: {opType}, file: {filePath}, sampleRate: {sampleRate}, channels: {ch}, time: {localFxTime}", typeof(AudioRendering));
+                }
+                else
+                {
+                    Logging.Log.Debug($"[AudioRendering] Decoding operator: {opType}, file: -, sampleRate: {mixerSampleRate}, channels: {channels}, time: {localFxTime}", typeof(AudioRendering));
+                }
             }
             for (int i = 0; i < written && i < floatCount; i++)
                 mixBuffer[i] += opTemp[i];
