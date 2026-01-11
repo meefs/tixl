@@ -98,6 +98,10 @@ internal static class RenderProcess
             AudioRendering.GetLastMixDownBuffer(Playback.LastFrameDuration);
             success = SaveImageFrameAndAdvance();
         }
+        
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+        if (_activeSession == null) 
+            return;
 
         // Update stats
         var effectiveFrameCount = _activeSession.Settings.RenderMode == RenderSettings.RenderModes.Video ? _activeSession.FrameCount : _activeSession.FrameCount + 2;
