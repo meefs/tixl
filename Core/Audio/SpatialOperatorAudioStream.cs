@@ -615,6 +615,29 @@ public sealed class SpatialOperatorAudioStream
         }
     }
 
+    /// <summary>
+    /// Render audio for export, filling the buffer at the requested sample rate and channel count.
+    /// </summary>
+    public int RenderAudio(double startTime, double duration, float[] outputBuffer, int targetSampleRate, int targetChannels)
+    {
+        int nativeSampleRate = _cachedFrequency > 0 ? _cachedFrequency : 44100;
+        int nativeChannels = _cachedChannels > 0 ? _cachedChannels : 1;
+        OperatorAudioUtils.FillAndResample(
+            (s, d, buf) => RenderNativeAudio(s, d, buf),
+            startTime, duration, outputBuffer,
+            nativeSampleRate, nativeChannels, targetSampleRate, targetChannels);
+        return outputBuffer.Length;
+    }
+
+    // Native render: fill buffer at native sample rate/channels
+    private int RenderNativeAudio(double startTime, double duration, float[] buffer)
+    {
+        int sampleCount = buffer.Length / (_cachedChannels > 0 ? _cachedChannels : 1);
+        int bytesToRead = sampleCount * (_cachedChannels > 0 ? _cachedChannels : 1) * sizeof(float);
+        int bytesRead = Bass.ChannelGetData(StreamHandle, buffer, bytesToRead);
+        return bytesRead > 0 ? bytesRead / sizeof(float) : 0;
+    }
+
     public void Dispose()
     {
         var fileName = Path.GetFileName(FilePath);

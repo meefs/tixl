@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System.IO;
 using T3.Core.Animation;
 using T3.Core.Audio;
@@ -88,12 +88,31 @@ internal static class RenderProcess
         bool success;
         if (_renderSettings.RenderMode == RenderSettings.RenderModes.Video)
         {
-            var audioFrame = AudioRendering.GetLastMixDownBuffer(1.0 / _renderSettings.Fps);
-            success = SaveVideoFrameAndAdvance( ref audioFrame, RenderAudioInfo.SoundtrackChannels(), RenderAudioInfo.SoundtrackSampleRate());
+            // Use the new full mixdown buffer for audio export
+            double localFxTime = _frameIndex / _renderSettings.Fps;
+            var audioFrameFloat = AudioRendering.GetFullMixDownBuffer(1.0 / _renderSettings.Fps, localFxTime);
+            // Safety: ensure audioFrameFloat is valid and sized
+            if (audioFrameFloat == null || audioFrameFloat.Length == 0)
+            {
+                Log.Error($"RenderProcess: AudioRendering.GetFullMixDownBuffer returned null or empty at frame {_frameIndex}", typeof(RenderProcess));
+                int sampleRate = RenderAudioInfo.SoundtrackSampleRate();
+                int channels = RenderAudioInfo.SoundtrackChannels();
+                int floatCount = (int)Math.Max(Math.Round((1.0 / _renderSettings.Fps) * sampleRate), 0.0) * channels;
+                audioFrameFloat = new float[floatCount]; // silence
+            }
+            // Convert float[] to byte[] for the writer
+            var audioFrame = new byte[audioFrameFloat.Length * sizeof(float)];
+            Buffer.BlockCopy(audioFrameFloat, 0, audioFrame, 0, audioFrame.Length);
+            // Force metering outputs to update for UI/graph
+            AudioRendering.EvaluateAllAudioMeteringOutputs(localFxTime);
+            success = SaveVideoFrameAndAdvance(ref audioFrame, RenderAudioInfo.SoundtrackChannels(), RenderAudioInfo.SoundtrackSampleRate());
         }
         else
         {
             AudioRendering.GetLastMixDownBuffer(Playback.LastFrameDuration);
+            // For image export, also update metering for UI/graph
+            // Use FxTimeInBars as a substitute for LocalFxTime
+            AudioRendering.EvaluateAllAudioMeteringOutputs(Playback.Current.FxTimeInBars);
             success = SaveImageFrameAndAdvance();
         }
 
@@ -153,6 +172,25 @@ internal static class RenderProcess
         if (!RenderPaths.ValidateOrCreateTargetFolder(targetFilePath))
             return;
 
+        // Pre-check: If file exists, try to open for write to detect lock
+        if (renderSettings.RenderMode == RenderSettings.RenderModes.Video && File.Exists(targetFilePath))
+        {
+            try
+            {
+                using (var fs = new FileStream(targetFilePath, FileMode.Open, FileAccess.Write, FileShare.None))
+                {
+                    // File is not locked, can proceed
+                }
+            }
+            catch (IOException)
+            {
+                var msg = $"The output file '{targetFilePath}' is currently in use by another process. Please close any application using it and try again.";
+                Log.Error(msg, typeof(RenderProcess));
+                LastHelpString = msg;
+                return;
+            }
+        }
+
         renderSettings.FrameCount = RenderTiming.ComputeFrameCount(renderSettings);
         
         IsToollRenderingSomething = true;
@@ -167,11 +205,25 @@ internal static class RenderProcess
 
         if (_renderSettings.RenderMode == RenderSettings.RenderModes.Video)
         {
-            _videoWriter = new Mp4VideoWriter(targetFilePath, MainOutputOriginalSize, _renderSettings.ExportAudio)
-                               {
-                                   Bitrate = _renderSettings.Bitrate,
-                                   Framerate = (int)renderSettings.Fps
-                               };
+            // Log all relevant parameters before initializing video writer
+            Log.Debug($"Initializing Mp4VideoWriter with: path={targetFilePath}, size={MainOutputOriginalSize.Width}x{MainOutputOriginalSize.Height}, bitrate={_renderSettings.Bitrate}, framerate={_renderSettings.Fps}, audio={_renderSettings.ExportAudio}, channels={RenderAudioInfo.SoundtrackChannels()}, sampleRate={RenderAudioInfo.SoundtrackSampleRate()}");
+            try
+            {
+                _videoWriter = new Mp4VideoWriter(targetFilePath, MainOutputOriginalSize, _renderSettings.ExportAudio)
+                {
+                    Bitrate = _renderSettings.Bitrate,
+                    Framerate = (int)renderSettings.Fps
+                };
+            }
+            catch (Exception ex)
+            {
+                var msg = $"Failed to initialize Mp4VideoWriter: {ex.Message}\n{ex.StackTrace}";
+                Log.Error(msg, typeof(RenderProcess));
+                LastHelpString = msg;
+                Cleanup();
+                IsToollRenderingSomething = false;
+                return;
+            }
         }
         else
         {
@@ -212,12 +264,14 @@ internal static class RenderProcess
         {
             _videoWriter?.Dispose();
             _videoWriter = null;
+            // Clean up operator decode streams after export
+            T3.Core.Audio.AudioRendering.CleanupExportOperatorStreams();
         }
 
         RenderTiming.ReleasePlaybackTime(ref _renderSettings, ref _runtime);
     }
 
-    private static bool SaveVideoFrameAndAdvance( ref byte[] audioFrame, int channels, int sampleRate)
+    private static bool SaveVideoFrameAndAdvance(ref byte[] audioFrame, int channels, int sampleRate)
     {
         if (Playback.OpNotReady)
         {
@@ -227,14 +281,24 @@ internal static class RenderProcess
 
         try
         {
-            _videoWriter?.ProcessFrames( MainOutputTexture, ref audioFrame, channels, sampleRate);
+            Log.Debug($"SaveVideoFrameAndAdvance: frame={_frameIndex}, MainOutputTexture null? {MainOutputTexture == null}, audioFrame.Length={audioFrame?.Length}, channels={channels}, sampleRate={sampleRate}");
+            if (MainOutputTexture == null)
+            {
+                Log.Error($"MainOutputTexture is null at frame {_frameIndex}", typeof(RenderProcess));
+                LastHelpString = $"MainOutputTexture is null at frame {_frameIndex}";
+                Cleanup();
+                return false;
+            }
+            _videoWriter?.ProcessFrames(MainOutputTexture, ref audioFrame, channels, sampleRate);
             _frameIndex++;
             RenderTiming.SetPlaybackTimeForFrame(ref _renderSettings, _frameIndex, _frameCount, ref _runtime);
             return true;
         }
         catch (Exception e)
         {
-            LastHelpString = e.ToString();
+            var msg = $"Exception in SaveVideoFrameAndAdvance at frame {_frameIndex}: {e.Message}\n{e.StackTrace}";
+            Log.Error(msg, typeof(RenderProcess));
+            LastHelpString = msg;
             Cleanup();
             return false;
         }

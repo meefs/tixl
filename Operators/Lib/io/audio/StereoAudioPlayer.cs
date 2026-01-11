@@ -9,7 +9,7 @@ using System;
 namespace Lib.io.audio
 {
     [Guid("65e95f77-4743-437f-ab31-f34b831d28d7")]
-    internal sealed class StereoAudioPlayer : Instance<StereoAudioPlayer>
+    internal sealed class StereoAudioPlayer : Instance<StereoAudioPlayer>, IAudioExportSource
     {
         [Input(Guid = "505139a0-71ce-4297-8440-5bf84488902e")]
         public readonly InputSlot<string> AudioFile = new();
@@ -86,8 +86,25 @@ namespace Lib.io.audio
         private bool _testModeActive;
 #endif
 
+        // Expose current file path for logging
+        public string CurrentFilePath { get; private set; } = string.Empty;
+
+        // Persistent decode stream for export
+        private double _lastExportTime = -1;
+
+        // --- Export state for offline rendering ---
+        private bool _exportIsPlaying = false;
+        private bool _exportLastPlay = false;
+        private bool _exportLastStop = false;
+        private float _exportLastSeek = 0f;
+        private double _exportLastTime = -1;
+        private int _exportDecodeStream = 0;
+
         public StereoAudioPlayer()
         {
+            // Register for export rendering
+            AudioExportSourceRegistry.Register(this);
+
             // Attach update action to ALL outputs so Update() is called
             // when any of these outputs are evaluated
             Result.UpdateAction += Update;
@@ -165,6 +182,9 @@ namespace Lib.io.audio
             bool shouldPlay = PlayAudio.GetValue(context);
 #endif
 
+            // Set the current file path for logging
+            CurrentFilePath = filePath;
+
             var shouldStop = StopAudio.GetValue(context);
             var shouldPause = PauseAudio.GetValue(context);
             var volume = Volume.GetValue(context);
@@ -234,6 +254,35 @@ namespace Lib.io.audio
                                  $"Level: {GetLevel.Value:F3}";
             }
 #endif
+        }
+
+        /// <summary>
+        /// Render audio for export. This is called by AudioRendering during export.
+        /// </summary>
+        public int RenderAudio(double startTime, double duration, float[] buffer)
+        {
+            int targetSampleRate = T3.Core.Audio.AudioConfig.MixerFrequency;
+            int targetChannels = 2;
+            if (T3.Core.Audio.AudioEngine.TryGetStereoOperatorStream(_operatorId, out var stream) && stream != null)
+            {
+                return stream.RenderAudio(startTime, duration, buffer, targetSampleRate, targetChannels);
+            }
+            Array.Clear(buffer, 0, buffer.Length);
+            return buffer.Length;
+        }
+
+        public void CleanupExportDecodeStream()
+        {
+            if (_exportDecodeStream != 0)
+            {
+                Bass.StreamFree(_exportDecodeStream);
+                _exportDecodeStream = 0;
+            }
+            _exportIsPlaying = false;
+            _exportLastPlay = false;
+            _exportLastStop = false;
+            _exportLastSeek = 0f;
+            _exportLastTime = -1;
         }
 
 #if DEBUG
@@ -335,6 +384,8 @@ namespace Lib.io.audio
 
         ~StereoAudioPlayer()
         {
+            AudioExportSourceRegistry.Unregister(this);
+
             if (_operatorId != Guid.Empty)
             {
                 AudioEngine.UnregisterOperator(_operatorId);

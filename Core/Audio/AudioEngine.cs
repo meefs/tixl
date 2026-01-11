@@ -767,4 +767,27 @@ public static class AudioEngine
         // Optionally, log the device change
         AudioConfig.LogInfo("[AudioEngine] Audio device changed: all operator streams and mixer reinitialized.");
     }
+
+    // Add these public accessors to allow export sources to access operator audio states safely
+    public static bool TryGetStereoOperatorStream(Guid operatorId, out StereoOperatorAudioStream? stream)
+    {
+        stream = null;
+        if (_operatorAudioStates.TryGetValue(operatorId, out var state) && state.Stream != null)
+        {
+            stream = state.Stream;
+            return true;
+        }
+        return false;
+    }
+
+    public static bool TryGetSpatialOperatorStream(Guid operatorId, out SpatialOperatorAudioStream? stream)
+    {
+        stream = null;
+        if (_spatialOperatorAudioStates.TryGetValue(operatorId, out var state) && state.Stream != null)
+        {
+            stream = state.Stream;
+            return true;
+        }
+        return false;
+    }
 }

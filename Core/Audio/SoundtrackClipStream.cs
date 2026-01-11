@@ -217,6 +217,29 @@ public sealed class SoundtrackClipStream
         Bass.StreamFree(StreamHandle);
     }
 
+    /// <summary>
+    /// Render audio for export, filling the buffer at the requested sample rate and channel count.
+    /// </summary>
+    public int RenderAudio(double startTime, double duration, float[] outputBuffer, int targetSampleRate, int targetChannels)
+    {
+        int nativeSampleRate = AudioEngine.GetClipSampleRate(ResourceHandle);
+        int nativeChannels = AudioEngine.GetClipChannelCount(ResourceHandle);
+        OperatorAudioUtils.FillAndResample(
+            (s, d, buf) => RenderNativeAudio(s, d, buf),
+            startTime, duration, outputBuffer,
+            nativeSampleRate, nativeChannels, targetSampleRate, targetChannels);
+        return outputBuffer.Length;
+    }
+
+    // Native render: fill buffer at native sample rate/channels
+    private int RenderNativeAudio(double startTime, double duration, float[] buffer)
+    {
+        int sampleCount = buffer.Length / AudioEngine.GetClipChannelCount(ResourceHandle);
+        int bytesToRead = sampleCount * AudioEngine.GetClipChannelCount(ResourceHandle) * sizeof(float);
+        int bytesRead = Bass.ChannelGetData(StreamHandle, buffer, bytesToRead);
+        return bytesRead > 0 ? bytesRead / sizeof(float) : 0;
+    }
+
     private const double AudioSyncingOffset = -2.0 / 60.0;
     private const double AudioTriggerDelayOffset = 2.0 / 60.0;
     private const double RecordSyncingOffset = -1.0 / 60.0;

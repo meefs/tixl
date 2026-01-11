@@ -9,7 +9,7 @@ using System;
 namespace Lib.io.audio
 {
     [Guid("8a3c9f2e-4b7d-4e1a-9c5f-7d2e8b1a6c3f")]
-    internal sealed class SpatialAudioPlayer : Instance<SpatialAudioPlayer>
+    internal sealed class SpatialAudioPlayer : Instance<SpatialAudioPlayer>, IAudioExportSource
     {
         [Input(Guid = "2f8a4c9e-3d7b-4a1f-8e5c-9b2d7a6e1c4f")]
         public readonly InputSlot<string> AudioFile = new();
@@ -118,8 +118,22 @@ namespace Lib.io.audio
         private bool _testModeActive;
 #endif
 
+        // Expose current file path for logging
+        public string CurrentFilePath { get; private set; } = string.Empty;
+
+        // --- Export state for offline rendering ---
+        private bool _exportIsPlaying = false;
+        private bool _exportLastPlay = false;
+        private bool _exportLastStop = false;
+        private float _exportLastSeek = 0f;
+        private double _exportLastTime = -1;
+        private int _exportDecodeStream = 0;
+
         public SpatialAudioPlayer()
         {
+            // Register for export rendering
+            AudioExportSourceRegistry.Register(this);
+
             // Attach update action to ALL outputs so Update() is called
             // when any of these outputs are evaluated
             Result.UpdateAction += Update;
@@ -196,6 +210,9 @@ namespace Lib.io.audio
             string filePath = AudioFile.GetValue(context);
             bool shouldPlay = PlayAudio.GetValue(context);
 #endif
+
+            // Set the current file path for logging
+            CurrentFilePath = filePath;
 
             var shouldStop = StopAudio.GetValue(context);
             var shouldPause = PauseAudio.GetValue(context);
@@ -413,8 +430,39 @@ namespace Lib.io.audio
             }
         }
 
+        /// <summary>
+        /// Render audio for export. This is called by AudioRendering during export.
+        /// </summary>
+        public int RenderAudio(double startTime, double duration, float[] buffer)
+        {
+            int targetSampleRate = T3.Core.Audio.AudioConfig.MixerFrequency;
+            int targetChannels = 2;
+            if (T3.Core.Audio.AudioEngine.TryGetSpatialOperatorStream(_operatorId, out var stream) && stream != null)
+            {
+                return stream.RenderAudio(startTime, duration, buffer, targetSampleRate, targetChannels);
+            }
+            Array.Clear(buffer, 0, buffer.Length);
+            return buffer.Length;
+        }
+
+        public void CleanupExportDecodeStream()
+        {
+            if (_exportDecodeStream != 0)
+            {
+                Bass.StreamFree(_exportDecodeStream);
+                _exportDecodeStream = 0;
+            }
+            _exportIsPlaying = false;
+            _exportLastPlay = false;
+            _exportLastStop = false;
+            _exportLastSeek = 0f;
+            _exportLastTime = -1;
+        }
+
         ~SpatialAudioPlayer()
         {
+            AudioExportSourceRegistry.Unregister(this);
+
             if (_operatorId != Guid.Empty)
             {
                 AudioEngine.UnregisterOperator(_operatorId);
