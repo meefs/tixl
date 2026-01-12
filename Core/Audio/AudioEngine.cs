@@ -42,10 +42,10 @@ public static class AudioEngine
         {
             // Initialize audio mixer FIRST - this will configure BASS with low-latency settings
             AudioMixerManager.Initialize();
-            
             if (AudioMixerManager.OperatorMixerHandle != 0)
             {
                 _bassInitialized = true;
+                InitializeGlobalVolumeFromSettings(); // Ensure global mixer volume is set from settings
             }
             else
             {
@@ -54,6 +54,7 @@ public static class AudioEngine
                 Bass.Init();
                 AudioMixerManager.Initialize();
                 _bassInitialized = true;
+                InitializeGlobalVolumeFromSettings(); // Ensure global mixer volume is set from settings
             }
         }
         
@@ -926,14 +927,25 @@ public static class AudioEngine
     public static void RestoreMixerRoutingAndPlaybackForAllOperators()
     {
         int mixerHandle = AudioMixerManager.OperatorMixerHandle;
+        T3.Core.Logging.Log.Debug($"[AudioRestore] Starting restoration for all operator streams. MixerHandle={mixerHandle}");
         foreach (var kvp in _operatorAudioStates)
         {
             var stream = kvp.Value.Stream;
             if (stream != null)
             {
+                T3.Core.Logging.Log.Debug($"[AudioRestore] Restoring stream {stream.StreamHandle}");
+                ManagedBass.Mix.BassMix.MixerRemoveChannel(stream.StreamHandle);
                 bool addResult = ManagedBass.Mix.BassMix.MixerAddChannel(mixerHandle, stream.StreamHandle, ManagedBass.BassFlags.Default);
                 T3.Core.Logging.Log.Debug($"[AudioRestore] MixerAddChannel: handle={stream.StreamHandle}, result={addResult}, error={ManagedBass.Bass.LastError}");
-                // Removed dependency on Editor project: cannot set intended volume here
+                var flagResult = ManagedBass.Mix.BassMix.ChannelFlags(stream.StreamHandle, 0, ManagedBass.BassFlags.MixerChanPause);
+                T3.Core.Logging.Log.Debug($"[AudioRestore] ChannelFlags (unpause): {flagResult}, error={ManagedBass.Bass.LastError}");
+                var volResult = ManagedBass.Bass.ChannelSetAttribute(stream.StreamHandle, ManagedBass.ChannelAttribute.Volume, stream.GetLevel());
+                T3.Core.Logging.Log.Debug($"[AudioRestore] ChannelSetAttribute (volume): {volResult}, error={ManagedBass.Bass.LastError}");
+                // Always seek to 0 after export
+                stream.Seek(0);
+                T3.Core.Logging.Log.Debug($"[AudioRestore] Seeked to 0 for stream {stream.StreamHandle}");
+                stream.Play();
+                T3.Core.Logging.Log.Debug($"[AudioRestore] Play called for stream {stream.StreamHandle}, IsPlaying={stream.IsPlaying}, IsPaused={stream.IsPaused}");
             }
         }
         foreach (var kvp in _spatialOperatorAudioStates)
@@ -941,10 +953,67 @@ public static class AudioEngine
             var stream = kvp.Value.Stream;
             if (stream != null)
             {
+                T3.Core.Logging.Log.Debug($"[AudioRestore] Restoring spatial stream {stream.StreamHandle}");
+                ManagedBass.Mix.BassMix.MixerRemoveChannel(stream.StreamHandle);
                 bool addResult = ManagedBass.Mix.BassMix.MixerAddChannel(mixerHandle, stream.StreamHandle, ManagedBass.BassFlags.Default);
                 T3.Core.Logging.Log.Debug($"[AudioRestore] MixerAddChannel: handle={stream.StreamHandle}, result={addResult}, error={ManagedBass.Bass.LastError}");
-                // Removed dependency on Editor project: cannot set intended volume here
+                var flagResult = ManagedBass.Mix.BassMix.ChannelFlags(stream.StreamHandle, 0, ManagedBass.BassFlags.MixerChanPause);
+                T3.Core.Logging.Log.Debug($"[AudioRestore] ChannelFlags (unpause): {flagResult}, error={ManagedBass.Bass.LastError}");
+                var volResult = ManagedBass.Bass.ChannelSetAttribute(stream.StreamHandle, ManagedBass.ChannelAttribute.Volume, stream.GetLevel());
+                T3.Core.Logging.Log.Debug($"[AudioRestore] ChannelSetAttribute (volume): {volResult}, error={ManagedBass.Bass.LastError}");
+                stream.Seek(0);
+                T3.Core.Logging.Log.Debug($"[AudioRestore] Seeked to 0 for spatial stream {stream.StreamHandle}");
+                stream.Play();
+                T3.Core.Logging.Log.Debug($"[AudioRestore] Play called for spatial stream {stream.StreamHandle}, IsPlaying={stream.IsPlaying}, IsPaused={stream.IsPaused}");
             }
         }
+        T3.Core.Logging.Log.Debug($"[AudioRestore] Restoration complete.");
+    }
+
+    /// <summary>
+    /// Call this after export to force operator audio restoration and re-evaluation.
+    /// </summary>
+    public static void RestoreAudioAfterExport()
+    {
+        T3.Core.Logging.Log.Debug("[AudioRestore] RestoreAudioAfterExport called");
+        RestoreMixerRoutingAndPlaybackForAllOperators();
+        // Force operator output update to ensure UpdateStereoOperatorPlayback/UpdateSpatialOperatorPlayback are called
+        ForceOperatorOutputUpdate();
+        // Optionally, clear stale muted state and resume all operators
+        ClearStaleMutedForAllOperators();
+        ResumeAllOperators();
+        T3.Core.Logging.Log.Debug("[AudioRestore] RestoreAudioAfterExport complete");
+    }
+
+    /// <summary>
+    /// Call this after export completes to restore all operator audio and resume playback.
+    /// </summary>
+    public static void OnExportCompleted()
+    {
+        T3.Core.Logging.Log.Debug("[AudioEngine] OnExportCompleted called");
+        RestoreAudioAfterExport();
+        T3.Core.Logging.Log.Debug("[AudioEngine] OnExportCompleted finished");
+    }
+
+    /// <summary>
+    /// Sets the global volume for the audio engine and updates the global mixer.
+    /// </summary>
+    public static void SetGlobalVolume(float volume)
+    {
+        ProjectSettings.Config.GlobalPlaybackVolume = volume;
+        AudioMixerManager.SetGlobalVolume(volume);
+    }
+
+    /// <summary>
+    /// Call this to initialize the global mixer volume from settings (e.g., on startup or settings load).
+    /// </summary>
+    public static void InitializeGlobalVolumeFromSettings()
+    {
+        AudioMixerManager.SetGlobalVolume(ProjectSettings.Config.GlobalPlaybackVolume);
     }
 }
+
+
+
+
+

@@ -1,6 +1,7 @@
 using System.IO;
 using ImGuiNET;
 using Operators.Utils;
+using T3.Core.Audio;
 using T3.Core.IO;
 using T3.Core.UserData;
 using T3.Core.Utils;
@@ -203,11 +204,16 @@ internal sealed class SettingsWindow : Window
                                                    "Controls the distance until items such as keyframes snap in the timeline",
                                                    UserSettings.Defaults.SnapStrength);
 
-                    changed |= FormInputs.AddFloat("Global Volume",
-                                                   ref ProjectSettings.Config.GlobalPlaybackVolume,
+                    float globalVolume = ProjectSettings.Config.GlobalPlaybackVolume;
+                    bool globalVolumeChanged = FormInputs.AddFloat("Global Volume",
+                                                   ref globalVolume,
                                                    0.0f, 1.0f, 0.01f, true, true,
                                                    "Affects all audio output at the global mixer level.",
                                                    ProjectSettings.Defaults.GlobalPlaybackVolume);
+                    if (globalVolumeChanged)
+                    {
+                        AudioEngine.SetGlobalVolume(globalVolume);
+                    }
 
                     changed |= FormInputs.AddCheckBox("Global Mute",
                                                     ref ProjectSettings.Config.GlobalMute,
@@ -700,3 +706,4 @@ internal sealed class SettingsWindow : Window
         return new List<Window>();
     }
 }
+
