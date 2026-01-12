@@ -129,6 +129,8 @@ namespace Lib.io.audio
         private double _exportLastTime = -1;
         private int _exportDecodeStream = 0;
 
+        private float _lastSetVolume = 1.0f;
+
         public SpatialAudioPlayer()
         {
             // Register for export rendering
@@ -482,6 +484,38 @@ namespace Lib.io.audio
                 }
             }
 #endif
+        }
+
+        /// <summary>
+        /// Update metering values from a rendered/export buffer (for offline export)
+        /// </summary>
+        public void UpdateFromBuffer(float[] buffer)
+        {
+            if (AudioEngine.TryGetSpatialOperatorStream(_operatorId, out var stream) && stream != null)
+            {
+                stream.UpdateFromBuffer(buffer);
+            }
+        }
+
+        /// <summary>
+        /// Clears export metering values so live metering resumes after export.
+        /// </summary>
+        public void ClearExportMetering()
+        {
+            if (AudioEngine.TryGetSpatialOperatorStream(_operatorId, out var stream) && stream != null)
+            {
+                stream.ClearExportMetering();
+            }
+        }
+
+        public void RestoreVolumeAfterExport()
+        {
+            var intendedVolume = Volume.Value;
+            if (T3.Core.Audio.AudioEngine.TryGetSpatialOperatorStream(_operatorId, out var stream) && stream != null)
+            {
+                ManagedBass.Bass.ChannelSetAttribute(stream.StreamHandle, ManagedBass.ChannelAttribute.Volume, intendedVolume);
+                T3.Core.Logging.Log.Debug($"[AudioRestore] Set Stream Volume: handle={stream.StreamHandle}, volume={intendedVolume}");
+            }
         }
 
         private enum Audio3DModes

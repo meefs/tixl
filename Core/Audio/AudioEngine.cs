@@ -768,6 +768,63 @@ public static class AudioEngine
         AudioConfig.LogInfo("[AudioEngine] Audio device changed: all operator streams and mixer reinitialized.");
     }
 
+    /// <summary>
+    /// Clears export metering for all active operator audio streams (stereo and spatial).
+    /// Call this after export to restore live metering.
+    /// </summary>
+    public static void ClearAllExportMetering()
+    {
+        foreach (var state in _operatorAudioStates.Values)
+        {
+            state.Stream?.ClearExportMetering();
+        }
+        foreach (var state in _spatialOperatorAudioStates.Values)
+        {
+            state.Stream?.ClearExportMetering();
+        }
+    }
+
+    /// <summary>
+    /// Forces a metering update for all operator streams (stereo and spatial) to ensure metering outputs are refreshed after export.
+    /// </summary>
+    public static void ForceMeteringUpdateForAllOperators()
+    {
+        foreach (var kvp in _operatorAudioStates)
+        {
+            if (kvp.Value.Stream != null && kvp.Value.Stream.IsPlaying && !kvp.Value.Stream.IsPaused)
+            {
+                kvp.Value.Stream.GetLevel();
+                kvp.Value.Stream.GetWaveform();
+                kvp.Value.Stream.GetSpectrum();
+            }
+        }
+        foreach (var kvp in _spatialOperatorAudioStates)
+        {
+            if (kvp.Value.Stream != null && kvp.Value.Stream.IsPlaying && !kvp.Value.Stream.IsPaused)
+            {
+                kvp.Value.Stream.GetLevel();
+                kvp.Value.Stream.GetWaveform();
+                kvp.Value.Stream.GetSpectrum();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Forces a re-evaluation of all audio export operator nodes to update their output slots after export.
+    /// </summary>
+    public static void ForceOperatorOutputUpdate()
+    {
+        var context = new T3.Core.Operator.EvaluationContext();
+        foreach (var source in AudioExportSourceRegistry.Sources)
+        {
+            var updateMethod = source.GetType().GetMethod("Update", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
+            if (updateMethod != null)
+            {
+                updateMethod.Invoke(source, new object[] { context });
+            }
+        }
+    }
+
     // Add these public accessors to allow export sources to access operator audio states safely
     public static bool TryGetStereoOperatorStream(Guid operatorId, out StereoOperatorAudioStream? stream)
     {
@@ -789,5 +846,105 @@ public static class AudioEngine
             return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// Resumes all paused operator audio streams (stereo and spatial) after export to ensure metering resumes.
+    /// </summary>
+    public static void ResumeAllOperators()
+    {
+        foreach (var kvp in _operatorAudioStates)
+        {
+            if (kvp.Value.Stream != null && kvp.Value.IsPaused)
+            {
+                ResumeOperator(kvp.Key);
+            }
+        }
+        foreach (var kvp in _spatialOperatorAudioStates)
+        {
+            if (kvp.Value.Stream != null && kvp.Value.IsPaused)
+            {
+                ResumeSpatialOperator(kvp.Key);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clears the stale-muted state for all operator streams (stereo and spatial) after export to ensure metering resumes.
+    /// </summary>
+    public static void ClearStaleMutedForAllOperators()
+    {
+        foreach (var kvp in _operatorAudioStates)
+            if (kvp.Value.Stream != null)
+                kvp.Value.Stream.SetStaleMuted(false, "Resuming after export");
+        foreach (var kvp in _spatialOperatorAudioStates)
+            if (kvp.Value.Stream != null)
+                kvp.Value.Stream.SetStaleMuted(false, "Resuming after export");
+    }
+
+    /// <summary>
+    /// Forces all operator streams (stereo and spatial) to play after export to ensure audio playback resumes.
+    /// </summary>
+    public static void ForcePlayAllOperators()
+    {
+        foreach (var kvp in _operatorAudioStates)
+        {
+            var stream = kvp.Value.Stream;
+            if (stream != null && !kvp.Value.IsPaused)
+            {
+                stream.SetStaleMuted(false, "Resuming after export");
+                // Get current position in seconds
+                long posBytes = ManagedBass.Mix.BassMix.ChannelGetPosition(stream.StreamHandle, ManagedBass.PositionFlags.Bytes);
+                double posSecs = ManagedBass.Bass.ChannelBytes2Seconds(stream.StreamHandle, posBytes);
+                if (posSecs >= stream.Duration - 0.01f)
+                {
+                    stream.Seek(0);
+                }
+                stream.Play();
+            }
+        }
+        foreach (var kvp in _spatialOperatorAudioStates)
+        {
+            var stream = kvp.Value.Stream;
+            if (stream != null && !kvp.Value.IsPaused)
+            {
+                stream.SetStaleMuted(false, "Resuming after export");
+                long posBytes = ManagedBass.Mix.BassMix.ChannelGetPosition(stream.StreamHandle, ManagedBass.PositionFlags.Bytes);
+                double posSecs = ManagedBass.Bass.ChannelBytes2Seconds(stream.StreamHandle, posBytes);
+                if (posSecs >= stream.Duration - 0.01f)
+                {
+                    stream.Seek(0);
+                }
+                stream.Play();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ensures all operator streams are added to the output mixer and playback/volume is restored after export.
+    /// </summary>
+    public static void RestoreMixerRoutingAndPlaybackForAllOperators()
+    {
+        int mixerHandle = AudioMixerManager.OperatorMixerHandle;
+        foreach (var kvp in _operatorAudioStates)
+        {
+            var stream = kvp.Value.Stream;
+            if (stream != null)
+            {
+                bool addResult = ManagedBass.Mix.BassMix.MixerAddChannel(mixerHandle, stream.StreamHandle, ManagedBass.BassFlags.Default);
+                T3.Core.Logging.Log.Debug($"[AudioRestore] MixerAddChannel: handle={stream.StreamHandle}, result={addResult}, error={ManagedBass.Bass.LastError}");
+                // Removed dependency on Editor project: cannot set intended volume here
+            }
+        }
+        foreach (var kvp in _spatialOperatorAudioStates)
+        {
+            var stream = kvp.Value.Stream;
+            if (stream != null)
+            {
+                bool addResult = ManagedBass.Mix.BassMix.MixerAddChannel(mixerHandle, stream.StreamHandle, ManagedBass.BassFlags.Default);
+                T3.Core.Logging.Log.Debug($"[AudioRestore] MixerAddChannel: handle={stream.StreamHandle}, result={addResult}, error={ManagedBass.Bass.LastError}");
+                // Removed dependency on Editor project: cannot set intended volume here
+            }
+        }
     }
 }

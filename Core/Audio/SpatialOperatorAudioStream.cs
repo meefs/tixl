@@ -489,37 +489,104 @@ public sealed class SpatialOperatorAudioStream
         AudioConfig.LogDebug($"[SpatialAudio] Seeked: {fileName} to {timeInSeconds:F3}s");
     }
 
+    // --- Metering for offline rendering/export ---
+    private float? _exportLevel;
+    private List<float>? _exportWaveform;
+    private List<float>? _exportSpectrum;
+
+    /// <summary>
+    /// Update metering values from a rendered/export buffer (for offline export)
+    /// </summary>
+    public void UpdateFromBuffer(float[] buffer)
+    {
+        // Compute level (peak of all samples)
+        float peak = 0f;
+        for (int i = 0; i < buffer.Length; i++)
+        {
+            float abs = Math.Abs(buffer[i]);
+            if (abs > peak)
+                peak = abs;
+        }
+        _exportLevel = Math.Min(peak, 1f);
+
+        // Compute waveform (downsample to WaveformSamples)
+        _exportWaveform = new List<float>(WaveformSamples);
+        int step = Math.Max(1, buffer.Length / WaveformSamples);
+        for (int i = 0; i < WaveformSamples; i++)
+        {
+            int start = i * step;
+            int end = Math.Min(start + step, buffer.Length);
+            float sum = 0f;
+            for (int j = start; j < end; j++)
+                sum += Math.Abs(buffer[j]);
+            float avg = (end > start) ? sum / (end - start) : 0f;
+            _exportWaveform.Add(avg);
+        }
+
+        // Compute spectrum (simple FFT, fallback to zeros if not available)
+        _exportSpectrum = new List<float>(SpectrumBands);
+        // NOTE: For a real FFT, use a library like MathNet.Numerics. Here, just fill with zeros for now.
+        for (int i = 0; i < SpectrumBands; i++)
+            _exportSpectrum.Add(0f);
+    }
+
+    /// <summary>
+    /// Clears export metering values so live metering resumes after export.
+    /// Also triggers a live metering update if stream is playing.
+    /// </summary>
+    public void ClearExportMetering()
+    {
+        _exportLevel = null;
+        _exportWaveform = null;
+        _exportSpectrum = null;
+        // Force live metering update if stream is playing
+        if (IsPlaying && !IsPaused)
+        {
+            GetLevel();
+            GetWaveform();
+            GetSpectrum();
+        }
+    }
+
     public float GetLevel()
     {
-        if (!IsPlaying || (IsPaused && !_isMuted))
-            return 0f;
-            
+        // Always fall back to live BASS data if export metering is not set
+        if (_exportLevel.HasValue)
+            return _exportLevel.Value;
+        // Debug log for troubleshooting metering after export
+        T3.Core.Logging.Log.Debug($"[Metering] IsPlaying={IsPlaying}, IsPaused={IsPaused}, StreamHandle={StreamHandle}, StaleMuted={_isStaleMuted}");
         var level = BassMix.ChannelGetLevel(StreamHandle);
-        
+        T3.Core.Logging.Log.Debug($"[Metering] BassMix.ChannelGetLevel={level}");
+        if (!IsPlaying || (IsPaused && !_isStaleMuted))
+            return 0f;
         if (level == -1)
             return 0f;
-
-        // For mono, both bytes contain the same level
-        var monoLevel = level & 0xFFFF;
-        var normalizedLevel = monoLevel / 32768f;
-        
-        return Math.Min(normalizedLevel, 1f);
+        var left = level & 0xFFFF;
+        var right = (level >> 16) & 0xFFFF;
+        var leftLevel = left / 32768f;
+        var rightLevel = right / 32768f;
+        var peak = Math.Max(leftLevel, rightLevel);
+        return Math.Min(peak, 1f);
     }
 
     public List<float> GetWaveform()
     {
-        if (!IsPlaying || (IsPaused && !_isMuted))
+        // Always fall back to live BASS data if export metering is not set
+        if (_exportWaveform != null)
+            return _exportWaveform;
+        if (!IsPlaying || (IsPaused && !_isStaleMuted))
             return EnsureWaveformBuffer();
-
         UpdateWaveformFromPcm();
         return _waveformBuffer;
     }
 
     public List<float> GetSpectrum()
     {
-        if (!IsPlaying || (IsPaused && !_isMuted))
+        // Always fall back to live BASS data if export metering is not set
+        if (_exportSpectrum != null)
+            return _exportSpectrum;
+        if (!IsPlaying || (IsPaused && !_isStaleMuted))
             return EnsureSpectrumBuffer();
-
         UpdateSpectrum();
         return _spectrumBuffer;
     }

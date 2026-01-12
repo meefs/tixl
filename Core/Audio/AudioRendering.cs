@@ -291,6 +291,12 @@ public static class AudioRendering
                     filePath = filePathProp.GetValue(source) as string;
                 }
             }
+            // --- Metering: update from buffer if possible ---
+            var updateFromBufferMethod = source.GetType().GetMethod("UpdateFromBuffer");
+            if (updateFromBufferMethod != null)
+            {
+                updateFromBufferMethod.Invoke(source, new object[] { opTemp });
+            }
             if (AudioConfig.ShowRenderLogs)
             {
                 if (!string.IsNullOrEmpty(filePath))
@@ -348,14 +354,25 @@ public static class AudioRendering
         {
             var cleanupMethod = source.GetType().GetMethod("CleanupExportDecodeStream");
             cleanupMethod?.Invoke(source, null);
+            // Clear export metering if available
+            var clearExportMetering = source.GetType().GetMethod("ClearExportMetering");
+            clearExportMetering?.Invoke(source, null);
         }
+        T3.Core.Audio.AudioEngine.ClearAllExportMetering();
+        T3.Core.Audio.AudioEngine.ResumeAllOperators();
+        T3.Core.Audio.AudioEngine.ClearStaleMutedForAllOperators();
+        T3.Core.Audio.AudioEngine.ForcePlayAllOperators();
+        T3.Core.Audio.AudioEngine.RestoreMixerRoutingAndPlaybackForAllOperators();
+        T3.Core.Audio.AudioRendering.RestoreOperatorVolumesAfterExport();
+        T3.Core.Audio.AudioEngine.ForceMeteringUpdateForAllOperators();
+        T3.Core.Audio.AudioEngine.ForceOperatorOutputUpdate();
     }
 
     /// <summary>
     /// Force evaluation of metering outputs for all registered audio export sources during export.
     /// Call this after each audio frame is rendered.
     /// </summary>
-    public static void EvaluateAllAudioMeteringOutputs(double localFxTime)
+    public static void EvaluateAllAudioMeteringOutputs(double localFxTime, float[]? audioBuffer = null)
     {
         // Use the constructor and Reset() to set Playback, since Playback has a private setter
         var context = new T3.Core.Operator.EvaluationContext();
@@ -370,10 +387,38 @@ public static class AudioRendering
             var getLevel = getLevelProp?.GetValue(source);
             var getWaveform = getWaveformProp?.GetValue(source);
             var getSpectrum = getSpectrumProp?.GetValue(source);
-            // Call GetValue(context) if available
+
+            // Try to update from buffer if possible
+            if (audioBuffer != null)
+            {
+                var updateFromBuffer = getLevel?.GetType().GetMethod("UpdateFromBuffer");
+                updateFromBuffer?.Invoke(getLevel, new object[] { audioBuffer });
+                updateFromBuffer = getWaveform?.GetType().GetMethod("UpdateFromBuffer");
+                updateFromBuffer?.Invoke(getWaveform, new object[] { audioBuffer });
+                updateFromBuffer = getSpectrum?.GetType().GetMethod("UpdateFromBuffer");
+                updateFromBuffer?.Invoke(getSpectrum, new object[] { audioBuffer });
+            }
+
+            // Call GetValue(context) to update output slots as fallback
             getLevel?.GetType().GetMethod("GetValue")?.Invoke(getLevel, new object[] { context });
             getWaveform?.GetType().GetMethod("GetValue")?.Invoke(getWaveform, new object[] { context });
             getSpectrum?.GetType().GetMethod("GetValue")?.Invoke(getSpectrum, new object[] { context });
+        }
+    }
+
+    /// <summary>
+    /// Restores the stream volume for all registered audio export sources to the value set in the operator's Volume input slot after export.
+    /// </summary>
+    public static void RestoreOperatorVolumesAfterExport()
+    {
+        foreach (var source in AudioExportSourceRegistry.Sources)
+        {
+            var typeName = source.GetType().Name;
+            if (typeName == "StereoAudioPlayer" || typeName == "SpatialAudioPlayer")
+            {
+                var restoreMethod = source.GetType().GetMethod("RestoreVolumeAfterExport");
+                restoreMethod?.Invoke(source, null);
+            }
         }
     }
 
