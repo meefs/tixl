@@ -16,6 +16,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>0108;9084;NU1900</NoWarn>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <NoWarn>0108;9084;NU1900;CS8981</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <NoWarn>0108;9084;NU1900;CS8981</NoWarn>
+  </PropertyGroup>
   <ItemGroup>
     <Using Include="System" />
     <Using Include="System.Numerics" />

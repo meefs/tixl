@@ -3,7 +3,7 @@
   "Inputs": [
     {
       "Id": "01d8a4a8-56ca-4e6d-a6c9-8092e4153963"/*MaxLevels*/,
-      "DefaultValue": 10
+      "DefaultValue": 5
     },
     {
       "Id": "c1a630e8-2d0b-412d-b2c2-c26e79befae2"/*Image*/,
