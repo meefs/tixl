@@ -1,19 +1,10 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
+#nullable enable
+
 using System.Threading;
-using System.Threading.Tasks;
 using Mediapipe;
 using OpenCvSharp;
 using SharpDX;
 using SharpDX.Direct3D11;
-using T3.Core.DataTypes;
-using T3.Core.Logging;
-using T3.Core.Operator;
-using T3.Core.Operator.Attributes;
-using T3.Core.Operator.Slots;
-using T3.Core.Resource;
 using Mediapipe.Tasks.Core;
 using Mediapipe.Tasks.Vision.Core;
 using Mediapipe.Tasks.Vision.FaceLandmarker;
@@ -23,7 +14,7 @@ using Image = Mediapipe.Framework.Formats.Image;
 
 namespace Lib.io.video.mediapipe
 {
-    internal class FaceLandmarkRequest
+    internal sealed class FaceLandmarkRequest
     {
         public byte[]? PixelData;
         public int Width;
@@ -31,7 +22,7 @@ namespace Lib.io.video.mediapipe
         public long Timestamp;
     }
 
-    internal class FaceLandmarkResultPacket
+    internal sealed class FaceLandmarkResultPacket
     {
         public Point[]? Landmarks;
         public Dict<float>? FaceData;
@@ -43,7 +34,7 @@ namespace Lib.io.video.mediapipe
     public class FaceLandmarkDetection : Instance<FaceLandmarkDetection>
     {
         [Output(Guid = "a1b2c3d4-e5f6-4798-89ab-cdef12345679", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-        public readonly Slot<Texture2D> OutputTexture = new();
+        public readonly Slot<Texture2D?> OutputTexture = new();
 
         [Output(Guid = "b2c3d4e5-f6a7-489a-9b0c-def123456780", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
         public readonly Slot<Dict<float>> FaceData = new();
@@ -52,10 +43,10 @@ namespace Lib.io.video.mediapipe
         public readonly Slot<int> FaceCount = new();
     
         [Output(Guid = "d4e5f6a7-b8c9-4ab0-bd2e-f12345678902", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-        public readonly Slot<Texture2D> DebugTexture = new();
+        public readonly Slot<Texture2D?> DebugTexture = new();
     
         [Output(Guid = "e5f6a7b8-c9d0-4b01-ce3f-123456789013", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-        public readonly Slot<BufferWithViews> PointBuffer = new();
+        public readonly Slot<BufferWithViews?> PointBuffer = new();
 
         [Output(Guid = "f6a7b8c9-d0e1-4c12-df4a-234567a89014", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
         public readonly Slot<Dict<float>> Blendshapes = new();
@@ -1167,6 +1158,6 @@ namespace Lib.io.video.mediapipe
         [Input(Guid = "01234567-890a-bcde-f012-34567890abcd")]
         public readonly InputSlot<float> ZScale = new(1.0f);
 
-        private Resource _stagingTexture;
+        private Resource? _stagingTexture;
     }
 }

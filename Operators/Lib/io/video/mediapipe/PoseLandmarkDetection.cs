@@ -1,28 +1,13 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using OpenCvSharp;
 using SharpDX;
 using SharpDX.Direct3D11;
-using T3.Core.DataTypes;
-using T3.Core.Logging;
-using T3.Core.Operator;
-using T3.Core.Operator.Attributes;
-using T3.Core.Operator.Slots;
-using T3.Core.Resource;
-using Google.Protobuf;
 using Mediapipe;
 using SharpDX.Direct3D;
-#nullable enable
 
+#nullable enable
 using Mediapipe.Tasks.Vision.PoseLandmarker;
 using Mediapipe.Tasks.Vision.Core;
-using Mediapipe.Tasks.Components.Containers;
-using Mediapipe.Framework.Formats;
-using Landmark = Mediapipe.Landmark;
 using Image = Mediapipe.Framework.Formats.Image;
 
 namespace Lib.io.video.mediapipe;
@@ -47,10 +32,10 @@ internal class PoseLandmarkDetectionResultPacket
 public class PoseLandmarkDetection : Instance<PoseLandmarkDetection>
 {
     [Output(Guid = "cdef1234-5678-90ab-cdef-1234567890ab", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<Texture2D> OutputTexture = new();
+    public readonly Slot<Texture2D?> OutputTexture = new();
 
     [Output(Guid = "def01234-5678-90ab-cdef-1234567890ab", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<Texture2D> DebugTexture = new();
+    public readonly Slot<Texture2D?> DebugTexture = new();
 
     [Output(Guid = "ef012345-6789-0abc-def1-234567890abc", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
     public readonly Slot<int> PoseCount = new();
@@ -59,13 +44,13 @@ public class PoseLandmarkDetection : Instance<PoseLandmarkDetection>
     public readonly Slot<int> UpdateCount = new();
 
     [Output(Guid = "01234567-890a-bcde-f012-34567890abcd", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<BufferWithViews> WorldLandmarksBuffer = new();
+    public readonly Slot<BufferWithViews?> WorldLandmarksBuffer = new();
 
     [Output(Guid = "12345678-90ab-cdef-0123-4567890abcde", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<BufferWithViews> PointBuffer = new();
+    public readonly Slot<BufferWithViews?> PointBuffer = new();
 
     [Output(Guid = "23456789-0abc-def1-2345-67890abcdef1", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<Texture2D> SegmentationMask = new();
+    public readonly Slot<Texture2D?> SegmentationMask = new();
 
     public PoseLandmarkDetection()
     {

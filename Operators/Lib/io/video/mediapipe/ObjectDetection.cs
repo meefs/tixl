@@ -50,10 +50,10 @@ internal class ObjectDetectionResultPacket
 public class ObjectDetection : Instance<ObjectDetection>
 {
     [Output(Guid = "bcdef123-4567-890a-bcde-f1234567890a", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<Texture2D> OutputTexture = new();
+    public readonly Slot<Texture2D?> OutputTexture = new();
 
     [Output(Guid = "cdef1234-5678-90ab-cdef-1234567890ab", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<Texture2D> DebugTexture = new();
+    public readonly Slot<Texture2D?> DebugTexture = new();
 
     [Output(Guid = "def01234-5678-90ab-cdef-1234567890ab", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
     public readonly Slot<int> ObjectCount = new();
@@ -62,7 +62,7 @@ public class ObjectDetection : Instance<ObjectDetection>
     public readonly Slot<int> UpdateCount = new();
 
     [Output(Guid = "f0123456-7890-abcd-ef12-34567890abcd", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<BufferWithViews> PointBuffer = new();
+    public readonly Slot<BufferWithViews?> PointBuffer = new();
 
     [Output(Guid = "01234567-890a-bcde-f012-34567890abcd", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
     public readonly Slot<Dict<float>> ObjectData = new();

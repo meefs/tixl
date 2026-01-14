@@ -1,32 +1,18 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using OpenCvSharp;
 using SharpDX;
 using SharpDX.Direct3D11;
-using T3.Core.DataTypes;
-using T3.Core.Logging;
-using T3.Core.Operator;
-using T3.Core.Operator.Attributes;
-using T3.Core.Operator.Slots;
-using T3.Core.Resource;
-using Google.Protobuf;
-using System.Runtime.InteropServices;
 #nullable enable
 
 using Mediapipe.Tasks.Vision.ImageSegmenter;
 using Mediapipe.Tasks.Vision.Core;
-using Mediapipe.Tasks.Components.Containers;
 using Mediapipe.Framework.Formats;
 using Image = Mediapipe.Framework.Formats.Image;
-using ImageFormat = Mediapipe.RegionFlowComputationOptions.Types.ImageFormat;
+// ReSharper disable InconsistentNaming
 
 namespace Lib.io.video.mediapipe;
 
-internal class ImageSegmentationRequest
+internal sealed class ImageSegmentationRequest
 {
     public byte[]? PixelData;
     public int Width;
@@ -36,7 +22,7 @@ internal class ImageSegmentationRequest
     public string[]? CategoryAllowlist;
 }
 
-internal class ImageSegmentationResultPacket
+internal sealed class ImageSegmentationResultPacket
 {
     public byte[]? MaskData;
     public int Width;
@@ -50,10 +36,10 @@ internal class ImageSegmentationResultPacket
 public class ImageSegmentation : Instance<ImageSegmentation>
 {
     [Output(Guid = "90abcdef-1234-5678-90ab-cdef12345678", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<Texture2D> OutputTexture = new();
+    public readonly Slot<Texture2D?> OutputTexture = new();
 
     [Output(Guid = "0abcdef1-2345-6789-0abc-def123456789", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<Texture2D> MaskTexture = new();
+    public readonly Slot<Texture2D?> MaskTexture = new();
 
     [Output(Guid = "abcdef12-3456-7890-abcd-ef1234567890", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
     public readonly Slot<int> UpdateCount = new();
@@ -62,13 +48,13 @@ public class ImageSegmentation : Instance<ImageSegmentation>
     public readonly Slot<float> Confidence = new();
 
     [Output(Guid = "cdef1234-5678-90ab-cdef-1234567890ab", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<Texture2D> CategoryMask = new();
+    public readonly Slot<Texture2D?> CategoryMask = new();
 
     [Output(Guid = "def01234-5678-90ab-cdef-1234567890ab", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<Texture2D> ConfidenceMask = new();
+    public readonly Slot<Texture2D?> ConfidenceMask = new();
 
     [Output(Guid = "ef012345-6789-0abc-def1-234567890abc", DirtyFlagTrigger = DirtyFlagTrigger.Animated)]
-    public readonly Slot<Texture2D> DebugTexture = new();
+    public readonly Slot<Texture2D?> DebugTexture = new();
 
     public ImageSegmentation()
     {
