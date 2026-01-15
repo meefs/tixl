@@ -125,23 +125,44 @@ public static class AudioRendering
     {
         if (AudioConfig.ShowRenderLogs)
             Logging.Log.Debug($"[AudioRendering] EndRecording called with fps={fps}", typeof(AudioRendering));
+        
         // TODO: Find this in Managed Bass library. It doesn't seem to be present.
         const int tailAttribute = 16;
 
+        // 1. Restore soundtrack clip streams
         foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
         {
-            // Bass.ChannelPause(clipStream.StreamHandle);
             clipStream.UpdateTimeWhileRecording(playback, fps, false);
             Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.NoRamp, 0);
             Bass.ChannelSetAttribute(clipStream.StreamHandle, (ChannelAttribute)tailAttribute, 0.0);
             Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.Buffer, _settingsBeforeExport.BufferLengthInSeconds);
         }
 
-        // restore live playback values
+        // 2. Restore live playback BASS settings
         Bass.Configure(Configuration.UpdatePeriod, _settingsBeforeExport.BassUpdatePeriodInMs);
         Bass.Configure(Configuration.GlobalStreamVolume, _settingsBeforeExport.BassGlobalStreamVolume);
         Bass.Configure(Configuration.UpdateThreads, _settingsBeforeExport.BassUpdateThreads);
         Bass.Start();
+        
+        // 3. Clean up operator-specific export decode streams
+        foreach (var source in AudioExportSourceRegistry.Sources)
+        {
+            var cleanupMethod = source.GetType().GetMethod("CleanupExportDecodeStream");
+            cleanupMethod?.Invoke(source, null);
+        }
+        
+        // 4. Clear export metering state so streams resume live metering
+        foreach (var source in AudioExportSourceRegistry.Sources)
+        {
+            var clearMethod = source.GetType().GetMethod("ClearExportMetering");
+            clearMethod?.Invoke(source, null);
+        }
+        
+        // 5. Restore operator audio streams to live playback state
+        AudioEngine.RestoreOperatorAudioStreams();
+        
+        if (AudioConfig.ShowRenderLogs)
+            Logging.Log.Debug("[AudioRendering] EndRecording complete", typeof(AudioRendering));
     }
 
     public static byte[] GetLastMixDownBuffer(double frameDurationInSeconds)
@@ -346,29 +367,6 @@ public static class AudioRendering
     }
 
     /// <summary>
-    /// Call this after export to clean up all operator decode streams.
-    /// </summary>
-    public static void CleanupExportOperatorStreams()
-    {
-        foreach (var source in AudioExportSourceRegistry.Sources)
-        {
-            var cleanupMethod = source.GetType().GetMethod("CleanupExportDecodeStream");
-            cleanupMethod?.Invoke(source, null);
-            // Clear export metering if available
-            var clearExportMetering = source.GetType().GetMethod("ClearExportMetering");
-            clearExportMetering?.Invoke(source, null);
-        }
-        T3.Core.Audio.AudioEngine.ClearAllExportMetering();
-        T3.Core.Audio.AudioEngine.ResumeAllOperators();
-        T3.Core.Audio.AudioEngine.ClearStaleMutedForAllOperators();
-        T3.Core.Audio.AudioEngine.ForcePlayAllOperators();
-        T3.Core.Audio.AudioEngine.RestoreMixerRoutingAndPlaybackForAllOperators();
-        T3.Core.Audio.AudioRendering.RestoreOperatorVolumesAfterExport();
-        T3.Core.Audio.AudioEngine.ForceMeteringUpdateForAllOperators();
-        T3.Core.Audio.AudioEngine.ForceOperatorOutputUpdate();
-    }
-
-    /// <summary>
     /// Force evaluation of metering outputs for all registered audio export sources during export.
     /// Call this after each audio frame is rendered.
     /// </summary>
@@ -403,22 +401,6 @@ public static class AudioRendering
             getLevel?.GetType().GetMethod("GetValue")?.Invoke(getLevel, new object[] { context });
             getWaveform?.GetType().GetMethod("GetValue")?.Invoke(getWaveform, new object[] { context });
             getSpectrum?.GetType().GetMethod("GetValue")?.Invoke(getSpectrum, new object[] { context });
-        }
-    }
-
-    /// <summary>
-    /// Restores the stream volume for all registered audio export sources to the value set in the operator's Volume input slot after export.
-    /// </summary>
-    public static void RestoreOperatorVolumesAfterExport()
-    {
-        foreach (var source in AudioExportSourceRegistry.Sources)
-        {
-            var typeName = source.GetType().Name;
-            if (typeName == "StereoAudioPlayer" || typeName == "SpatialAudioPlayer")
-            {
-                var restoreMethod = source.GetType().GetMethod("RestoreVolumeAfterExport");
-                restoreMethod?.Invoke(source, null);
-            }
         }
     }
 

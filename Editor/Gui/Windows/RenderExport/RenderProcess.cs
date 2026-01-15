@@ -335,8 +335,8 @@ internal static class RenderProcess
                 _activeSession.VideoWriter = null;
             }
 
-            // Clean up operator decode streams after export
-            T3.Core.Audio.AudioRendering.CleanupExportOperatorStreams();
+            // Audio restoration is now handled automatically by AudioRendering.EndRecording()
+            // which is called during the rendering process
 
             // Release playback time before nulling _activeSession
             RenderTiming.ReleasePlaybackTime(ref _activeSession.Settings, ref _activeSession.Runtime);
