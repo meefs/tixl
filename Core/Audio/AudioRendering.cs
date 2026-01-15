@@ -219,10 +219,13 @@ public static class AudioRendering
     public static float[] GetFullMixDownBuffer(double frameDurationInSeconds, double localFxTime)
     {
         int mixerSampleRate = AudioConfig.MixerFrequency;
-        int channels = AudioEngine.GetClipChannelCount(null);
+        int channels = 2; // Mixer is always stereo
         int sampleCount = (int)Math.Max(Math.Round(frameDurationInSeconds * mixerSampleRate), 0.0);
         int floatCount = sampleCount * channels;
         float[] mixBuffer = new float[floatCount];
+
+        // Get the current playback time in seconds (already properly set by RenderTiming)
+        double currentTimeInSeconds = Playback.Current.TimeInSecs;
 
         // Mix soundtrack clips
         foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
@@ -239,8 +242,11 @@ public static class AudioRendering
             if (decodeStream == 0)
                 continue;
             
-            double clipStart = handle.Clip.StartTime;
-            double timeInClip = localFxTime - clipStart;
+            // Convert clip start time from bars to seconds
+            double clipStartInSeconds = Playback.Current.SecondsFromBars(handle.Clip.StartTime);
+            double timeInClip = currentTimeInSeconds - clipStartInSeconds;
+            
+            // Check if we're within the clip's time range
             if (timeInClip < 0 || timeInClip > handle.Clip.LengthInSeconds)
             {
                 Bass.StreamFree(decodeStream);
@@ -259,11 +265,11 @@ public static class AudioRendering
             Bass.StreamFree(decodeStream);
             
             float volume = handle.Clip.Volume;
-            int samplesRead = bytesRead / sizeof(float);
+            int samplesRead = bytesRead > 0 ? bytesRead / sizeof(float) : 0;
             
-            // Resample if needed
+            // Resample if needed (different sample rate or channel count)
             float[] resampled = temp;
-            if (clipSampleRate != mixerSampleRate && samplesRead > 0)
+            if ((clipSampleRate != mixerSampleRate || clipChannels != channels) && samplesRead > 0)
             {
                 int resampleSamples = (int)Math.Max(Math.Round(frameDurationInSeconds * mixerSampleRate), 0.0);
                 resampled = LinearResample(temp, samplesRead / clipChannels, clipChannels, resampleSamples, channels);
@@ -279,7 +285,7 @@ public static class AudioRendering
         foreach (var source in AudioExportSourceRegistry.Sources)
         {
             Array.Clear(opTemp, 0, opTemp.Length);
-            int written = source.RenderAudio(localFxTime, frameDurationInSeconds, opTemp);
+            int written = source.RenderAudio(currentTimeInSeconds, frameDurationInSeconds, opTemp);
             
             source.GetType().GetMethod("UpdateFromBuffer")?.Invoke(source, new object[] { opTemp });
             
@@ -320,19 +326,46 @@ public static class AudioRendering
     private static float[] LinearResample(float[] input, int inputSamples, int inputChannels, int outputSamples, int outputChannels)
     {
         float[] output = new float[outputSamples * outputChannels];
+        
+        // Handle edge cases
+        if (inputSamples <= 0 || outputSamples <= 0 || inputChannels <= 0 || outputChannels <= 0)
+            return output;
+        
         int minChannels = Math.Min(inputChannels, outputChannels);
         
         for (int ch = 0; ch < minChannels; ch++)
         {
             for (int i = 0; i < outputSamples; i++)
             {
-                float t = (float)i / (outputSamples - 1);
-                float srcPos = t * (inputSamples - 1);
-                int srcIndex = (int)srcPos;
+                // Handle single sample case
+                float t = outputSamples > 1 ? (float)i / (outputSamples - 1) : 0f;
+                float srcPos = t * Math.Max(inputSamples - 1, 0);
+                int srcIndex = Math.Min((int)srcPos, Math.Max(inputSamples - 1, 0));
                 float frac = srcPos - srcIndex;
+                
                 int srcBase = srcIndex * inputChannels + ch;
-                int srcNext = Math.Min(srcIndex + 1, inputSamples - 1) * inputChannels + ch;
-                output[i * outputChannels + ch] = input[srcBase] + (input[srcNext] - input[srcBase]) * frac;
+                int srcNextIndex = Math.Min(srcIndex + 1, inputSamples - 1);
+                int srcNext = srcNextIndex * inputChannels + ch;
+                
+                // Bounds check
+                if (srcBase < input.Length && srcNext < input.Length)
+                {
+                    output[i * outputChannels + ch] = input[srcBase] + (input[srcNext] - input[srcBase]) * frac;
+                }
+            }
+        }
+        
+        // Upmix: if output has more channels than input, duplicate mono to stereo or fill extra channels
+        if (outputChannels > inputChannels && inputChannels > 0)
+        {
+            for (int i = 0; i < outputSamples; i++)
+            {
+                // Copy first channel to remaining channels (mono to stereo upmix)
+                float firstChannelValue = output[i * outputChannels];
+                for (int ch = inputChannels; ch < outputChannels; ch++)
+                {
+                    output[i * outputChannels + ch] = firstChannelValue;
+                }
             }
         }
         
