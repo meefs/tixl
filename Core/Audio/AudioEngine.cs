@@ -376,7 +376,7 @@ public static class AudioEngine
         if (string.IsNullOrEmpty(filePath)) return filePath;
         if (System.IO.File.Exists(filePath)) return filePath;
 
-        if (ResourceManager.TryResolvePath(filePath, null, out var absolutePath, out _))
+        if (ResourceManager.TryResolveRelativePath(filePath, null, out var absolutePath, out _))
         {
             AudioConfig.LogAudioDebug($"[AudioEngine] Resolved: {filePath} → {absolutePath}");
             return absolutePath;
