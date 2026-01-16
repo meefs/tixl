@@ -1,67 +1,66 @@
 using System;
 using System.Collections.Generic;
 using ManagedBass;
+using ManagedBass.Mix;
 using T3.Core.Animation;
+using T3.Core.Logging;
+using T3.Core.Operator;
 
 namespace T3.Core.Audio;
 
 /// <summary>
-/// Handles audio rendering/export functionality, managing BASS state during video export.
+/// Handles audio rendering/export functionality.
+/// 
+/// For export, we temporarily remove soundtrack streams from the mixer and read directly from them.
+/// This avoids all mixer buffering issues.
 /// </summary>
 public static class AudioRendering
 {
     private static bool _isRecording;
-    private static BassSettingsBeforeExport _settingsBeforeExport;
-    private static readonly Dictionary<AudioClipResourceHandle, Queue<byte>> _fifoBuffersForClips = new();
+    private static ExportState _exportState = new();
+    private static double _exportStartTime;
+    private static int _frameCount;
 
     /// <summary>
-    /// Prepares the audio system for recording/export by pausing live output.
+    /// Prepares the audio system for recording/export.
     /// </summary>
     public static void PrepareRecording(Playback playback, double fps)
     {
         if (_isRecording)
             return;
-        
+
         _isRecording = true;
-
-        // Capture current BASS settings before modifying them
-        _settingsBeforeExport = new BassSettingsBeforeExport
-        {
-            BassUpdateThreads = Bass.GetConfig(Configuration.UpdateThreads),
-            BassUpdatePeriodInMs = Bass.GetConfig(Configuration.UpdatePeriod),
-            BassGlobalStreamVolume = Bass.GetConfig(Configuration.GlobalStreamVolume)
-        };
+        _frameCount = 0;
+        _exportStartTime = playback.TimeInSecs;
         
-        // Use sensible defaults if captured values are 0
-        if (_settingsBeforeExport.BassGlobalStreamVolume == 0)
-            _settingsBeforeExport.BassGlobalStreamVolume = 10000;
-        if (_settingsBeforeExport.BassUpdatePeriodInMs == 0)
-            _settingsBeforeExport.BassUpdatePeriodInMs = AudioConfig.UpdatePeriodMs > 0 ? AudioConfig.UpdatePeriodMs : 5;
-        if (_settingsBeforeExport.BassUpdateThreads == 0)
-            _settingsBeforeExport.BassUpdateThreads = 1;
+        _exportState.SaveState();
+        AudioExportSourceRegistry.Clear();
+        
+        Bass.ChannelPause(AudioMixerManager.GlobalMixerHandle);
+        AudioConfig.LogAudioRenderDebug("[AudioRendering] GlobalMixer PAUSED for export");
 
-        // Turn off automatic sound generation for export
-        Bass.Pause();
-        Bass.Configure(Configuration.UpdateThreads, false);
-        Bass.Configure(Configuration.UpdatePeriod, 0);
-        Bass.Configure(Configuration.GlobalStreamVolume, 0);
+        AudioEngine.ResetAllOperatorStreamsForExport();
 
-        // Configure soundtrack clips for export
-        const int tailAttribute = 16; // BASS_ATTRIB_TAIL
-        foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
+        // Remove soundtrack streams from mixer for direct reading
+        foreach (var (handle, clipStream) in AudioEngine.SoundtrackClipStreams)
         {
-            _settingsBeforeExport.BufferLengthInSeconds = Bass.ChannelGetAttribute(clipStream.StreamHandle, ChannelAttribute.Buffer);
+            float nativeFrequency = clipStream.GetDefaultFrequency();
+            Bass.ChannelGetInfo(clipStream.StreamHandle, out var clipInfo);
 
-            Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.Volume, 1.0);
-            Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.Buffer, 1.0 / fps);
-            Bass.ChannelSetAttribute(clipStream.StreamHandle, (ChannelAttribute)tailAttribute, 2.0 / fps);
-            Bass.ChannelStop(clipStream.StreamHandle);
-            clipStream.UpdateTimeWhileRecording(playback, fps, true);
-            Bass.ChannelPlay(clipStream.StreamHandle);
-            Bass.ChannelPause(clipStream.StreamHandle);
+            AudioConfig.LogAudioRenderDebug($"[AudioRendering] Soundtrack clip: File='{handle.Clip.FilePath}', NativeFreq={nativeFrequency}, Channels={clipInfo.Channels}");
+            
+            // REMOVE from mixer
+            BassMix.MixerRemoveChannel(clipStream.StreamHandle);
+            AudioConfig.LogAudioRenderDebug("[AudioRendering] Soundtrack REMOVED from mixer for export");
+            
+            // Reset stream settings
+            Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.Frequency, nativeFrequency);
+            Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.Volume, handle.Clip.Volume);
+            Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.NoRamp, 1);
+            Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.ReverseDirection, 1);
         }
 
-        _fifoBuffersForClips.Clear();
+        AudioConfig.LogAudioRenderDebug($"[AudioRendering] PrepareRecording: exportStartTime={_exportStartTime:F3}s, fps={fps}");
     }
 
     /// <summary>
@@ -71,312 +70,276 @@ public static class AudioRendering
     {
         if (!_isRecording)
             return;
-        
+
         _isRecording = false;
+        AudioConfig.LogAudioRenderDebug($"[AudioRendering] EndRecording: Exported {_frameCount} frames");
 
-        const int tailAttribute = 16; // BASS_ATTRIB_TAIL
-
-        // Restore soundtrack clip streams
-        foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
+        // Re-add soundtrack streams to mixer for live playback
+        // Note: We do NOT use MixerChanBuffer for soundtracks - we need accurate position tracking
+        foreach (var (handle, clipStream) in AudioEngine.SoundtrackClipStreams)
         {
-            clipStream.UpdateTimeWhileRecording(playback, fps, false);
-            Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.NoRamp, 0);
-            Bass.ChannelSetAttribute(clipStream.StreamHandle, (ChannelAttribute)tailAttribute, 0.0);
-            Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.Buffer, _settingsBeforeExport.BufferLengthInSeconds);
+            if (!BassMix.MixerAddChannel(AudioMixerManager.SoundtrackMixerHandle, clipStream.StreamHandle,
+                    BassFlags.MixerChanPause))
+            {
+                Log.Warning($"[AudioRendering] Failed to re-add soundtrack to mixer: {Bass.LastError}");
+            }
+            else
+            {
+                AudioConfig.LogAudioRenderDebug("[AudioRendering] Soundtrack RE-ADDED to mixer for live playback");
+            }
+            
+            clipStream.UpdateTimeWhileRecording(playback, fps, true);
         }
 
-        // Restore BASS settings
-        Bass.Configure(Configuration.UpdatePeriod, _settingsBeforeExport.BassUpdatePeriodInMs);
-        Bass.Configure(Configuration.GlobalStreamVolume, _settingsBeforeExport.BassGlobalStreamVolume);
-        Bass.Configure(Configuration.UpdateThreads, _settingsBeforeExport.BassUpdateThreads);
-        
-        // Resume output device
-        Bass.Start();
-        
-        // Clean up export sources
-        foreach (var source in AudioExportSourceRegistry.Sources)
-        {
-            source.GetType().GetMethod("CleanupExportDecodeStream")?.Invoke(source, null);
-            source.GetType().GetMethod("ClearExportMetering")?.Invoke(source, null);
-        }
-        
-        // Restore operator audio streams
+        _exportState.RestoreState();
         AudioEngine.RestoreOperatorAudioStreams();
     }
 
     /// <summary>
     /// Exports a single audio frame for the given clip stream.
+    /// Updates FFT analysis for operators that need waveform/spectrum data.
     /// </summary>
     internal static void ExportAudioFrame(Playback playback, double frameDurationInSeconds, SoundtrackClipStream clipStream)
     {
         try
         {
-            if (!_fifoBuffersForClips.TryGetValue(clipStream.ResourceHandle, out var bufferQueue))
-            {
-                bufferQueue = new Queue<byte>();
-                _fifoBuffersForClips[clipStream.ResourceHandle] = bufferQueue;
-            }
-
-            var streamPositionInBytes = clipStream.UpdateTimeWhileRecording(playback, 1.0 / frameDurationInSeconds, true);
-            var bytes = (int)Math.Max(Bass.ChannelSeconds2Bytes(clipStream.StreamHandle, frameDurationInSeconds), 0);
-            
-            if (bytes <= 0) 
-                return;
-
-            // Add silence for negative stream position
-            if (streamPositionInBytes < 0)
-            {
-                var silenceBytesToAdd = Math.Min(-streamPositionInBytes, bytes);
-                for (int i = 0; i < silenceBytesToAdd; i++)
-                    bufferQueue.Enqueue(0);
-            }
-
-            Bass.ChannelSetAttribute(clipStream.StreamHandle, ChannelAttribute.Buffer, (int)Math.Round(frameDurationInSeconds * 1000.0));
-            Bass.ChannelUpdate(clipStream.StreamHandle, (int)Math.Round(frameDurationInSeconds * 1000.0));
-
-            // Read audio data
-            var info = Bass.ChannelGetInfo(clipStream.StreamHandle);
-            byte[]? validData = null;
-            
-            if ((info.Flags & BassFlags.Float) != 0)
-            {
-                int floatCount = bytes / sizeof(float);
-                var floatBuffer = new float[floatCount];
-                int floatBytesRead = Bass.ChannelGetData(clipStream.StreamHandle, floatBuffer, bytes);
-                if (floatBytesRead > 0 && floatBytesRead <= bytes)
-                {
-                    validData = new byte[floatBytesRead];
-                    Buffer.BlockCopy(floatBuffer, 0, validData, 0, floatBytesRead);
-                }
-            }
-            else
-            {
-                var newBuffer = new byte[bytes];
-                var newBytes = Bass.ChannelGetData(clipStream.StreamHandle, newBuffer, bytes);
-                if (newBytes > 0 && newBytes <= bytes)
-                {
-                    validData = new byte[newBytes];
-                    Array.Copy(newBuffer, validData, newBytes);
-                }
-            }
-            
-            if (validData != null)
-            {
-                foreach (var b in validData)
-                    bufferQueue.Enqueue(b);
-                AudioEngine.UpdateFftBufferFromSoundtrack(clipStream.StreamHandle, playback);
-            }
-
-            // Ensure buffer is exactly the right size
-            while (bufferQueue.Count < bytes) bufferQueue.Enqueue(0);
-            while (bufferQueue.Count > bytes) bufferQueue.Dequeue();
+            // Update FFT analysis - uses BASS_DATA_NOREMOVE flag during export
+            // so it doesn't consume audio data from the stream
+            AudioEngine.UpdateFftBufferFromSoundtrack(clipStream.StreamHandle, playback);
         }
         catch (Exception ex)
         {
-            Logging.Log.Error($"ExportAudioFrame error: {ex.Message}", typeof(AudioRendering));
+            Log.Error($"ExportAudioFrame error: {ex.Message}", typeof(AudioRendering));
         }
     }
 
     /// <summary>
-    /// Gets the last mixed audio buffer for export.
-    /// </summary>
-    public static byte[]? GetLastMixDownBuffer(double frameDurationInSeconds)
-    {
-        try
-        {
-            if (AudioEngine.SoundtrackClipStreams.Count == 0)
-            {
-                var channels = AudioEngine.GetClipChannelCount(null);
-                var sampleRate = AudioEngine.GetClipSampleRate(null);
-                var samples = (int)Math.Max(Math.Round(frameDurationInSeconds * sampleRate), 0.0);
-                return new byte[samples * channels * sizeof(float)];
-            }
-
-            foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
-            {
-                if (!_fifoBuffersForClips.TryGetValue(clipStream.ResourceHandle, out var bufferQueue))
-                    continue;
-
-                var bytes = (int)Bass.ChannelSeconds2Bytes(clipStream.StreamHandle, frameDurationInSeconds);
-                var result = new byte[bytes];
-                for (int i = 0; i < bytes; i++)
-                    result[i] = bufferQueue.Count > 0 ? bufferQueue.Dequeue() : (byte)0;
-                return result;
-            }
-            
-            return null;
-        }
-        catch (Exception ex)
-        {
-            Logging.Log.Error($"GetLastMixDownBuffer error: {ex.Message}", typeof(AudioRendering));
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Gets the full mixed audio buffer including all sources for export.
+    /// Gets the full mixed audio buffer for export.
+    /// Reads directly from source streams (not through mixer) and handles resampling.
     /// </summary>
     public static float[] GetFullMixDownBuffer(double frameDurationInSeconds, double localFxTime)
     {
+        _frameCount++;
+        
+        AudioEngine.UpdateStaleStatesForExport();
+        
         int mixerSampleRate = AudioConfig.MixerFrequency;
-        int channels = 2; // Mixer is always stereo
-        int sampleCount = (int)Math.Max(Math.Round(frameDurationInSeconds * mixerSampleRate), 0.0);
+        int channels = 2;
+        int sampleCount = (int)Math.Max(Math.Round(frameDurationInSeconds * mixerSampleRate), 1);
         int floatCount = sampleCount * channels;
         float[] mixBuffer = new float[floatCount];
 
-        // Get the current playback time in seconds (already properly set by RenderTiming)
         double currentTimeInSeconds = Playback.Current.TimeInSecs;
 
-        // Mix soundtrack clips
-        foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
+        // Read directly from each soundtrack stream
+        foreach (var (handle, clipStream) in AudioEngine.SoundtrackClipStreams)
         {
-            var handle = clipStream.ResourceHandle;
-            if (!handle.TryGetFileResource(out var file) || file.FileInfo == null)
-                continue;
-            
-            string filePath = file.FileInfo.FullName;
-            if (!System.IO.File.Exists(filePath))
-                continue;
-            
-            int decodeStream = Bass.CreateStream(filePath, Flags: BassFlags.Decode | BassFlags.Float);
-            if (decodeStream == 0)
-                continue;
-            
-            // Convert clip start time from bars to seconds
             double clipStartInSeconds = Playback.Current.SecondsFromBars(handle.Clip.StartTime);
             double timeInClip = currentTimeInSeconds - clipStartInSeconds;
+            double clipLength = handle.Clip.LengthInSeconds;
             
-            // Check if we're within the clip's time range
-            if (timeInClip < 0 || timeInClip > handle.Clip.LengthInSeconds)
-            {
-                Bass.StreamFree(decodeStream);
+            if (timeInClip < 0 || timeInClip > clipLength)
                 continue;
-            }
             
-            Bass.ChannelGetInfo(decodeStream, out var info);
-            int clipSampleRate = info.Frequency;
-            int clipChannels = info.Channels;
+            // Get the actual channel count from the stream info
+            Bass.ChannelGetInfo(clipStream.StreamHandle, out var streamInfo);
+            int nativeChannels = streamInfo.Channels;
+            float nativeFreq = clipStream.GetDefaultFrequency();
             
-            Bass.ChannelSetPosition(decodeStream, Bass.ChannelSeconds2Bytes(decodeStream, timeInClip));
-            int clipSampleCount = (int)Math.Max(Math.Round(frameDurationInSeconds * clipSampleRate), 0.0);
-            int clipFloatCount = clipSampleCount * clipChannels;
-            float[] temp = new float[clipFloatCount];
-            int bytesRead = Bass.ChannelGetData(decodeStream, temp, clipFloatCount * sizeof(float));
-            Bass.StreamFree(decodeStream);
+            // Always seek to the exact position for each frame
+            // This ensures we read the correct audio data regardless of any drift
+            long targetBytes = Bass.ChannelSeconds2Bytes(clipStream.StreamHandle, timeInClip);
+            Bass.ChannelSetPosition(clipStream.StreamHandle, targetBytes, PositionFlags.Bytes);
             
-            float volume = handle.Clip.Volume;
-            int samplesRead = bytesRead > 0 ? bytesRead / sizeof(float) : 0;
-            
-            // Resample if needed (different sample rate or channel count)
-            float[] resampled = temp;
-            if ((clipSampleRate != mixerSampleRate || clipChannels != channels) && samplesRead > 0)
+            if (_frameCount <= 5)
             {
-                int resampleSamples = (int)Math.Max(Math.Round(frameDurationInSeconds * mixerSampleRate), 0.0);
-                resampled = LinearResample(temp, samplesRead / clipChannels, clipChannels, resampleSamples, channels);
-                samplesRead = resampleSamples * channels;
+                var actualPos = Bass.ChannelGetPosition(clipStream.StreamHandle);
+                var actualPosSec = Bass.ChannelBytes2Seconds(clipStream.StreamHandle, actualPos);
+                AudioConfig.LogAudioRenderDebug($"[AudioRendering] Frame {_frameCount}: target={timeInClip:F4}s, actual={actualPosSec:F4}s, nativeChannels={nativeChannels}");
             }
             
-            for (int i = 0; i < Math.Min(samplesRead, floatCount); i++)
-                mixBuffer[i] += resampled[i] * volume;
+            // Calculate source samples needed based on native sample rate
+            int sourceSampleCount = (int)Math.Ceiling(frameDurationInSeconds * nativeFreq);
+            int sourceFloatCount = sourceSampleCount * nativeChannels;
+            int sourceBytesToRead = sourceFloatCount * sizeof(float);
+            
+            float[] sourceBuffer = new float[sourceFloatCount];
+            
+            // Read directly from stream
+            int bytesRead = Bass.ChannelGetData(clipStream.StreamHandle, sourceBuffer, sourceBytesToRead);
+            
+            if (bytesRead > 0)
+            {
+                int floatsRead = bytesRead / sizeof(float);
+                float volume = handle.Clip.Volume;
+                
+                ResampleAndMix(sourceBuffer, floatsRead, nativeFreq, nativeChannels,
+                              mixBuffer, floatCount, mixerSampleRate, channels, volume);
+            }
         }
 
-        // Mix export sources
-        float[] opTemp = new float[floatCount];
-        foreach (var source in AudioExportSourceRegistry.Sources)
-        {
-            Array.Clear(opTemp, 0, opTemp.Length);
-            int written = source.RenderAudio(currentTimeInSeconds, frameDurationInSeconds, opTemp);
-            
-            source.GetType().GetMethod("UpdateFromBuffer")?.Invoke(source, new object[] { opTemp });
-            
-            for (int i = 0; i < written && i < floatCount; i++)
-                mixBuffer[i] += opTemp[i];
-        }
+        // Read operators from OperatorMixer
+        int bytesToRead = floatCount * sizeof(float);
+        float[] operatorBuffer = new float[floatCount];
+        int operatorBytesRead = Bass.ChannelGetData(AudioMixerManager.OperatorMixerHandle, operatorBuffer, bytesToRead);
         
+        if (operatorBytesRead > 0)
+        {
+            int samplesRead = operatorBytesRead / sizeof(float);
+            for (int i = 0; i < Math.Min(samplesRead, mixBuffer.Length); i++)
+            {
+                if (!float.IsNaN(operatorBuffer[i]))
+                    mixBuffer[i] += operatorBuffer[i];
+            }
+        }
+
+        if (_frameCount <= 3 || _frameCount % 60 == 0)
+        {
+            float mixPeak = 0;
+            for (int i = 0; i < floatCount; i++)
+            {
+                if (!float.IsNaN(mixBuffer[i]))
+                    mixPeak = Math.Max(mixPeak, Math.Abs(mixBuffer[i]));
+            }
+            AudioConfig.LogAudioRenderDebug($"[AudioRendering] Frame {_frameCount}: Mix peak={mixPeak:F4}, time={currentTimeInSeconds:F3}s");
+        }
+
+        UpdateOperatorMetering();
+
         return mixBuffer;
     }
 
     /// <summary>
-    /// Evaluates metering outputs for all audio export sources during export.
+    /// Resamples audio from source sample rate to target sample rate and mixes into output buffer.
     /// </summary>
+    private static void ResampleAndMix(float[] source, int sourceFloatCount, float sourceRate, int sourceChannels,
+                                        float[] target, int targetFloatCount, int targetRate, int targetChannels,
+                                        float volume)
+    {
+        int targetSampleCount = targetFloatCount / targetChannels;
+        int sourceSampleCount = sourceFloatCount / sourceChannels;
+        double ratio = sourceRate / targetRate;
+        
+        for (int t = 0; t < targetSampleCount; t++)
+        {
+            double sourcePos = t * ratio;
+            int s0 = (int)sourcePos;
+            int s1 = s0 + 1;
+            double frac = sourcePos - s0;
+            
+            for (int c = 0; c < targetChannels; c++)
+            {
+                int sourceChannel = c % sourceChannels;
+                
+                float v0 = 0, v1 = 0;
+                int idx0 = s0 * sourceChannels + sourceChannel;
+                int idx1 = s1 * sourceChannels + sourceChannel;
+                
+                if (idx0 >= 0 && idx0 < sourceFloatCount)
+                    v0 = source[idx0];
+                if (idx1 >= 0 && idx1 < sourceFloatCount)
+                    v1 = source[idx1];
+                
+                float interpolated = (float)(v0 * (1.0 - frac) + v1 * frac);
+                int targetIdx = t * targetChannels + c;
+                
+                if (targetIdx < target.Length && !float.IsNaN(interpolated))
+                    target[targetIdx] += interpolated * volume;
+            }
+        }
+    }
+
+    private static void UpdateOperatorMetering()
+    {
+        foreach (var kvp in AudioEngine.GetAllStereoOperatorStates())
+        {
+            var stream = kvp.Value.Stream;
+            var isStale = kvp.Value.IsStale;
+            
+            if (stream == null || !stream.IsPlaying || stream.IsPaused || isStale)
+                continue;
+            
+            var level = BassMix.ChannelGetLevel(stream.StreamHandle);
+            if (level != -1)
+            {
+                float left = (level & 0xFFFF) / 32768f;
+                float right = ((level >> 16) & 0xFFFF) / 32768f;
+                float[] meteringBuffer = [left, right];
+                stream.UpdateFromBuffer(meteringBuffer);
+            }
+        }
+        
+        foreach (var kvp in AudioEngine.GetAllSpatialOperatorStates())
+        {
+            var stream = kvp.Value.Stream;
+            var isStale = kvp.Value.IsStale;
+            
+            if (stream == null || !stream.IsPlaying || stream.IsPaused || isStale)
+                continue;
+            
+            var level = BassMix.ChannelGetLevel(stream.StreamHandle);
+            if (level != -1)
+            {
+                float left = (level & 0xFFFF) / 32768f;
+                float right = ((level >> 16) & 0xFFFF) / 32768f;
+                float[] meteringBuffer = [left, right];
+                stream.UpdateFromBuffer(meteringBuffer);
+            }
+        }
+    }
+
+    public static void GetLastMixDownBuffer(double frameDurationInSeconds)
+    {
+        foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
+        {
+            AudioEngine.UpdateFftBufferFromSoundtrack(clipStream.StreamHandle, Playback.Current);
+        }
+    }
+
     public static void EvaluateAllAudioMeteringOutputs(double localFxTime, float[]? audioBuffer = null)
     {
-        var context = new T3.Core.Operator.EvaluationContext { LocalFxTime = localFxTime };
+        var context = new EvaluationContext { LocalFxTime = localFxTime };
         
         foreach (var source in AudioExportSourceRegistry.Sources)
         {
-            var type = source.GetType();
-            var getLevel = type.GetProperty("GetLevel")?.GetValue(source);
-            var getWaveform = type.GetProperty("GetWaveform")?.GetValue(source);
-            var getSpectrum = type.GetProperty("GetSpectrum")?.GetValue(source);
-
-            if (audioBuffer != null)
+            if (source is Instance operatorInstance)
             {
-                getLevel?.GetType().GetMethod("UpdateFromBuffer")?.Invoke(getLevel, new object[] { audioBuffer });
-                getWaveform?.GetType().GetMethod("UpdateFromBuffer")?.Invoke(getWaveform, new object[] { audioBuffer });
-                getSpectrum?.GetType().GetMethod("UpdateFromBuffer")?.Invoke(getSpectrum, new object[] { audioBuffer });
-            }
-
-            getLevel?.GetType().GetMethod("GetValue")?.Invoke(getLevel, new object[] { context });
-            getWaveform?.GetType().GetMethod("GetValue")?.Invoke(getWaveform, new object[] { context });
-            getSpectrum?.GetType().GetMethod("GetValue")?.Invoke(getSpectrum, new object[] { context });
-        }
-    }
-
-    private static float[] LinearResample(float[] input, int inputSamples, int inputChannels, int outputSamples, int outputChannels)
-    {
-        float[] output = new float[outputSamples * outputChannels];
-        
-        // Handle edge cases
-        if (inputSamples <= 0 || outputSamples <= 0 || inputChannels <= 0 || outputChannels <= 0)
-            return output;
-        
-        int minChannels = Math.Min(inputChannels, outputChannels);
-        
-        for (int ch = 0; ch < minChannels; ch++)
-        {
-            for (int i = 0; i < outputSamples; i++)
-            {
-                // Handle single sample case
-                float t = outputSamples > 1 ? (float)i / (outputSamples - 1) : 0f;
-                float srcPos = t * Math.Max(inputSamples - 1, 0);
-                int srcIndex = Math.Min((int)srcPos, Math.Max(inputSamples - 1, 0));
-                float frac = srcPos - srcIndex;
+                foreach (var input in operatorInstance.Inputs)
+                    input.DirtyFlag.ForceInvalidate();
                 
-                int srcBase = srcIndex * inputChannels + ch;
-                int srcNextIndex = Math.Min(srcIndex + 1, inputSamples - 1);
-                int srcNext = srcNextIndex * inputChannels + ch;
-                
-                // Bounds check
-                if (srcBase < input.Length && srcNext < input.Length)
+                foreach (var output in operatorInstance.Outputs)
                 {
-                    output[i * outputChannels + ch] = input[srcBase] + (input[srcNext] - input[srcBase]) * frac;
+                    try { output.Update(context); }
+                    catch (Exception ex)
+                    {
+                        AudioConfig.LogAudioRenderDebug($"Failed to evaluate output slot: {ex.Message}");
+                    }
                 }
             }
         }
-        
-        // Upmix: if output has more channels than input, duplicate mono to stereo or fill extra channels
-        if (outputChannels > inputChannels && inputChannels > 0)
-        {
-            for (int i = 0; i < outputSamples; i++)
-            {
-                // Copy first channel to remaining channels (mono to stereo upmix)
-                float firstChannelValue = output[i * outputChannels];
-                for (int ch = inputChannels; ch < outputChannels; ch++)
-                {
-                    output[i * outputChannels + ch] = firstChannelValue;
-                }
-            }
-        }
-        
-        return output;
     }
 
-    private struct BassSettingsBeforeExport
+    private class ExportState
     {
-        public int BassUpdatePeriodInMs;
-        public int BassGlobalStreamVolume;
-        public int BassUpdateThreads;
-        public double BufferLengthInSeconds;
+        private float _savedGlobalMixerVolume;
+        private bool _wasPlaying;
+
+        public void SaveState()
+        {
+            Bass.ChannelGetAttribute(AudioMixerManager.GlobalMixerHandle, ChannelAttribute.Volume, out _savedGlobalMixerVolume);
+            if (_savedGlobalMixerVolume <= 0)
+                _savedGlobalMixerVolume = 1.0f;
+            _wasPlaying = Bass.ChannelIsActive(AudioMixerManager.GlobalMixerHandle) == PlaybackState.Playing;
+        }
+
+        public void RestoreState()
+        {
+            Bass.ChannelSetAttribute(AudioMixerManager.GlobalMixerHandle, ChannelAttribute.Volume, _savedGlobalMixerVolume);
+            if (_wasPlaying)
+            {
+                Bass.ChannelPlay(AudioMixerManager.GlobalMixerHandle, false);
+                AudioConfig.LogAudioRenderDebug("[AudioRendering] GlobalMixer RESUMED after export");
+            }
+        }
     }
 }

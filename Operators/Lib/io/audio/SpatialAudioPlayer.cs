@@ -9,7 +9,7 @@ using System;
 namespace Lib.io.audio
 {
     [Guid("8a3c9f2e-4b7d-4e1a-9c5f-7d2e8b1a6c3f")]
-    internal sealed class SpatialAudioPlayer : Instance<SpatialAudioPlayer>, IAudioExportSource
+    internal sealed class SpatialAudioPlayer : Instance<SpatialAudioPlayer>
     {
         [Input(Guid = "2f8a4c9e-3d7b-4a1f-8e5c-9b2d7a6e1c4f")]
         public readonly InputSlot<string> AudioFile = new();
@@ -133,8 +133,9 @@ namespace Lib.io.audio
 
         public SpatialAudioPlayer()
         {
-            // Register for export rendering
-            AudioExportSourceRegistry.Register(this);
+            // NOTE: Do NOT register in AudioExportSourceRegistry.
+            // File-based audio players are handled through AudioEngine streams.
+            // AudioExportSourceRegistry is only for procedural audio generators.
 
             // Attach update action to ALL outputs so Update() is called
             // when any of these outputs are evaluated
@@ -154,7 +155,7 @@ namespace Lib.io.audio
             if (_operatorId == Guid.Empty)
             {
                 _operatorId = ComputeInstanceGuid();
-                AudioConfig.LogDebug($"[SpatialAudioPlayer] Initialized with operator ID: {_operatorId}");
+                AudioConfig.LogAudioDebug($"[SpatialAudioPlayer] Initialized with operator ID: {_operatorId}");
             }
 
 #if DEBUG
@@ -173,22 +174,22 @@ namespace Lib.io.audio
                 // Detect rising edge on short test trigger
                 if (triggerShortTest && !_previousShortTestTrigger)
                 {
-                    AudioConfig.LogInfo("[SpatialAudioPlayer] ▶ Generating SHORT test tone (0.1s) - TRIGGER DETECTED");
+                    AudioConfig.LogAudioInfo("[SpatialAudioPlayer] ▶ Generating SHORT test tone (0.1s) - TRIGGER DETECTED");
                     var genStart = DateTime.Now;
                     _testFilePath = GenerateTestTone(testFrequency, 0.1f, "short");
                     var genTime = (DateTime.Now - genStart).TotalMilliseconds;
-                    AudioConfig.LogInfo($"[SpatialAudioPlayer] Test tone generated in {genTime:F2}ms");
+                    AudioConfig.LogAudioInfo($"[SpatialAudioPlayer] Test tone generated in {genTime:F2}ms");
                     shouldPlay = true;
                     _testModeActive = true;
                 }
                 // Detect rising edge on long test trigger
                 else if (triggerLongTest && !_previousLongTestTrigger)
                 {
-                    AudioConfig.LogInfo("[SpatialAudioPlayer] ▶ Generating LONG test tone (2.0s) - TRIGGER DETECTED");
+                    AudioConfig.LogAudioInfo("[SpatialAudioPlayer] ▶ Generating LONG test tone (2.0s) - TRIGGER DETECTED");
                     var genStart = DateTime.Now;
                     _testFilePath = GenerateTestTone(testFrequency, 2.0f, "long");
                     var genTime = (DateTime.Now - genStart).TotalMilliseconds;
-                    AudioConfig.LogInfo($"[SpatialAudioPlayer] Test tone generated in {genTime:F2}ms");
+                    AudioConfig.LogAudioInfo($"[SpatialAudioPlayer] Test tone generated in {genTime:F2}ms");
                     shouldPlay = true;
                     _testModeActive = true;
                 }
@@ -269,12 +270,12 @@ namespace Lib.io.audio
             {
                 if (shouldPause)
                 {
-                    AudioConfig.LogDebug($"[SpatialAudioPlayer] Pausing operator {_operatorId}");
+                    AudioConfig.LogAudioDebug($"[SpatialAudioPlayer] Pausing operator {_operatorId}");
                     AudioEngine.PauseSpatialOperator(_operatorId);
                 }
                 else
                 {
-                    AudioConfig.LogDebug($"[SpatialAudioPlayer] Resuming operator {_operatorId}");
+                    AudioConfig.LogAudioDebug($"[SpatialAudioPlayer] Resuming operator {_operatorId}");
                     AudioEngine.ResumeSpatialOperator(_operatorId);
                 }
             }
@@ -306,7 +307,7 @@ namespace Lib.io.audio
             // Log timing if significant
             if (updateTime > 1.0)
             {
-                AudioConfig.LogDebug($"[SpatialAudioPlayer] UpdateSpatialOperatorPlayback took {updateTime:F2}ms");
+                AudioConfig.LogAudioDebug($"[SpatialAudioPlayer] UpdateSpatialOperatorPlayback took {updateTime:F2}ms");
             }
 
             // Get outputs from engine
@@ -396,7 +397,7 @@ namespace Lib.io.audio
                     writer.Write(sampleValue);
                 }
 
-                AudioConfig.LogDebug($"Generated spatial test tone: {tempPath} ({durationSeconds}s @ {frequency}Hz, MONO)");
+                AudioConfig.LogAudioDebug($"Generated spatial test tone: {tempPath} ({durationSeconds}s @ {frequency}Hz, MONO)");
                 return tempPath;
             }
             catch (Exception ex)
@@ -463,7 +464,7 @@ namespace Lib.io.audio
 
         ~SpatialAudioPlayer()
         {
-            AudioExportSourceRegistry.Unregister(this);
+            // NOTE: No need to unregister from AudioExportSourceRegistry since we don't register
 
             if (_operatorId != Guid.Empty)
             {

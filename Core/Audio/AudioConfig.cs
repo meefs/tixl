@@ -13,12 +13,12 @@ public static class AudioConfig
     /// <summary>
     /// When true, Debug and Info logs from audio classes will be shown.
     /// </summary>
-    public static bool ShowLogs { get; set; } = false;
+    public static bool ShowAudioLogs { get; set; } = false;
 
     /// <summary>
     /// When true, Debug and Info logs from audio rendering classes will be shown.
     /// </summary>
-    public static bool ShowRenderLogs { get; set; } = false;
+    public static bool ShowAudioRenderLogs { get; set; } = false;
     #endregion
 
     #region Mixer Configuration
@@ -83,18 +83,36 @@ public static class AudioConfig
     /// <summary>
     /// Helper method to log Debug messages that respect the show setting.
     /// </summary>
-    public static void LogDebug(string message)
+    public static void LogAudioDebug(string message)
     {
-        if (ShowLogs)
+        if (ShowAudioLogs)
             Log.Debug(message);
     }
 
     /// <summary>
     /// Helper method to log Info messages that respect the show setting.
     /// </summary>
-    public static void LogInfo(string message)
+    public static void LogAudioInfo(string message)
     {
-        if (ShowLogs)
+        if (ShowAudioLogs)
+            Log.Info(message);
+    }
+
+    /// <summary>
+    /// Helper method to log Debug messages that respect the show setting.
+    /// </summary>
+    public static void LogAudioRenderDebug(string message)
+    {
+        if (ShowAudioRenderLogs)
+            Log.Debug(message);
+    }
+
+    /// <summary>
+    /// Helper method to log Info messages that respect the show setting.
+    /// </summary>
+    public static void LogAudioRenderInfo(string message)
+    {
+        if (ShowAudioRenderLogs)
             Log.Info(message);
     }
 }

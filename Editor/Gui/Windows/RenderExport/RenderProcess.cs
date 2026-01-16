@@ -114,7 +114,7 @@ internal static class RenderProcess
             var audioFrame = new byte[audioFrameFloat.Length * sizeof(float)];
             Buffer.BlockCopy(audioFrameFloat, 0, audioFrame, 0, audioFrame.Length);
             // Force metering outputs to update for UI/graph
-            AudioRendering.EvaluateAllAudioMeteringOutputs(localFxTime);
+            AudioRendering.EvaluateAllAudioMeteringOutputs(localFxTime, audioFrameFloat);
             success = SaveVideoFrameAndAdvance(ref audioFrame, RenderAudioInfo.SoundtrackChannels(), RenderAudioInfo.SoundtrackSampleRate());
         }
         else

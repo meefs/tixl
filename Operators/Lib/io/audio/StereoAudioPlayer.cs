@@ -9,7 +9,7 @@ using System;
 namespace Lib.io.audio
 {
     [Guid("65e95f77-4743-437f-ab31-f34b831d28d7")]
-    internal sealed class StereoAudioPlayer : Instance<StereoAudioPlayer>, IAudioExportSource
+    internal sealed class StereoAudioPlayer : Instance<StereoAudioPlayer>
     {
         [Input(Guid = "505139a0-71ce-4297-8440-5bf84488902e")]
         public readonly InputSlot<string> AudioFile = new();
@@ -104,8 +104,9 @@ namespace Lib.io.audio
 
         public StereoAudioPlayer()
         {
-            // Register for export rendering
-            AudioExportSourceRegistry.Register(this);
+            // NOTE: Do NOT register in AudioExportSourceRegistry.
+            // File-based audio players are handled through AudioEngine streams.
+            // AudioExportSourceRegistry is only for procedural audio generators.
 
             // Attach update action to ALL outputs so Update() is called
             // when any of these outputs are evaluated
@@ -125,7 +126,7 @@ namespace Lib.io.audio
             if (_operatorId == Guid.Empty)
             {
                 _operatorId = ComputeInstanceGuid();
-                AudioConfig.LogDebug($"[StereoAudioPlayer] Initialized with operator ID: {_operatorId}");
+                AudioConfig.LogAudioDebug($"[StereoAudioPlayer] Initialized with operator ID: {_operatorId}");
             }
 
 #if DEBUG
@@ -144,22 +145,22 @@ namespace Lib.io.audio
                 // Detect rising edge on short test trigger
                 if (triggerShortTest && !_previousShortTestTrigger)
                 {
-                    AudioConfig.LogInfo("[StereoAudioPlayer] ▶ Generating SHORT test tone (0.1s) - TRIGGER DETECTED");
+                    AudioConfig.LogAudioInfo("[StereoAudioPlayer] ▶ Generating SHORT test tone (0.1s) - TRIGGER DETECTED");
                     var genStart = DateTime.Now;
                     _testFilePath = GenerateTestTone(testFrequency, 0.1f, "short");
                     var genTime = (DateTime.Now - genStart).TotalMilliseconds;
-                    AudioConfig.LogInfo($"[StereoAudioPlayer] Test tone generated in {genTime:F2}ms");
+                    AudioConfig.LogAudioInfo($"[StereoAudioPlayer] Test tone generated in {genTime:F2}ms");
                     shouldPlay = true;
                     _testModeActive = true;
                 }
                 // Detect rising edge on long test trigger
                 else if (triggerLongTest && !_previousLongTestTrigger)
                 {
-                    AudioConfig.LogInfo("[StereoAudioPlayer] ▶ Generating LONG test tone (2.0s) - TRIGGER DETECTED");
+                    AudioConfig.LogAudioInfo("[StereoAudioPlayer] ▶ Generating LONG test tone (2.0s) - TRIGGER DETECTED");
                     var genStart = DateTime.Now;
                     _testFilePath = GenerateTestTone(testFrequency, 2.0f, "long");
                     var genTime = (DateTime.Now - genStart).TotalMilliseconds;
-                    AudioConfig.LogInfo($"[StereoAudioPlayer] Test tone generated in {genTime:F2}ms");
+                    AudioConfig.LogAudioInfo($"[StereoAudioPlayer] Test tone generated in {genTime:F2}ms");
                     shouldPlay = true;
                     _testModeActive = true;
                 }
@@ -201,12 +202,12 @@ namespace Lib.io.audio
             {
                 if (shouldPause)
                 {
-                    AudioConfig.LogDebug($"[StereoAudioPlayer] Pausing operator {_operatorId}");
+                    AudioConfig.LogAudioDebug($"[StereoAudioPlayer] Pausing operator {_operatorId}");
                     AudioEngine.PauseOperator(_operatorId);
                 }
                 else
                 {
-                    AudioConfig.LogDebug($"[StereoAudioPlayer] Resuming operator {_operatorId}");
+                    AudioConfig.LogAudioDebug($"[StereoAudioPlayer] Resuming operator {_operatorId}");
                     AudioEngine.ResumeOperator(_operatorId);
                 }
             }
@@ -231,7 +232,7 @@ namespace Lib.io.audio
             // Log timing if significant
             if (updateTime > 1.0)
             {
-                AudioConfig.LogDebug($"[StereoAudioPlayer] UpdateOperatorPlayback took {updateTime:F2}ms");
+                AudioConfig.LogAudioDebug($"[StereoAudioPlayer] UpdateOperatorPlayback took {updateTime:F2}ms");
             }
 
             // Get outputs from engine
@@ -388,7 +389,7 @@ namespace Lib.io.audio
                     writer.Write(sampleValue); // Right
                 }
 
-                AudioConfig.LogDebug($"Generated test tone: {tempPath} ({durationSeconds}s @ {frequency}Hz)");
+                AudioConfig.LogAudioDebug($"Generated test tone: {tempPath} ({durationSeconds}s @ {frequency}Hz)");
                 return tempPath;
             }
             catch (Exception ex)
@@ -426,7 +427,7 @@ namespace Lib.io.audio
 
         ~StereoAudioPlayer()
         {
-            AudioExportSourceRegistry.Unregister(this);
+            // NOTE: No need to unregister from AudioExportSourceRegistry since we don't register
 
             if (_operatorId != Guid.Empty)
             {

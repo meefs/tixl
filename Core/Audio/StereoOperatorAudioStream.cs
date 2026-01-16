@@ -73,15 +73,15 @@ public sealed class StereoOperatorAudioStream
             return false;
         }
 
-        if (!BassMix.MixerAddChannel(mixerHandle, streamHandle, BassFlags.MixerChanBuffer))
+        if (!BassMix.MixerAddChannel(mixerHandle, streamHandle, BassFlags.MixerChanBuffer | BassFlags.MixerChanPause))
         {
             Log.Error($"[StereoAudio] Failed to add stream to mixer: {Bass.LastError}");
             Bass.StreamFree(streamHandle);
             return false;
         }
 
-        BassMix.ChannelFlags(streamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
-        Bass.ChannelUpdate(mixerHandle, 0);
+        // Start with volume at 0 - stream will be unmuted when Play() is triggered
+        Bass.ChannelSetAttribute(streamHandle, ChannelAttribute.Volume, 0.0f);
 
         stream = new StereoOperatorAudioStream
         {
@@ -90,10 +90,11 @@ public sealed class StereoOperatorAudioStream
             DefaultPlaybackFrequency = defaultPlaybackFrequency,
             Duration = duration,
             FilePath = filePath,
-            IsPlaying = true,
+            IsPlaying = false,  // Start as not playing - requires trigger
             IsPaused = false,
             _cachedChannels = info.Channels,
-            _cachedFrequency = info.Frequency
+            _cachedFrequency = info.Frequency,
+            _isStaleMuted = true  // Start muted until triggered
         };
 
         return true;
@@ -101,6 +102,7 @@ public sealed class StereoOperatorAudioStream
 
     public void Play()
     {
+        AudioConfig.LogAudioDebug($"[StereoAudio] Play() called on stream for '{Path.GetFileName(FilePath)}' - setting IsPlaying=true, unpausing in mixer");
         _isStaleMuted = false;
         BassMix.ChannelFlags(StreamHandle, 0, BassFlags.MixerChanPause);
         IsPlaying = true;
@@ -140,10 +142,12 @@ public sealed class StereoOperatorAudioStream
 
         if (muted)
         {
+            // Only mute volume - don't pause so playback position continues
             Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
         }
         else if (IsPlaying && !IsPaused && !_isUserMuted)
         {
+            // Restore volume
             Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, _currentVolume);
         }
     }
@@ -334,10 +338,45 @@ public sealed class StereoOperatorAudioStream
         return bytesRead > 0 ? bytesRead / sizeof(float) : 0;
     }
 
+    /// <summary>
+    /// Gets the current playback position in seconds.
+    /// </summary>
+    public double GetCurrentPosition()
+    {
+        long positionBytes = BassMix.ChannelGetPosition(StreamHandle);
+        if (positionBytes < 0) positionBytes = 0;
+        return Bass.ChannelBytes2Seconds(StreamHandle, positionBytes);
+    }
+
     public void Dispose()
     {
         Bass.ChannelStop(StreamHandle);
         BassMix.MixerRemoveChannel(StreamHandle);
         Bass.StreamFree(StreamHandle);
+    }
+
+    /// <summary>
+    /// Prepares the stream for export by resetting to initial state.
+    /// The stream will wait for a Play trigger before producing any audio.
+    /// </summary>
+    public void PrepareForExport()
+    {
+        // Reset to initial state - same as when first loaded
+        IsPlaying = false;
+        IsPaused = false;
+        _isStaleMuted = true;
+        
+        // Mute and pause in the mixer
+        Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
+        BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
+        
+        // Reset position to start
+        var resetPosition = Bass.ChannelSeconds2Bytes(StreamHandle, 0);
+        BassMix.ChannelSetPosition(StreamHandle, resetPosition, PositionFlags.Bytes | PositionFlags.MixerReset);
+        
+        // Clear any export metering
+        ClearExportMetering();
+
+        AudioConfig.LogAudioDebug($"[StereoAudio] PrepareForExport: stream for '{Path.GetFileName(FilePath)}' reset - IsPlaying=false, paused in mixer, volume=0");
     }
 }

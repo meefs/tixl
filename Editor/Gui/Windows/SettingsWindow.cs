@@ -627,7 +627,7 @@ internal sealed class SettingsWindow : Window
                         UserSettings.Defaults.ShowAudioDebugLogs);
                     if (audioDebugChanged)
                     {
-                        T3.Core.Audio.AudioConfig.ShowLogs = UserSettings.Config.ShowAudioDebugLogs;
+                        T3.Core.Audio.AudioConfig.ShowAudioLogs = UserSettings.Config.ShowAudioDebugLogs;
                         changed = true;
                     }
                     changed |= FormInputs.AddCheckBox("Profile Beat Syncing",
@@ -677,7 +677,7 @@ internal sealed class SettingsWindow : Window
                         UserSettings.Defaults.ShowAudioRenderingDebugLogs);
                     if (audioRenderingDebugChanged)
                     {
-                        T3.Core.Audio.AudioConfig.ShowRenderLogs = UserSettings.Config.ShowAudioRenderingDebugLogs;
+                        T3.Core.Audio.AudioConfig.ShowAudioRenderLogs = UserSettings.Config.ShowAudioRenderingDebugLogs;
                         changed = true;
                     }
                     // Change label for video rendering logs

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using ManagedBass;
+using ManagedBass.Mix;
 using T3.Core.Animation;
 using T3.Core.IO;
 using T3.Core.Logging;
@@ -140,34 +141,42 @@ public static class AudioEngine
 
     internal static void UpdateFftBufferFromSoundtrack(int soundStreamHandle, Playback playback)
     {
+        // ReSharper disable once InconsistentNaming
+        const int DataFlag_BASS_DATA_NOREMOVE = 268435456; // Internal id from ManagedBass
+        
         var dataFlags = (int)DataFlags.FFT2048; // This will return 1024 values
         
-        
-        // Do not advance playback if we are not in live mode
+        // Do not advance playback if we are rendering to file
         if (playback.IsRenderingToFile)
         {
-            // ReSharper disable once InconsistentNaming
-            const int DataFlag_BASS_DATA_NOREMOVE = 268435456; // Internal id from ManagedBass
             dataFlags |= DataFlag_BASS_DATA_NOREMOVE;
         }
 
         if (playback.Settings is not { AudioSource: PlaybackSettings.AudioSources.ProjectSoundTrack }) 
             return;
         
-        // Get FftGainBuffer
-        _ = Bass.ChannelGetData(soundStreamHandle, AudioAnalysis.FftGainBuffer, dataFlags);
+        // IMPORTANT: Use BassMix.ChannelGetData for streams that are in a mixer!
+        // Using Bass.ChannelGetData would consume audio data from the stream, causing gaps.
+        _ = BassMix.ChannelGetData(soundStreamHandle, AudioAnalysis.FftGainBuffer, dataFlags);
 
         
         // If requested, also fetch WaveFormData 
         if (!WaveFormProcessing.RequestedOnce) 
             return;
         
-        const int lengthInBytes = AudioConfig.WaveformSampleCount << 2 << 1;
+        int lengthInBytes = AudioConfig.WaveformSampleCount << 2 << 1;
+        
+        // IMPORTANT: Also use NOREMOVE flag during export to avoid consuming audio data
+        if (playback.IsRenderingToFile)
+        {
+            lengthInBytes |= DataFlag_BASS_DATA_NOREMOVE;
+        }
         
         // This will later be processed in WaveFormProcessing
-        WaveFormProcessing.LastFetchResultCode = Bass.ChannelGetData(soundStreamHandle, 
-                                                                     WaveFormProcessing.InterleavenSampleBuffer,  
-                                                                     lengthInBytes);
+        // Use BassMix.ChannelGetData for mixer source streams
+        WaveFormProcessing.LastFetchResultCode = BassMix.ChannelGetData(soundStreamHandle, 
+                                                                        WaveFormProcessing.InterleavenSampleBuffer,  
+                                                                        lengthInBytes);
     }
 
     public static int GetClipChannelCount(AudioClipResourceHandle? handle)
@@ -238,7 +247,7 @@ public static class AudioEngine
         if (!_3dInitialized)
         {
             _3dInitialized = true;
-            AudioConfig.LogInfo($"[AudioEngine] 3D audio listener initialized | Position: {position} | Forward: {forward} | Up: {up}");
+            AudioConfig.LogAudioInfo($"[AudioEngine] 3D audio listener initialized | Position: {position} | Forward: {forward} | Up: {up}");
         }
     }
 
@@ -275,7 +284,7 @@ public static class AudioEngine
         // Ensure mixer is initialized
         if (AudioMixerManager.OperatorMixerHandle == 0)
         {
-            AudioConfig.LogDebug($"[AudioEngine] UpdateOperatorPlayback called but mixer not initialized, initializing now...");
+            AudioConfig.LogAudioDebug($"[AudioEngine] UpdateOperatorPlayback called but mixer not initialized, initializing now...");
             AudioMixerManager.Initialize();
             
             if (AudioMixerManager.OperatorMixerHandle == 0)
@@ -289,7 +298,7 @@ public static class AudioEngine
         {
             state = new StereoOperatorAudioState();
             _operatorAudioStates[operatorId] = state;
-            AudioConfig.LogDebug($"[AudioEngine] Created new audio state for operator: {operatorId}");
+            AudioConfig.LogAudioDebug($"[AudioEngine] Created new audio state for operator: {operatorId}");
         }
 
         // Resolve file path if it's relative
@@ -300,20 +309,22 @@ public static class AudioEngine
             if (ResourceManager.TryResolvePath(filePath, null, out var absolutePath, out _))
             {
                 resolvedFilePath = absolutePath;
-                AudioConfig.LogDebug($"[AudioEngine] Resolved path: {filePath} → {absolutePath}");
+                AudioConfig.LogAudioDebug($"[AudioEngine] Resolved path: {filePath} → {absolutePath}");
             }
         }
 
         // Handle file change
+        bool isNewStream = false;
         if (state.CurrentFilePath != resolvedFilePath)
         {
-            AudioConfig.LogDebug($"[AudioEngine] File path changed for operator {operatorId}: '{state.CurrentFilePath}' → '{resolvedFilePath}'");
+            AudioConfig.LogAudioDebug($"[AudioEngine] File path changed for operator {operatorId}: '{state.CurrentFilePath}' → '{resolvedFilePath}'");
             
             state.Stream?.Dispose();
             state.Stream = null;
             state.CurrentFilePath = resolvedFilePath ?? string.Empty;
             state.PreviousPlay = false;
             state.PreviousStop = false;
+            isNewStream = true;
 
             if (!string.IsNullOrEmpty(resolvedFilePath))
             {
@@ -322,7 +333,7 @@ public static class AudioEngine
                 {
                     var loadTime = (DateTime.Now - loadStartTime).TotalMilliseconds;
                     state.Stream = stream;
-                    AudioConfig.LogDebug($"[AudioEngine] Stream loaded in {loadTime:F2}ms for operator {operatorId}");
+                    AudioConfig.LogAudioDebug($"[AudioEngine] Stream loaded in {loadTime:F2}ms for operator {operatorId}");
                 }
                 else
                 {
@@ -334,6 +345,17 @@ public static class AudioEngine
         if (state.Stream == null)
             return;
 
+        // During export, if this is a NEW stream (just created this frame), don't allow it to trigger play
+        // This prevents operators that weren't connected before export from suddenly playing
+        if (isNewStream && Playback.Current.IsRenderingToFile)
+        {
+            state.PreviousPlay = shouldPlay; // Set to current state so next frame won't see a rising edge
+            state.IsStale = true; // Mark as stale since it wasn't part of the original export
+            state.Stream.SetStaleMuted(true);
+            AudioConfig.LogAudioDebug($"[AudioEngine] New stream during export - marking as stale: {resolvedFilePath}");
+            return;
+        }
+
         // Detect play trigger (rising edge)
         var playTrigger = shouldPlay && !state.PreviousPlay;
         state.PreviousPlay = shouldPlay;
@@ -344,9 +366,9 @@ public static class AudioEngine
         
         // Log trigger events
         if (playTrigger)
-            AudioConfig.LogDebug($"[AudioEngine] ▶ Play TRIGGER for operator {operatorId}");
+            AudioConfig.LogAudioDebug($"[AudioEngine] ▶ Play TRIGGER for operator {operatorId}");
         if (stopTrigger)
-            AudioConfig.LogDebug($"[AudioEngine] ■ Stop TRIGGER for operator {operatorId}");
+            AudioConfig.LogAudioDebug($"[AudioEngine] ■ Stop TRIGGER for operator {operatorId}");
 
         // Handle stop trigger
         if (stopTrigger)
@@ -367,8 +389,11 @@ public static class AudioEngine
             state.Stream.Play();
             state.IsPaused = false;
             
+            // Clear stale flag since this operator is actively playing
+            state.IsStale = false;
+            
             var playTime = (DateTime.Now - playStartTime).TotalMilliseconds;
-            AudioConfig.LogInfo($"[AudioEngine] ▶ Play executed in {playTime:F2}ms for operator {operatorId}");
+            AudioConfig.LogAudioInfo($"[AudioEngine] ▶ Play executed in {playTime:F2}ms for operator {operatorId}");
         }
 
         // Always update volume, mute, panning, and speed when stream is active
@@ -384,7 +409,7 @@ public static class AudioEngine
                 var seekTimeInSeconds = (float)(seek * state.Stream.Duration);
                 state.Stream.Seek(seekTimeInSeconds);
                 state.PreviousSeek = seek;
-                AudioConfig.LogDebug($"[AudioEngine] Seek to {seek:F3} ({seekTimeInSeconds:F3}s) for operator {operatorId}");
+                AudioConfig.LogAudioDebug($"[AudioEngine] Seek to {seek:F3} ({seekTimeInSeconds:F3}s) for operator {operatorId}");
             }
         }
     }
@@ -493,7 +518,7 @@ public static class AudioEngine
         // Ensure mixer is initialized
         if (AudioMixerManager.OperatorMixerHandle == 0)
         {
-            AudioConfig.LogDebug($"[AudioEngine] UpdateSpatialOperatorPlayback called but mixer not initialized");
+            AudioConfig.LogAudioDebug($"[AudioEngine] UpdateSpatialOperatorPlayback called but mixer not initialized");
             AudioMixerManager.Initialize();
             
             if (AudioMixerManager.OperatorMixerHandle == 0)
@@ -513,7 +538,7 @@ public static class AudioEngine
         {
             state = new SpatialOperatorAudioState();
             _spatialOperatorAudioStates[operatorId] = state;
-            AudioConfig.LogDebug($"[AudioEngine] Created new spatial audio state for operator: {operatorId}");
+            AudioConfig.LogAudioDebug($"[AudioEngine] Created new spatial audio state for operator: {operatorId}");
         }
 
         // Resolve file path
@@ -523,20 +548,22 @@ public static class AudioEngine
             if (ResourceManager.TryResolvePath(filePath, null, out var absolutePath, out _))
             {
                 resolvedFilePath = absolutePath;
-                AudioConfig.LogDebug($"[AudioEngine] Resolved spatial audio path: {filePath} → {absolutePath}");
+                AudioConfig.LogAudioDebug($"[AudioEngine] Resolved spatial audio path: {filePath} → {absolutePath}");
             }
         }
 
         // Handle file change
+        bool isNewStream = false;
         if (state.CurrentFilePath != resolvedFilePath)
         {
-            AudioConfig.LogDebug($"[AudioEngine] Spatial audio file changed for operator {operatorId}: '{state.CurrentFilePath}' → '{resolvedFilePath}'");
+            AudioConfig.LogAudioDebug($"[AudioEngine] Spatial audio file changed for operator {operatorId}: '{state.CurrentFilePath}' → '{resolvedFilePath}'");
             
             state.Stream?.Dispose();
             state.Stream = null;
             state.CurrentFilePath = resolvedFilePath ?? string.Empty;
             state.PreviousPlay = false;
             state.PreviousStop = false;
+            isNewStream = true;
 
             if (!string.IsNullOrEmpty(resolvedFilePath))
             {
@@ -545,7 +572,7 @@ public static class AudioEngine
                 {
                     var loadTime = (DateTime.Now - loadStartTime).TotalMilliseconds;
                     state.Stream = stream;
-                    AudioConfig.LogDebug($"[AudioEngine] Spatial stream loaded in {loadTime:F2}ms for operator {operatorId}");
+                    AudioConfig.LogAudioDebug($"[AudioEngine] Spatial stream loaded in {loadTime:F2}ms for operator {operatorId}");
                 }
                 else
                 {
@@ -560,6 +587,17 @@ public static class AudioEngine
         // Update 3D position ALWAYS (even when not playing, for smooth transitions)
         state.Stream.Update3DPosition(position, minDistance, maxDistance);
 
+        // During export, if this is a NEW stream (just created this frame), don't allow it to trigger play
+        // This prevents operators that weren't connected before export from suddenly playing
+        if (isNewStream && Playback.Current.IsRenderingToFile)
+        {
+            state.PreviousPlay = shouldPlay; // Set to current state so next frame won't see a rising edge
+            state.IsStale = true; // Mark as stale since it wasn't part of the original export
+            state.Stream.SetStaleMuted(true);
+            AudioConfig.LogAudioDebug($"[AudioEngine] New spatial stream during export - marking as stale: {resolvedFilePath}");
+            return;
+        }
+
         // Detect play trigger
         var playTrigger = shouldPlay && !state.PreviousPlay;
         state.PreviousPlay = shouldPlay;
@@ -569,9 +607,9 @@ public static class AudioEngine
         state.PreviousStop = shouldStop;
         
         if (playTrigger)
-            AudioConfig.LogDebug($"[AudioEngine] ▶ Spatial Play TRIGGER for operator {operatorId}");
+            AudioConfig.LogAudioDebug($"[AudioEngine] ▶ Spatial Play TRIGGER for operator {operatorId}");
         if (stopTrigger)
-            AudioConfig.LogDebug($"[AudioEngine] ■ Spatial Stop TRIGGER for operator {operatorId}");
+            AudioConfig.LogAudioDebug($"[AudioEngine] ■ Spatial Stop TRIGGER for operator {operatorId}");
 
         // Handle stop
         if (stopTrigger)
@@ -592,7 +630,7 @@ public static class AudioEngine
             state.IsPaused = false;
             
             var playTime = (DateTime.Now - playStartTime).TotalMilliseconds;
-            AudioConfig.LogInfo($"[AudioEngine] ▶ Spatial Play executed in {playTime:F2}ms for operator {operatorId} at position {position}");
+            AudioConfig.LogAudioInfo($"[AudioEngine] ▶ Spatial Play executed in {playTime:F2}ms for operator {operatorId} at position {position}");
         }
 
         // Update volume, mute, and speed when stream is active
@@ -625,7 +663,7 @@ public static class AudioEngine
                 var seekTimeInSeconds = (float)(seek * state.Stream.Duration);
                 state.Stream.Seek(seekTimeInSeconds);
                 state.PreviousSeek = seek;
-                AudioConfig.LogDebug($"[AudioEngine] Spatial seek to {seek:F3} ({seekTimeInSeconds:F3}s) for operator {operatorId}");
+                AudioConfig.LogAudioDebug($"[AudioEngine] Spatial seek to {seek:F3} ({seekTimeInSeconds:F3}s) for operator {operatorId}");
             }
         }
     }
@@ -697,16 +735,15 @@ public static class AudioEngine
 
     /// <summary>
     /// Check all operator audio streams and mute those that weren't updated this frame.
-    /// Skipped during export rendering.
+    /// This ensures only triggered operators produce audio during live playback.
+    /// During export, stale detection is handled by UpdateStaleStatesForExport() instead.
     /// </summary>
     private static void CheckAndMuteStaleOperators(double currentTime)
     {
-        // Skip during export - audio is handled separately
-        if (Playback.Current?.IsRenderingToFile == true)
-        {
-            _operatorsUpdatedThisFrame.Clear();
+        // During export, stale detection is handled by GetFullMixDownBuffer calling UpdateStaleStatesForExport
+        // This ensures stale detection happens AFTER operators are evaluated, not before
+        if (Playback.Current.IsRenderingToFile)
             return;
-        }
         
         // Prevent double-execution per frame
         var currentFrame = Playback.FrameCount;
@@ -764,7 +801,7 @@ public static class AudioEngine
         AudioMixerManager.Initialize();
 
         // Optionally, log the device change
-        AudioConfig.LogInfo("[AudioEngine] Audio device changed: all operator streams and mixer reinitialized.");
+        AudioConfig.LogAudioInfo("[AudioEngine] Audio device changed: all operator streams and mixer reinitialized.");
     }
 
     /// <summary>
@@ -858,5 +895,106 @@ public static class AudioEngine
     public static void InitializeGlobalVolumeFromSettings()
     {
         AudioMixerManager.SetGlobalVolume(ProjectSettings.Config.GlobalPlaybackVolume);
+    }
+
+    /// <summary>
+    /// Get all stereo operator audio states for export metering.
+    /// </summary>
+    public static IEnumerable<KeyValuePair<Guid, (StereoOperatorAudioStream? Stream, bool IsStale)>> GetAllStereoOperatorStates()
+    {
+        foreach (var kvp in _operatorAudioStates)
+        {
+            yield return new KeyValuePair<Guid, (StereoOperatorAudioStream? Stream, bool IsStale)>(
+                kvp.Key, 
+                (kvp.Value.Stream, kvp.Value.IsStale));
+        }
+    }
+
+    /// <summary>
+    /// Get all spatial operator audio states for export metering.
+    /// </summary>
+    public static IEnumerable<KeyValuePair<Guid, (SpatialOperatorAudioStream? Stream, bool IsStale)>> GetAllSpatialOperatorStates()
+    {
+        foreach (var kvp in _spatialOperatorAudioStates)
+        {
+            yield return new KeyValuePair<Guid, (SpatialOperatorAudioStream? Stream, bool IsStale)>(
+                kvp.Key,
+                (kvp.Value.Stream, kvp.Value.IsStale));
+        }
+    }
+
+    /// <summary>
+    /// Resets all operator streams to initial state for export.
+    /// All streams are stopped, muted, paused, and positioned at start.
+    /// They will wait for a Play trigger before producing any audio.
+    /// Called at the start of recording.
+    /// </summary>
+    internal static void ResetAllOperatorStreamsForExport()
+    {
+        // Reset all stereo operators to initial state
+        foreach (var (operatorId, state) in _operatorAudioStates)
+        {
+            if (state.Stream != null)
+            {
+                state.Stream.PrepareForExport();
+            }
+            state.IsStale = true;
+            // DO NOT reset PreviousPlay/PreviousStop - we want to preserve the trigger state
+            // so that only genuine new triggers cause playback, not just "shouldPlay = true"
+            // on operators that were already playing before export started
+        }
+        
+        // Reset all spatial operators to initial state
+        foreach (var (operatorId, state) in _spatialOperatorAudioStates)
+        {
+            if (state.Stream != null)
+            {
+                state.Stream.PrepareForExport();
+            }
+            state.IsStale = true;
+            // DO NOT reset PreviousPlay/PreviousStop
+        }
+        
+        // Clear the updated set to ensure clean slate
+        _operatorsUpdatedThisFrame.Clear();
+        
+        AudioConfig.LogAudioDebug("[AudioEngine] Reset all operator streams for export - all streams now waiting for Play trigger");
+    }
+
+    /// <summary>
+    /// Updates stale states for all operator streams during export.
+    /// Called by AudioRendering.GetFullMixDownBuffer AFTER operators have been evaluated,
+    /// so we can correctly detect which operators are active this frame.
+    /// </summary>
+    internal static void UpdateStaleStatesForExport()
+    {
+        // Check stereo operators
+        foreach (var (operatorId, state) in _operatorAudioStates)
+        {
+            if (state.Stream == null) continue;
+
+            bool isStale = !_operatorsUpdatedThisFrame.Contains(operatorId);
+            if (state.IsStale != isStale)
+            {
+                state.Stream.SetStaleMuted(isStale);
+                state.IsStale = isStale;
+            }
+        }
+
+        // Check spatial operators
+        foreach (var (operatorId, state) in _spatialOperatorAudioStates)
+        {
+            if (state.Stream == null) continue;
+
+            bool isStale = !_operatorsUpdatedThisFrame.Contains(operatorId);
+            if (state.IsStale != isStale)
+            {
+                state.Stream.SetStaleMuted(isStale);
+                state.IsStale = isStale;
+            }
+        }
+
+        // Clear the set for the next frame
+        _operatorsUpdatedThisFrame.Clear();
     }
 }
