@@ -36,20 +36,6 @@ namespace Lib.io.audio
         [Input(Guid = "a5de0d72-5924-4f3a-a02f-d5de7c03f07f")]
         public readonly InputSlot<float> Seek = new();
 
-#if DEBUG
-        [Input(Guid = "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b")]
-        public readonly InputSlot<bool> EnableTestMode = new();
-
-        [Input(Guid = "f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c")]
-        public readonly InputSlot<bool> TriggerShortTest = new();
-
-        [Input(Guid = "a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d")]
-        public readonly InputSlot<bool> TriggerLongTest = new();
-
-        [Input(Guid = "b4c5d6e7-f8a9-4b0c-1d2e-3f4a5b6c7d8e")]
-        public readonly InputSlot<float> TestFrequency = new();
-#endif
-
         [Output(Guid = "2433f838-a8ba-4f3a-809e-2d41c404bb84")]
         public readonly Slot<Command> Result = new();
 
@@ -68,20 +54,8 @@ namespace Lib.io.audio
         [Output(Guid = "7f8e9d2a-4b5c-3e89-8f12-6a5b9c8d0e2f")]
         public readonly Slot<List<float>> GetSpectrum = new();
 
-#if DEBUG
-        [Output(Guid = "c5d6e7f8-a9b0-4c1d-2e3f-4a5b6c7d8e9f")]
-        public readonly Slot<string> DebugInfo = new();
-#endif
-
         private Guid _operatorId;
         private bool _wasPausedLastFrame;
-
-#if DEBUG
-        private bool _previousShortTestTrigger;
-        private bool _previousLongTestTrigger;
-        private string _testFilePath = string.Empty;
-        private bool _testModeActive;
-#endif
 
         public StereoAudioPlayer()
         {
@@ -91,9 +65,6 @@ namespace Lib.io.audio
             GetLevel.UpdateAction += Update;
             GetWaveform.UpdateAction += Update;
             GetSpectrum.UpdateAction += Update;
-#if DEBUG
-            DebugInfo.UpdateAction += Update;
-#endif
         }
 
         private void Update(EvaluationContext context)
@@ -104,12 +75,8 @@ namespace Lib.io.audio
                 AudioConfig.LogAudioDebug($"[StereoAudioPlayer] Initialized: {_operatorId}");
             }
 
-#if DEBUG
-            var (filePath, shouldPlay) = HandleTestMode(context);
-#else
             string filePath = AudioFile.GetValue(context);
             bool shouldPlay = PlayAudio.GetValue(context);
-#endif
 
             var shouldStop = StopAudio.GetValue(context);
             var shouldPause = PauseAudio.GetValue(context);
@@ -146,49 +113,7 @@ namespace Lib.io.audio
             GetLevel.Value = AudioEngine.GetOperatorLevel(_operatorId);
             GetWaveform.Value = AudioEngine.GetOperatorWaveform(_operatorId);
             GetSpectrum.Value = AudioEngine.GetOperatorSpectrum(_operatorId);
-
-#if DEBUG
-            DebugInfo.Value = _testModeActive
-                ? $"TEST MODE | File: {System.IO.Path.GetFileName(filePath)} | Playing: {IsPlaying.Value} | Level: {GetLevel.Value:F3}"
-                : $"File: {System.IO.Path.GetFileName(filePath)} | Playing: {IsPlaying.Value} | Level: {GetLevel.Value:F3}";
-#endif
         }
-
-#if DEBUG
-        private (string filePath, bool shouldPlay) HandleTestMode(EvaluationContext context)
-        {
-            var enableTestMode = EnableTestMode.GetValue(context);
-            var triggerShortTest = TriggerShortTest.GetValue(context);
-            var triggerLongTest = TriggerLongTest.GetValue(context);
-            var testFrequency = TestFrequency.GetValue(context);
-            if (testFrequency <= 0) testFrequency = 440f;
-
-            if (!enableTestMode)
-            {
-                _testModeActive = false;
-                return (AudioFile.GetValue(context), PlayAudio.GetValue(context));
-            }
-
-            bool shouldPlay = false;
-            if (triggerShortTest && !_previousShortTestTrigger)
-            {
-                _testFilePath = AudioPlayerUtils.GenerateTestTone(testFrequency, 0.1f, "short", 2);
-                shouldPlay = true;
-                _testModeActive = true;
-            }
-            else if (triggerLongTest && !_previousLongTestTrigger)
-            {
-                _testFilePath = AudioPlayerUtils.GenerateTestTone(testFrequency, 2.0f, "long", 2);
-                shouldPlay = true;
-                _testModeActive = true;
-            }
-
-            _previousShortTestTrigger = triggerShortTest;
-            _previousLongTestTrigger = triggerLongTest;
-
-            return (_testFilePath, shouldPlay);
-        }
-#endif
 
         public int RenderAudio(double startTime, double duration, float[] buffer)
         {
@@ -209,10 +134,6 @@ namespace Lib.io.audio
         {
             if (_operatorId != Guid.Empty)
                 AudioEngine.UnregisterOperator(_operatorId);
-
-#if DEBUG
-            AudioPlayerUtils.CleanupTestFile(_testFilePath);
-#endif
         }
     }
 }

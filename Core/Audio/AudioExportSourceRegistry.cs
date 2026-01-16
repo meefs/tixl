@@ -4,26 +4,51 @@ namespace T3.Core.Audio
 {
     /// <summary>
     /// Registry for audio export sources (e.g., operator instances that provide audio for rendering).
+    /// Thread-safe to allow registration/unregistration during enumeration.
     /// </summary>
     public static class AudioExportSourceRegistry
     {
         private static readonly List<IAudioExportSource> _sources = new();
-        public static IReadOnlyList<IAudioExportSource> Sources => _sources;
+        private static readonly object _lock = new();
+
+        /// <summary>
+        /// Returns a snapshot of the current sources to allow safe enumeration
+        /// while other threads may modify the collection.
+        /// </summary>
+        public static IReadOnlyList<IAudioExportSource> Sources
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return _sources.ToArray();
+                }
+            }
+        }
 
         public static void Register(IAudioExportSource source)
         {
-            if (!_sources.Contains(source))
-                _sources.Add(source);
+            lock (_lock)
+            {
+                if (!_sources.Contains(source))
+                    _sources.Add(source);
+            }
         }
 
         public static void Unregister(IAudioExportSource source)
         {
-            _sources.Remove(source);
+            lock (_lock)
+            {
+                _sources.Remove(source);
+            }
         }
 
         public static void Clear()
         {
-            _sources.Clear();
+            lock (_lock)
+            {
+                _sources.Clear();
+            }
         }
     }
 }

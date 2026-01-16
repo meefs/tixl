@@ -68,21 +68,6 @@ namespace Lib.io.audio
         [Input(Guid = "5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c", MappedType = typeof(Audio3DModes))]
         public readonly InputSlot<int> Audio3DMode = new();
 
-#if DEBUG
-        // Test/Debug inputs
-        [Input(Guid = "5f2e9a4c-7d3b-4e8f-9c1a-6f2e8b7d3a5c")]
-        public readonly InputSlot<bool> EnableTestMode = new();
-
-        [Input(Guid = "8c4f2e9a-3d7b-4a1f-8e5c-9b2d6a7f4c3e")]
-        public readonly InputSlot<bool> TriggerShortTest = new();
-
-        [Input(Guid = "3e9a2f7c-4d8b-4c1f-8a5e-7b2d9f6c3a4e")]
-        public readonly InputSlot<bool> TriggerLongTest = new();
-
-        [Input(Guid = "7f4a2e9c-8d3b-4c1f-9e5a-2b7d6f8c3a5e")]
-        public readonly InputSlot<float> TestFrequency = new();
-#endif
-
         [Output(Guid = "4a8e2f7c-9d3b-4c1f-8e5a-7b2d6f9c3a4e")]
         public readonly Slot<Command> Result = new();
 
@@ -101,21 +86,8 @@ namespace Lib.io.audio
         [Output(Guid = "2f7a4e9c-8d3b-4c1f-9e5a-6b2d7f8c3a5e")]
         public readonly Slot<List<float>> GetSpectrum = new();
 
-#if DEBUG
-        // Debug output
-        [Output(Guid = "7c4a2e9f-3d8b-4c1f-8e5a-9b2d6f7c4a3e")]
-        public readonly Slot<string> DebugInfo = new();
-#endif
-
         private Guid _operatorId;
         private bool _wasPausedLastFrame;
-
-#if DEBUG
-        private bool _previousShortTestTrigger;
-        private bool _previousLongTestTrigger;
-        private string _testFilePath = string.Empty;
-        private bool _testModeActive;
-#endif
 
         // Expose current file path for logging
         public string CurrentFilePath { get; private set; } = string.Empty;
@@ -144,9 +116,6 @@ namespace Lib.io.audio
             GetLevel.UpdateAction += Update;
             GetWaveform.UpdateAction += Update;
             GetSpectrum.UpdateAction += Update;
-#if DEBUG
-            DebugInfo.UpdateAction += Update;
-#endif
         }
 
         private void Update(EvaluationContext context)
@@ -157,12 +126,8 @@ namespace Lib.io.audio
                 AudioConfig.LogAudioDebug($"[SpatialAudioPlayer] Initialized: {_operatorId}");
             }
 
-#if DEBUG
-            var (filePath, shouldPlay) = HandleTestMode(context);
-#else
             string filePath = AudioFile.GetValue(context);
             bool shouldPlay = PlayAudio.GetValue(context);
-#endif
 
             var shouldStop = StopAudio.GetValue(context);
             var shouldPause = PauseAudio.GetValue(context);
@@ -226,49 +191,7 @@ namespace Lib.io.audio
             GetLevel.Value = AudioEngine.GetSpatialOperatorLevel(_operatorId);
             GetWaveform.Value = AudioEngine.GetSpatialOperatorWaveform(_operatorId);
             GetSpectrum.Value = AudioEngine.GetSpatialOperatorSpectrum(_operatorId);
-
-#if DEBUG
-            DebugInfo.Value = _testModeActive
-                ? $"TEST MODE (Spatial) | Playing: {IsPlaying.Value} | Pos: {sourcePosition} | Level: {GetLevel.Value:F3}"
-                : $"Playing: {IsPlaying.Value} | Pos: {sourcePosition} | Level: {GetLevel.Value:F3}";
-#endif
         }
-
-#if DEBUG
-        private (string filePath, bool shouldPlay) HandleTestMode(EvaluationContext context)
-        {
-            var enableTestMode = EnableTestMode.GetValue(context);
-            var triggerShortTest = TriggerShortTest.GetValue(context);
-            var triggerLongTest = TriggerLongTest.GetValue(context);
-            var testFrequency = TestFrequency.GetValue(context);
-            if (testFrequency <= 0) testFrequency = 440f;
-
-            if (!enableTestMode)
-            {
-                _testModeActive = false;
-                return (AudioFile.GetValue(context), PlayAudio.GetValue(context));
-            }
-
-            bool shouldPlay = false;
-            if (triggerShortTest && !_previousShortTestTrigger)
-            {
-                _testFilePath = AudioPlayerUtils.GenerateTestTone(testFrequency, 0.1f, "spatial_short", 1);
-                shouldPlay = true;
-                _testModeActive = true;
-            }
-            else if (triggerLongTest && !_previousLongTestTrigger)
-            {
-                _testFilePath = AudioPlayerUtils.GenerateTestTone(testFrequency, 2.0f, "spatial_long", 1);
-                shouldPlay = true;
-                _testModeActive = true;
-            }
-
-            _previousShortTestTrigger = triggerShortTest;
-            _previousLongTestTrigger = triggerLongTest;
-
-            return (_testFilePath, shouldPlay);
-        }
-#endif
 
         /// <summary>
         /// Render audio for export. This is called by AudioRendering during export.
@@ -292,10 +215,6 @@ namespace Lib.io.audio
         {
             if (_operatorId != Guid.Empty)
                 AudioEngine.UnregisterOperator(_operatorId);
-
-#if DEBUG
-            AudioPlayerUtils.CleanupTestFile(_testFilePath);
-#endif
         }
 
         private enum Audio3DModes
