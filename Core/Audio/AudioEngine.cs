@@ -658,6 +658,18 @@ public static class AudioEngine
         AudioMixerManager.SetGlobalVolume(ProjectSettings.Config.GlobalPlaybackVolume);
     }
 
+    public static void SetGlobalMute(bool mute)
+    {
+        AudioMixerManager.SetGlobalMute(mute);
+        ProjectSettings.Config.GlobalMute = mute;
+    }
+
+    public static void SetOperatorMute(bool mute)
+    {
+        AudioMixerManager.SetOperatorMute(mute);
+        ProjectSettings.Config.OperatorMute = mute;
+    }
+
     #endregion
 
     #region Export Metering Accessors

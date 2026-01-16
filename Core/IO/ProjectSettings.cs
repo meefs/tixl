@@ -19,6 +19,8 @@ public class ProjectSettings : Settings<ProjectSettings.ConfigData>
         public float GlobalPlaybackVolume = 1; // New global volume
         public bool SoundtrackMute; // Renamed from AudioMuted
         public bool GlobalMute; // New global mute
+        public float OperatorPlaybackVolume = 1; // New operator mixer volume
+        public bool OperatorMute; // New operator mixer mute
 
         public bool EnablePlaybackControlWithKeyboard = true;
 
@@ -58,6 +60,8 @@ public class ProjectSettings : Settings<ProjectSettings.ConfigData>
         public static bool LogCompilationDetails = false;
         public static bool LogAssemblyLoadingDetails = false;
         public static bool EnableBeatSyncProfiling = false;
+        public static float OperatorPlaybackVolume = 1; // New operator mixer volume
+        public static bool OperatorMute; // New operator mixer mute
     }
 }
 

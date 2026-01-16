@@ -32,6 +32,8 @@ public static class AudioMixerManager
     private static int _flacPluginHandle;
     private static readonly object _offlineMixerLock = new();
 
+    private static float _globalMixerVolume = 1.0f;
+
     public static int GlobalMixerHandle => _globalMixerHandle;
     public static int OperatorMixerHandle => _operatorMixerHandle;
     public static int SoundtrackMixerHandle => _soundtrackMixerHandle;
@@ -82,13 +84,13 @@ public static class AudioMixerManager
             if (!Bass.Init(-1, AudioConfig.MixerFrequency, initFlags, IntPtr.Zero))
             {
                 var error1 = Bass.LastError;
-                Log.Warning($"[AudioMixer] Init with Latency flag failed: {error1}, trying without...");
+                Log.Warning($"{error1} [AudioMixer] Init with Latency flag failed: trying without...");
                 
                 // Fallback without latency flag
                 if (!Bass.Init(-1, AudioConfig.MixerFrequency, DeviceInitFlags.Stereo, IntPtr.Zero))
                 {
                     var error2 = Bass.LastError;
-                    Log.Warning($"[AudioMixer] Init with Stereo flag failed: {error2}, trying basic init...");
+                    Log.Warning($"{error2} [AudioMixer] Init with Stereo flag failed: trying basic init...");
                     
                     // Last resort - basic init
                     if (!Bass.Init(-1, AudioConfig.MixerFrequency, DeviceInitFlags.Default, IntPtr.Zero))
@@ -251,6 +253,61 @@ public static class AudioMixerManager
     {
         if (!_initialized) return;
         Bass.ChannelSetAttribute(_globalMixerHandle, ChannelAttribute.Volume, volume);
+    }
+
+    public static void SetGlobalMute(bool mute)
+    {
+        if (!_initialized) return;
+        if (mute)
+        {
+            // Store the current volume before muting, but only if not already muted
+            float currentVolume;
+            Bass.ChannelGetAttribute(_globalMixerHandle, ChannelAttribute.Volume, out currentVolume);
+            if (currentVolume > 0.001f)
+            {
+                _globalMixerVolume = currentVolume;
+            }
+            Bass.ChannelSetAttribute(_globalMixerHandle, ChannelAttribute.Volume, 0f);
+        }
+        else
+        {
+            // Always restore the current ProjectSettings volume (user may have changed it while muted)
+            float definedVolume = 1.0f;
+            try
+            {
+                definedVolume = T3.Core.IO.ProjectSettings.Config.GlobalPlaybackVolume;
+            }
+            catch { }
+            Bass.ChannelSetAttribute(_globalMixerHandle, ChannelAttribute.Volume, definedVolume);
+        }
+    }
+
+    private static float _operatorMixerVolume = 1.0f;
+    public static void SetOperatorMute(bool mute)
+    {
+        if (!_initialized) return;
+        if (mute)
+        {
+            // Store the current volume before muting, but only if not already muted
+            float currentVolume;
+            Bass.ChannelGetAttribute(_operatorMixerHandle, ChannelAttribute.Volume, out currentVolume);
+            if (currentVolume > 0.001f)
+            {
+                _operatorMixerVolume = currentVolume;
+            }
+            Bass.ChannelSetAttribute(_operatorMixerHandle, ChannelAttribute.Volume, 0f);
+        }
+        else
+        {
+            // Always restore the current ProjectSettings volume (user may have changed it while muted)
+            float definedVolume = 1.0f;
+            try
+            {
+                definedVolume = T3.Core.IO.ProjectSettings.Config.OperatorPlaybackVolume;
+            }
+            catch { }
+            Bass.ChannelSetAttribute(_operatorMixerHandle, ChannelAttribute.Volume, definedVolume);
+        }
     }
 
     /// <summary>

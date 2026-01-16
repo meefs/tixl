@@ -46,13 +46,25 @@ internal sealed partial class SettingsWindow : Window
             ProjectSettings.Defaults.GlobalMute,
             "Mute all audio output at the global mixer level."
         );
+        AudioEngine.SetGlobalMute(ProjectSettings.Config.GlobalMute);
         
-        // Operator Mixer - minimal version with just level meter
-        DrawMixerSectionMinimal(
+        // Operator Mixer - with volume and mute
+        changed |= DrawMixerSection(
             "Operator Mixer",
+            "Volume",
+            ref ProjectSettings.Config.OperatorPlaybackVolume,
+            0.0f, 1.0f,
+            ProjectSettings.Defaults.OperatorPlaybackVolume,
+            "Affects all operator audio output at the operator mixer level.",
             AudioMixerManager.GetOperatorMixerLevel(),
-            ref _smoothedOperatorLevel
+            ref _smoothedOperatorLevel,
+            ref ProjectSettings.Config.OperatorMute,
+            ProjectSettings.Defaults.OperatorMute,
+            "Mute all operator audio output at the operator mixer level."
         );
+        // Apply volume first, then mute (so mute can override volume if needed)
+        AudioMixerManager.SetOperatorMixerVolume(ProjectSettings.Config.OperatorPlaybackVolume);
+        AudioEngine.SetOperatorMute(ProjectSettings.Config.OperatorMute);
         
         // Soundtrack Mixer - compact version with volume and mute
         changed |= DrawMixerSection(
