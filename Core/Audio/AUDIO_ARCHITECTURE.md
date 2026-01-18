@@ -1,7 +1,7 @@
 # Audio System Architecture
 
-**Version:** 2.0  
-**Last Updated:** 2025-01-11  
+**Version:** 2.1  
+**Last Updated:** 2025-01-15  
 **Status:** Production Ready (Refactored)
 
 ---
@@ -12,9 +12,9 @@
 3. [Class Hierarchy](#class-hierarchy)
 4. [Audio Operators](#audio-operators)
 5. [Configuration System](#configuration-system)
-6. [Performance Characteristics](#performance-characteristics)
 7. [Documentation Index](#documentation-index)
 8. [Future Enhancement Opportunities](#future-enhancement-opportunities)
+9. [Technical Review: Steps Needed](#technical-review-steps-needed)
 
 ---
 
@@ -34,6 +34,7 @@ The T3 audio system is a high-performance, low-latency audio engine built on Man
 - **Stale detection**: Automatic muting of inactive operator streams
 - **Export support**: Direct stream reading for video export with audio
 - **Unified codebase**: Common base class eliminates code duplication
+- **FLAC support**: Native BASS FLAC plugin for high-quality audio files
 
 ---
 
@@ -47,6 +48,7 @@ The T3 audio system is a high-performance, low-latency audio engine built on Man
     │  UpdateStereoOperatorPlayback()    Set3DListenerPosition()    │
     │  UpdateSpatialOperatorPlayback()   CompleteFrame()            │
     │  Generic helpers: GetOrCreateState<T>, HandleFileChange<T>    │
+    │  UseSoundtrackClip()               ReloadSoundtrackClip()     │
     └───────────────────────────────────────────────────────────────┘
                        │                              │
                        ▼                              ▼
@@ -58,6 +60,10 @@ The T3 audio system is a high-performance, low-latency audio engine built on Man
     │  OperatorMixerHandle        │    │  UpdatePeriodMs = 10        │
     │  SoundtrackMixerHandle      │    │  PlaybackBufferLengthMs=100 │
     │  OfflineMixerHandle         │    │  FftBufferSize = 1024       │
+    │  CreateOfflineAnalysisStream│    │  LogAudioDebug/Info/Render  │
+    │  GetGlobalMixerLevel()      │    │                             │
+    │  GetOperatorMixerLevel()    │    │                             │
+    │  GetSoundtrackMixerLevel()  │    │                             │
     └─────────────────────────────┘    └─────────────────────────────┘
                        │
                        ▼
@@ -68,6 +74,8 @@ The T3 audio system is a high-performance, low-latency audio engine built on Man
     │  • Stale/User muting           • Level/Waveform/Spectrum        │
     │  • Export metering             • RenderAudio for export         │
     │  • PrepareForExport            • RestartAfterExport             │
+    │  • UpdateFromBuffer            • ClearExportMetering            │
+    │  • GetCurrentPosition          • Dispose                        │
     └─────────────────────────────────────────────────────────────────┘
                       │
           ┌───────────┴───────────┐
@@ -76,9 +84,10 @@ The T3 audio system is a high-performance, low-latency audio engine built on Man
     │  STEREO STREAM  │    │  SPATIAL STREAM │
     ├─────────────────┤    ├─────────────────┤
     │  • SetPanning() │    │  • 3D Position  │
-    │                 │    │  • Orientation  │
+    │  • TryLoadStream│    │  • Orientation  │
     │                 │    │  • Cone/Doppler │
     │                 │    │  • Apply3D()    │
+    │                 │    │  • Set3DMode()  │
     └─────────────────┘    └─────────────────┘
                        │
                        ▼
@@ -87,25 +96,24 @@ The T3 audio system is a high-performance, low-latency audio engine built on Man
     ├────────────────────────────────┬────────────────────────────────┤
     │     StereoAudioPlayer          │       SpatialAudioPlayer       │
     │     (Uses AudioPlayerUtils)    │       (Uses AudioPlayerUtils)  │
+    │     ~125 lines                 │       ~210 lines               │
     └────────────────────────────────┴────────────────────────────────┘
 ```
 
 ### Class Hierarchy
 
 ```
-OperatorAudioStreamBase (abstract)
-├── StereoOperatorAudioStream
+OperatorAudioStreamBase (abstract, ~290 lines)
+├── StereoOperatorAudioStream (~50 lines)
 │   └── SetPanning(float)
-└── SpatialOperatorAudioStream
+└── SpatialOperatorAudioStream (~125 lines)
     ├── Update3DPosition(Vector3, float, float)
     ├── Set3DOrientation(Vector3)
     ├── Set3DCone(float, float, float)
     └── Set3DMode(Mode3D)
 
-AudioPlayerUtils (static utility)
-├── ComputeInstanceGuid(IEnumerable<Guid>)
-├── GenerateTestTone(float, float, string, int)  [DEBUG]
-└── CleanupTestFile(string)  [DEBUG]
+AudioPlayerUtils (static utility, ~35 lines)
+└── ComputeInstanceGuid(IEnumerable<Guid>)
 ```
 
 ### Mixer Architecture
@@ -154,7 +162,7 @@ GetFullMixDownBuffer()
         │
         ├──► MixSoundtrackClip() ──► Seek + Read + ResampleAndMix()
         ├──► MixOperatorAudio() ──► Read OperatorMixer
-        └──► UpdateOperatorMetering<T>()
+        └──► UpdateOperatorMetering()
         │
         ▼
 EndRecording() ──► Re-add Soundtracks ──► Restore Streams ──► Resume GlobalMixer
@@ -175,7 +183,8 @@ EndRecording() ──► Re-add Soundtracks ──► Restore Streams ──► 
 **Implementation Details:**
 - Uses `AudioPlayerUtils.ComputeInstanceGuid()` for stable operator identification
 - Delegates all audio logic to `AudioEngine.UpdateStereoOperatorPlayback()`
-- Test mode support via `AudioPlayerUtils.GenerateTestTone()` (DEBUG only)
+- Supports `RenderAudio()` for export functionality
+- Finalizer unregisters operator from AudioEngine
 
 **Use Cases:**
 - Background music playback
@@ -197,6 +206,7 @@ EndRecording() ──► Re-add Soundtracks ──► Restore Streams ──► 
 - Listener orientation auto-normalized if invalid
 - 3D position updated every frame via `AudioEngine.Set3DListenerPosition()`
 - Uses mono sources for optimal 3D positioning
+- Supports `RenderAudio()` for export functionality
 
 **Use Cases:**
 - 3D environments and games
@@ -239,6 +249,7 @@ LogAudioDebug(message)           // Suppressible debug logging
 LogAudioInfo(message)            // Suppressible info logging
 LogAudioRenderDebug(message)     // Suppressible render debug logging
 LogAudioRenderInfo(message)      // Suppressible render info logging
+Initialize(showAudioLogs, showAudioRenderLogs)  // Editor initialization
 ```
 
 ### User Settings Integration
@@ -255,49 +266,28 @@ Audio configuration is accessible through the Editor Settings window:
 
 ---
 
-## Performance Characteristics
-
-### Latency
-- **Typical latency:** ~20-60ms
-- **Components:** File I/O (~5ms) + Buffering (~15-55ms) + Device (~5ms)
-
-### CPU Usage
-- **Stereo stream:** ~2-3% per active stream
-- **Spatial stream:** ~5-10% per active stream (includes 3D calculations)
-- **FFT analysis:** ~1-2% overhead (when enabled)
-
-### Memory Usage
-- **Stereo stream:** ~200-500KB per stream (depends on file size)
-- **Spatial stream:** ~100-250KB per stream (mono requirement = 50% reduction)
-- **Analysis buffers:** ~16KB per stream (FFT + waveform)
-
-### Scalability
-- **Update frequency:** 60Hz position updates for spatial audio
-- **Hardware acceleration:** Utilized where available (3D audio, mixing)
-
----
-
 ## Documentation Index
 
 ### Core Files
 
 | File | Purpose | Lines |
 |------|---------|-------|
-| `AudioEngine.cs` | Central API for operator playback | ~420 |
-| `OperatorAudioStreamBase.cs` | Common stream functionality | ~270 |
-| `StereoOperatorAudioStream.cs` | Stereo-specific stream | ~45 |
-| `SpatialOperatorAudioStream.cs` | 3D spatial stream | ~120 |
-| `AudioRendering.cs` | Export/recording functionality | ~210 |
-| `AudioMixerManager.cs` | BASS mixer setup | ~280 |
-| `AudioConfig.cs` | Centralized configuration | ~90 |
+| `AudioEngine.cs` | Central API for operator and soundtrack playback | ~500 |
+| `OperatorAudioStreamBase.cs` | Common stream functionality | ~290 |
+| `StereoOperatorAudioStream.cs` | Stereo-specific stream | ~50 |
+| `SpatialOperatorAudioStream.cs` | 3D spatial stream | ~125 |
+| `AudioRendering.cs` | Export/recording functionality | ~230 |
+| `AudioMixerManager.cs` | BASS mixer setup and level metering | ~340 |
+| `AudioConfig.cs` | Centralized configuration | ~100 |
+| `AudioAnalysis.cs` | FFT processing and frequency bands | ~160 |
 
 ### Operator Files
 
 | File | Purpose | Lines |
 |------|---------|-------|
-| `StereoAudioPlayer.cs` | Stereo operator | ~145 |
-| `SpatialAudioPlayer.cs` | Spatial operator | ~220 |
-| `AudioPlayerUtils.cs` | Shared utilities | ~120 |
+| `StereoAudioPlayer.cs` | Stereo operator | ~125 |
+| `SpatialAudioPlayer.cs` | Spatial operator | ~210 |
+| `AudioPlayerUtils.cs` | Shared utilities | ~35 |
 
 ### Implementation Guides
 - **[STEREO_AUDIO_IMPLEMENTATION.md](STEREO_AUDIO_IMPLEMENTATION.md)** - StereoAudioPlayer documentation
@@ -333,103 +323,29 @@ Audio configuration is accessible through the Editor Settings window:
 
 ---
 
-## System Architecture Details
+## Technical Review: Steps Needed
 
-### State Management
+A brief checklist of recommended improvements from the latest technical review:
 
-**Generic Operator State (used for both stereo and spatial):**
-```csharp
-private sealed class OperatorAudioState<T> where T : OperatorAudioStreamBase
-{
-    public T? Stream;
-    public string CurrentFilePath = string.Empty;
-    public bool IsPaused;
-    public float PreviousSeek;
-    public bool PreviousPlay;      // Rising edge detection
-    public bool PreviousStop;      // Rising edge detection
-    public bool IsStale;
-}
-```
+- Centralize BASS initialization in `AudioMixerManager` and simplify `AudioEngine.EnsureBassInitialized`
+- Reduce per-frame allocations in export by reusing buffers in `AudioRendering.GetFullMixDownBuffer`
+- Consider using BASS/Mixer for export resampling instead of manual `ResampleAndMix`
+- Make FFT/waveform buffers explicitly owned, not global statics
+- Harden export state transitions in `AudioRendering.PrepareRecording`/`EndRecording`
+- Clarify and decouple stale detection from global frame count
+- Improve error and logging detail in key areas
+- Cache failed operator file loads or mark invalid paths
+- Clarify and refine seek semantics for operators
+- Refine or simplify use of `_offlineMixerHandle` for analysis
 
-**Stale Detection Tracking:**
-```csharp
-private static readonly HashSet<Guid> _operatorsUpdatedThisFrame = new();
-private static int _lastStaleCheckFrame = -1;
-```
-
-**3D Listener State:**
-```csharp
-private static Vector3 _listenerPosition = Vector3.Zero;
-private static Vector3 _listenerForward = new(0, 0, 1);
-private static Vector3 _listenerUp = new(0, 1, 0);
-private static bool _3dInitialized = false;
-```
-
-### Stream Lifecycle
-
-| Step | Action |
-|------|--------|
-| 1. INIT | `TryLoadStreamCore()` → Create decode stream → Add to mixer (paused) → Volume=0 |
-| 2. PLAY | Rising edge on Play → `Play()` → Unmute → Unpause → IsPlaying=true |
-| 3. UPDATE | `UpdateOperatorPlayback()` → Mark as active → Apply Volume/Panning/Speed |
-| 4. STALE | `CompleteFrame()` → Check set → If missing → `SetStaleMuted(true)` |
-| 5. STOP | Rising edge on Stop → `Stop()` → Pause → Reset position |
-| 6. CLEANUP | `UnregisterOperator()` → Dispose stream → Remove from dictionary |
-
-### AudioEngine Generic Helpers
-
-The refactored AudioEngine uses generic methods to eliminate code duplication:
-
-```csharp
-// State management
-GetOrCreateState<T>(Dictionary<Guid, OperatorAudioState<T>>, Guid)
-
-// File handling
-HandleFileChange<T>(OperatorAudioState<T>, string?, Guid, Func<string, T?>)
-
-// Playback control
-HandlePlaybackTriggers<T>(OperatorAudioState<T>, bool, bool, Guid)
-HandleSeek<T>(OperatorAudioState<T>, float, Guid)
-PauseOperatorInternal<T>(Dictionary<...>, Guid)
-ResumeOperatorInternal<T>(Dictionary<...>, Guid)
-
-// Queries
-IsOperatorPlaying<T>(Dictionary<...>, Guid)
-IsOperatorPausedInternal<T>(Dictionary<...>, Guid)
-GetOperatorLevelInternal<T>(Dictionary<...>, Guid)
-GetOperatorWaveformInternal<T>(Dictionary<...>, Guid)
-GetOperatorSpectrumInternal<T>(Dictionary<...>, Guid)
-
-// Stale detection
-UpdateStaleStates<T>(Dictionary<...>)
-ResetOperatorStreamsForExport<T>(Dictionary<...>)
-RestoreOperatorStreams<T>(Dictionary<...>)
-DisposeAllOperatorStreams<T>(Dictionary<...>)
-```
-
-### Stale Detection System
-
-**Purpose:** Automatically mute audio streams when operators stop being evaluated.
-
-**Flow:**
-```
-Player.Update() ──► UpdateOperatorPlayback() ──► Add operator ID to HashSet
-                                                         │
-CompleteFrame() ◄────────────────────────────────────────┘
-        │
-        ├──► UpdateStaleStates<T>() for each operator type:
-        │        ├──► If IN set → SetStaleMuted(false) → Restore volume
-        │        └──► If NOT in set → SetStaleMuted(true) → Mute (volume=0)
-        │
-        └──► Clear HashSet for next frame
-
+See `Core/Audio/TODO.md` for full details and rationale.
 
 # TODO: Checklist
 
 ✓ - Switching external input devices and AudioRection,
 ✓ - Adding a soundtrack to a project,
 ✓ - Rendering a project with soundtrack duration to mp4,
-PlayVideo with audio (and audio level),
+✓ - PlayVideo with audio (and audio level),
 ✓ - Toggling audio mute button,
 ✓ - Changing audio level in Settings,
 Exporting a project to the player (This will need to release rebuild of the player and might be difficult to test. I can help here.)
