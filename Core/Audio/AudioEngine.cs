@@ -154,8 +154,8 @@ public static class AudioEngine
         }
     }
 
-    public static void SetMute(bool configSoundtrackMute) => IsMuted = configSoundtrackMute;
-    public static bool IsMuted { get; private set; }
+    public static void SetSoundtrackMute(bool configSoundtrackMute) => IsSoundtrackMuted = configSoundtrackMute;
+    public static bool IsSoundtrackMuted { get; private set; }
     public static bool IsGlobalMuted => ProjectSettings.Config.GlobalMute;
 
     internal static void UpdateFftBufferFromSoundtrack(int soundStreamHandle, Playback playback)
