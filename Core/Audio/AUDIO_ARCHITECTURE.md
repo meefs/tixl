@@ -423,3 +423,13 @@ CompleteFrame() ◄────────────────────�
         │
         └──► Clear HashSet for next frame
 
+
+# TODO: Checklist
+
+✓ - Switching external input devices and AudioRection,
+✓ - Adding a soundtrack to a project,
+✓ - Rendering a project with soundtrack duration to mp4,
+PlayVideo with audio (and audio level),
+✓ - Toggling audio mute button,
+✓ - Changing audio level in Settings,
+Exporting a project to the player (This will need to release rebuild of the player and might be difficult to test. I can help here.)
