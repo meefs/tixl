@@ -180,6 +180,29 @@ internal static class AdsrEnvelopeUi
 
         // Draw sustain level line
         drawList.AddLine(new Vector2(decayX, sustainY), new Vector2(sustainX, sustainY), UiColors.WidgetAxis, 1);
+
+        // Draw labels centered in each region
+        var labelColor = UiColors.TextMuted;
+        ImGui.PushFont(Fonts.FontSmall);
+        var labelY = area.Max.Y - 12;
+        
+        // Calculate label positions centered in each region
+        var attackCenter = area.Min.X + (attackX - area.Min.X) / 2;
+        var decayCenter = attackX + (decayX - attackX) / 2;
+        var sustainCenter = decayX + (sustainX - decayX) / 2;
+        var releaseCenter = sustainX + (area.Max.X - sustainX) / 2;
+        
+        // Get text width to center horizontally
+        var aSize = ImGui.CalcTextSize("A");
+        var dSize = ImGui.CalcTextSize("D");
+        var sSize = ImGui.CalcTextSize("S");
+        var rSize = ImGui.CalcTextSize("R");
+        
+        drawList.AddText(new Vector2(attackCenter - aSize.X / 2, labelY), labelColor, "A");
+        drawList.AddText(new Vector2(decayCenter - dSize.X / 2, labelY), labelColor, "D");
+        drawList.AddText(new Vector2(sustainCenter - sSize.X / 2, labelY), labelColor, "S");
+        drawList.AddText(new Vector2(releaseCenter - rSize.X / 2, labelY), labelColor, "R");
+        ImGui.PopFont();
     }
 
     private static bool DrawAndHandleHandles(Binding data, ImDrawListPtr drawList, ImRect area,
