@@ -481,12 +481,12 @@ internal sealed partial class SettingsWindow : Window
                     FormInputs.AddSectionSubHeader("Audio System");
                     FormInputs.AddVerticalSpace();
                     var audioDebugChanged = FormInputs.AddCheckBox("Show Audio Logs",
-                        ref UserSettings.Config.ShowAudioDebugLogs,
+                        ref ProjectSettings.Config.ShowAudioDebugLogs,
                         "Shows Debug and Info log messages from audio system classes. Warning and Error messages will still be logged.",
-                        UserSettings.Defaults.ShowAudioDebugLogs);
+                        ProjectSettings.Defaults.ShowAudioDebugLogs);
                     if (audioDebugChanged)
                     {
-                        T3.Core.Audio.AudioConfig.ShowAudioLogs = UserSettings.Config.ShowAudioDebugLogs;
+                        T3.Core.Audio.AudioConfig.ShowAudioLogs = ProjectSettings.Config.ShowAudioDebugLogs;
                         changed = true;
                     }
                     changed |= FormInputs.AddCheckBox("Profile Beat Syncing",
@@ -531,19 +531,19 @@ internal sealed partial class SettingsWindow : Window
                     FormInputs.AddSectionSubHeader("Rendering");
                     // Add Show Audio Render Logs here
                     var audioRenderingDebugChanged = FormInputs.AddCheckBox("Show Audio Render Logs",
-                        ref UserSettings.Config.ShowAudioRenderingDebugLogs,
+                        ref ProjectSettings.Config.ShowAudioRenderingDebugLogs,
                         "Shows Debug and Info log messages from audio rendering classes (e.g., export, offline rendering).",
-                        UserSettings.Defaults.ShowAudioRenderingDebugLogs);
+                        ProjectSettings.Defaults.ShowAudioRenderingDebugLogs);
                     if (audioRenderingDebugChanged)
                     {
-                        T3.Core.Audio.AudioConfig.ShowAudioRenderLogs = UserSettings.Config.ShowAudioRenderingDebugLogs;
+                        T3.Core.Audio.AudioConfig.ShowAudioRenderLogs = ProjectSettings.Config.ShowAudioRenderingDebugLogs;
                         changed = true;
                     }
                     // Change label for video rendering logs
                     var videoRenderingDebugChanged = FormInputs.AddCheckBox("Show Video Render Logs",
-                        ref UserSettings.Config.ShowVideoRenderingDebugLogs,
+                        ref ProjectSettings.Config.ShowVideoRenderingDebugLogs,
                         "Shows Debug and Info log messages from video rendering/export (e.g., Mp4VideoWriter, RenderProcess).",
-                        UserSettings.Defaults.ShowVideoRenderingDebugLogs);
+                        ProjectSettings.Defaults.ShowVideoRenderingDebugLogs);
                     if (videoRenderingDebugChanged)
                     {
                         changed = true;

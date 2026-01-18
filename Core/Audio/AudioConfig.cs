@@ -5,11 +5,12 @@ namespace T3.Core.Audio;
 
 /// <summary>
 /// Configuration settings for the audio system.
-/// These are set by the editor based on user preferences.
+/// Compile-time constants are used for buffer sizes that require static initialization.
+/// Runtime settings can be configured through UserSettings in the Editor.
 /// </summary>
 public static class AudioConfig
 {
-    #region Logging Configuration
+    #region Logging Configuration (Runtime Configurable)
     /// <summary>
     /// When true, Debug and Info logs from audio classes will be shown.
     /// </summary>
@@ -21,7 +22,10 @@ public static class AudioConfig
     public static bool ShowAudioRenderLogs { get; set; } = false;
     #endregion
 
-    #region Mixer Configuration
+    #region Mixer Configuration (Compile-time Constants)
+    // Note: These are const because they are used for static array initialization
+    // and changing them at runtime would require reallocating audio buffers.
+
     /// <summary>
     /// Sample rate for all mixer streams (Hz).
     /// </summary>
@@ -48,7 +52,9 @@ public static class AudioConfig
     public const int DeviceBufferLengthMs = 20;
     #endregion
 
-    #region FFT and Analysis Configuration
+    #region FFT and Analysis Configuration (Compile-time Constants)
+    // Note: These are const because AudioAnalysis uses them to allocate static arrays.
+
     /// <summary>
     /// FFT buffer size for frequency analysis.
     /// </summary>
@@ -80,6 +86,7 @@ public static class AudioConfig
     public const float HighPassCutoffFrequency = 2000f;
     #endregion
 
+    #region Logging Helpers
     /// <summary>
     /// Helper method to log Debug messages that respect the show setting.
     /// </summary>
@@ -115,4 +122,21 @@ public static class AudioConfig
         if (ShowAudioRenderLogs)
             Log.Info(message);
     }
+    #endregion
+
+    #region Initialization
+    /// <summary>
+    /// Initialize AudioConfig with settings from the Editor.
+    /// Call this during application startup after UserSettings is loaded.
+    /// </summary>
+    /// <param name="showAudioLogs">Enable debug/info logging for audio classes.</param>
+    /// <param name="showAudioRenderLogs">Enable debug/info logging for audio rendering classes.</param>
+    public static void Initialize(bool showAudioLogs, bool showAudioRenderLogs)
+    {
+        ShowAudioLogs = showAudioLogs;
+        ShowAudioRenderLogs = showAudioRenderLogs;
+        
+        LogAudioDebug("[AudioConfig] Initialized with ShowAudioLogs=" + showAudioLogs + ", ShowAudioRenderLogs=" + showAudioRenderLogs);
+    }
+    #endregion
 }

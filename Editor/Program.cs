@@ -25,6 +25,7 @@ using T3.Editor.UiContentDrawing;
 using T3.Editor.UiModel.Helpers;
 using T3.MsForms;
 using T3.SystemUi;
+using T3.Core.Audio;
 
 namespace T3.Editor;
 
@@ -138,17 +139,16 @@ internal static class Program
         // ReSharper disable once UnusedVariable
         var userSettings = new UserSettings(saveOnQuit: true);
         
-        // Configure audio system based on user settings
-        T3.Core.Audio.AudioConfig.ShowAudioLogs = UserSettings.Config.ShowAudioDebugLogs;
-        T3.Core.Audio.AudioConfig.ShowAudioRenderLogs = UserSettings.Config.ShowAudioRenderingDebugLogs;
+        // ReSharper disable once UnusedVariable
+        var projectSettings = new ProjectSettings(saveOnQuit: true);
+        
+        // Initialize audio system configuration from project settings
+        AudioConfig.Initialize(ProjectSettings.Config.ShowAudioDebugLogs, ProjectSettings.Config.ShowAudioRenderingDebugLogs);
 
         if (UserSettings.Config.ProjectDirectories.Count == 0)
         {
             UserSettings.Config.ProjectDirectories.Add(FileLocations.DefaultProjectFolder);
         }
-
-        // ReSharper disable once UnusedVariable
-        var projectSettings = new ProjectSettings(saveOnQuit: true);
 
         Log.Debug("Initializing ProgramWindows...");
         ProgramWindows.InitializeMainWindow(FormattedEditorVersion, out var device);

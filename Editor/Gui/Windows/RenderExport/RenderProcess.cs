@@ -8,6 +8,7 @@ using T3.Core.Utils;
 using T3.Editor.Gui.Interaction;
 using T3.Editor.Gui.Interaction.Keyboard;
 using T3.Editor.Gui.UiHelpers;
+using T3.Core.IO;
 using T3.Editor.Gui.Windows.Output;
 using T3.Editor.Gui.Windows.RenderExport.MF;
 using T3.Editor.UiModel.ProjectHandling;
@@ -95,7 +96,7 @@ internal static class RenderProcess
         {
             // Use the new full mixdown buffer for audio export
             double localFxTime = _frameIndex / _renderSettings.Fps;
-            if (UserSettings.Config.ShowVideoRenderingDebugLogs)
+            if (ProjectSettings.Config.ShowVideoRenderingDebugLogs)
             {
                 Log.Debug($"Requested recording from {0.0000:F4} to {(_activeSession.FrameCount / _renderSettings.Fps):F4} seconds");
                 Log.Debug($"Actually recording from {(_frameIndex / _renderSettings.Fps):F4} to {((_frameIndex + 1) / _renderSettings.Fps):F4} seconds due to frame raster");
@@ -262,7 +263,7 @@ internal static class RenderProcess
         if (_activeSession.Settings.RenderMode == RenderSettings.RenderModes.Video)
         {
             // Log all relevant parameters before initializing video writer
-            if (UserSettings.Config.ShowVideoRenderingDebugLogs)
+            if (ProjectSettings.Config.ShowVideoRenderingDebugLogs)
             {
                 Log.Debug($"Initializing Mp4VideoWriter with: path={targetFilePath}, size={MainOutputOriginalSize.Width}x{MainOutputOriginalSize.Height}, renderedSize={MainOutputRenderedSize.Width}x{MainOutputRenderedSize.Height}, bitrate={_renderSettings.Bitrate}, framerate={_renderSettings.Fps}, audio={_renderSettings.ExportAudio}, channels={RenderAudioInfo.SoundtrackChannels()}, sampleRate={RenderAudioInfo.SoundtrackSampleRate()}, codec=H.264 (default for Mp4VideoWriter)");
             }
@@ -273,7 +274,7 @@ internal static class RenderProcess
                     Bitrate = _activeSession.Settings.Bitrate,
                     Framerate = (int)_activeSession.Settings.Fps
                 };
-                if (UserSettings.Config.ShowVideoRenderingDebugLogs)
+                if (ProjectSettings.Config.ShowVideoRenderingDebugLogs)
                 {
                     Log.Debug($"Mp4VideoWriter initialized: Codec=H.264, FileFormat=mp4, Bitrate={_activeSession.VideoWriter.Bitrate}, Framerate={_activeSession.VideoWriter.Framerate}, AudioEnabled={_activeSession.Settings.ExportAudio}, Channels={RenderAudioInfo.SoundtrackChannels()}, SampleRate={RenderAudioInfo.SoundtrackSampleRate()}");
                 }

@@ -107,58 +107,58 @@ internal sealed partial class SettingsWindow : Window
             
             FormInputs.AddSectionSubHeader("Mixer Configuration");
             changed |= FormInputs.AddInt("Sample Rate (Hz)",
-                                         ref UserSettings.Config.AudioMixerFrequency,
+                                         ref ProjectSettings.Config.AudioMixerFrequency,
                                          8000, 192000, 1f,
                                          "Sample rate for all mixer streams. Common values: 44100, 48000, 96000",
-                                         UserSettings.Defaults.AudioMixerFrequency);
+                                         ProjectSettings.Defaults.AudioMixerFrequency);
             changed |= FormInputs.AddInt("Update Period (ms)",
-                                         ref UserSettings.Config.AudioUpdatePeriodMs,
+                                         ref ProjectSettings.Config.AudioUpdatePeriodMs,
                                          1, 100, 0.1f,
                                          "BASS update period in milliseconds for low-latency playback. Lower values reduce latency but increase CPU usage.",
-                                         UserSettings.Defaults.AudioUpdatePeriodMs);
+                                         ProjectSettings.Defaults.AudioUpdatePeriodMs);
             changed |= FormInputs.AddInt("Update Threads",
-                                         ref UserSettings.Config.AudioUpdateThreads,
+                                         ref ProjectSettings.Config.AudioUpdateThreads,
                                          1, 8, 0.1f,
                                          "Number of BASS update threads",
-                                         UserSettings.Defaults.AudioUpdateThreads);
+                                         ProjectSettings.Defaults.AudioUpdateThreads);
             changed |= FormInputs.AddInt("Playback Buffer Length (ms)",
-                                         ref UserSettings.Config.AudioPlaybackBufferLengthMs,
+                                         ref ProjectSettings.Config.AudioPlaybackBufferLengthMs,
                                          10, 1000, 1f,
                                          "Playback buffer length in milliseconds",
-                                         UserSettings.Defaults.AudioPlaybackBufferLengthMs);
+                                         ProjectSettings.Defaults.AudioPlaybackBufferLengthMs);
             changed |= FormInputs.AddInt("Device Buffer Length (ms)",
-                                         ref UserSettings.Config.AudioDeviceBufferLengthMs,
+                                         ref ProjectSettings.Config.AudioDeviceBufferLengthMs,
                                          5, 500, 1f,
                                          "Device buffer length in milliseconds for low-latency output",
-                                         UserSettings.Defaults.AudioDeviceBufferLengthMs);
+                                         ProjectSettings.Defaults.AudioDeviceBufferLengthMs);
             
             FormInputs.AddVerticalSpace();
             FormInputs.AddSectionSubHeader("FFT and Analysis");
             changed |= FormInputs.AddInt("FFT Buffer Size",
-                                         ref UserSettings.Config.AudioFftBufferSize,
+                                         ref ProjectSettings.Config.AudioFftBufferSize,
                                          256, 8192, 1f,
                                          "FFT buffer size for frequency analysis. Must be a power of 2.",
-                                         UserSettings.Defaults.AudioFftBufferSize);
+                                         ProjectSettings.Defaults.AudioFftBufferSize);
             changed |= FormInputs.AddInt("Frequency Band Count",
-                                         ref UserSettings.Config.AudioFrequencyBandCount,
+                                         ref ProjectSettings.Config.AudioFrequencyBandCount,
                                          8, 128, 1f,
                                          "Number of frequency bands for audio analysis",
-                                         UserSettings.Defaults.AudioFrequencyBandCount);
+                                         ProjectSettings.Defaults.AudioFrequencyBandCount);
             changed |= FormInputs.AddInt("Waveform Sample Count",
-                                         ref UserSettings.Config.AudioWaveformSampleCount,
+                                         ref ProjectSettings.Config.AudioWaveformSampleCount,
                                          256, 8192, 1f,
                                          "Waveform sample buffer size",
-                                         UserSettings.Defaults.AudioWaveformSampleCount);
+                                         ProjectSettings.Defaults.AudioWaveformSampleCount);
             changed |= FormInputs.AddFloat("Low-Pass Cutoff Frequency (Hz)",
-                                           ref UserSettings.Config.AudioLowPassCutoffFrequency,
+                                           ref ProjectSettings.Config.AudioLowPassCutoffFrequency,
                                            20f, 1000f, 1f, true, true,
                                            "Low-pass filter cutoff frequency for low frequency separation",
-                                           UserSettings.Defaults.AudioLowPassCutoffFrequency);
+                                           ProjectSettings.Defaults.AudioLowPassCutoffFrequency);
             changed |= FormInputs.AddFloat("High-Pass Cutoff Frequency (Hz)",
-                                           ref UserSettings.Config.AudioHighPassCutoffFrequency,
+                                           ref ProjectSettings.Config.AudioHighPassCutoffFrequency,
                                            1000f, 20000f, 1f, true, true,
                                            "High-pass filter cutoff frequency for high frequency separation",
-                                           UserSettings.Defaults.AudioHighPassCutoffFrequency);
+                                           ProjectSettings.Defaults.AudioHighPassCutoffFrequency);
         }
 #endif
     }

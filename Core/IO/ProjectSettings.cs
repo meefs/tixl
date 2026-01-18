@@ -39,16 +39,29 @@ public class ProjectSettings : Settings<ProjectSettings.ConfigData>
         
         // Profiling
         public bool EnableBeatSyncProfiling = false;
+        
+        // Audio
+        public bool ShowAudioDebugLogs = false;
+        public bool ShowAudioRenderingDebugLogs = false;
+        public bool ShowVideoRenderingDebugLogs = false;
+        
+        // Audio Advanced Settings
+        public int AudioMixerFrequency = 48000;
+        public int AudioUpdatePeriodMs = 10;
+        public int AudioUpdateThreads = 2;
+        public int AudioPlaybackBufferLengthMs = 100;
+        public int AudioDeviceBufferLengthMs = 20;
+        public int AudioFftBufferSize = 1024;
+        public int AudioFrequencyBandCount = 32;
+        public int AudioWaveformSampleCount = 1024;
+        public float AudioLowPassCutoffFrequency = 250f;
+        public float AudioHighPassCutoffFrequency = 2000f;
     }
 
     public static class Defaults
     {
         public static bool TimeClipSuspending = true;
         public static float AudioResyncThreshold = 0.04f;
-        public static float SoundtrackPlaybackVolume = 1;
-        public static float GlobalPlaybackVolume = 1; // New global volume
-        public static bool SoundtrackMute; // Renamed from AudioMuted
-        public static bool GlobalMute; // New global mute
         public static bool EnablePlaybackControlWithKeyboard = true;
         public static bool SkipOptimization;
         public static bool EnableDirectXDebug;
@@ -60,8 +73,31 @@ public class ProjectSettings : Settings<ProjectSettings.ConfigData>
         public static bool LogCompilationDetails = false;
         public static bool LogAssemblyLoadingDetails = false;
         public static bool EnableBeatSyncProfiling = false;
-        public static float OperatorPlaybackVolume = 1; // New operator mixer volume
-        public static bool OperatorMute; // New operator mixer mute
+        
+        // Logging
+        public static bool ShowAudioDebugLogs = false;
+        public static bool ShowAudioRenderingDebugLogs = false;
+        public static bool ShowVideoRenderingDebugLogs = false;
+
+        // Audio
+        public static bool GlobalMute;
+        public static float GlobalPlaybackVolume = 1;
+        public static bool SoundtrackMute;
+        public static float SoundtrackPlaybackVolume = 1;
+        public static bool OperatorMute;
+        public static float OperatorPlaybackVolume = 1;
+
+        // Audio Advanced Settings
+        public static int AudioMixerFrequency = 48000;
+        public static int AudioUpdatePeriodMs = 10;
+        public static int AudioUpdateThreads = 2;
+        public static int AudioPlaybackBufferLengthMs = 100;
+        public static int AudioDeviceBufferLengthMs = 20;
+        public static int AudioFftBufferSize = 1024;
+        public static int AudioFrequencyBandCount = 32;
+        public static int AudioWaveformSampleCount = 1024;
+        public static float AudioLowPassCutoffFrequency = 250f;
+        public static float AudioHighPassCutoffFrequency = 2000f;
     }
 }
 

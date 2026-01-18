@@ -580,7 +580,7 @@ internal static class TimeControls
                                        ))
         {
             ProjectSettings.Config.SoundtrackMute = !ProjectSettings.Config.SoundtrackMute;
-            AudioEngine.SetMute(ProjectSettings.Config.SoundtrackMute);
+            AudioEngine.SetSoundtrackMute(ProjectSettings.Config.SoundtrackMute);
         }
 
         // ToggleHover
