@@ -386,10 +386,15 @@ internal sealed class PlayVideoClip : Instance<PlayVideoClip>
     {
         Log.Warning($"Disposing video player");
         base.Dispose(disposing);
-        _engine.Shutdown();
-        _engine.PlaybackEvent -= EnginePlaybackEventHandler;
-        _engine.Dispose();
-        _texture.Dispose();
+        
+        if (_engine != null)
+        {
+            _engine.Shutdown();
+            _engine.PlaybackEvent -= EnginePlaybackEventHandler;
+            _engine.Dispose();
+        }
+        
+        _texture?.Dispose();
         //colorSpaceConverter.Dispose();
         //renderTarget?.Dispose();
     }
