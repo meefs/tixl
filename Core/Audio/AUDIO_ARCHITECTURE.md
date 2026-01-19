@@ -350,5 +350,74 @@ See `Core/Audio/TODO.md` for full details and rationale.
 # Immediate TODO:
 - Finish implementing SpatialAudioPlayer
 - Re-think the seek logic / probably should only seek on play
+- Add the sample accurate adsr envelope to Stereo and Spatial Audio Players
+- Re-visit the Waveform/Spectrum outputs (may not work correctly at the moment)
 - Add unit tests for AudioEngine methods
-- **[TODO.md](TODO.md)** - Implement remaining technical review items
+- Implement remaining technical review items
+
+# Diff Summary
+
+Diff summary for branch `Bass-AudioImplementation` vs `upstream/main`
+
+Added
+
+- `Core/Audio/AUDIO_ARCHITECTURE.md` — new architecture/design doc for the audio subsystem.
+- `Core/Audio/AdsrCalculator.cs` — ADSR envelope calculation utility.
+- `Core/Audio/AudioConfig.cs` — centralized audio configuration and logging toggles.
+- `Core/Audio/AudioExportSourceRegistry.cs` — registry for export/record audio sources.
+- `Core/Audio/AudioMixerManager.cs` — BASS mixer initialization/management and helpers.
+- `Core/Audio/IAudioExportSource.cs` — interface for exportable audio sources.
+- `Core/Audio/OperatorAudioStreamBase.cs` — abstract base for operator audio streams.
+- `Core/Audio/OperatorAudioUtils.cs` — helper utilities for operator streams.
+- `Core/Audio/STALE_DETECTION.md` — doc for stale stream detection.
+- `Core/Audio/SpatialOperatorAudioStream.cs` — spatial/3D operator stream implementation.
+- `Core/Audio/StereoOperatorAudioStream.cs` — stereo operator stream implementation.
+- `Core/Audio/TODO.md` — audio-specific TODO / technical review list.
+- `Dependencies/bassflac.dll` — native FLAC plugin binary (new dependency).
+- `Dependencies/bassmix.dll` — native BASS mixer plugin (new dependency).
+- `Editor/Gui/InputUi/CombinedInputs/AdsrEnvelopeInputUi.cs` — UI input for ADSR envelope.
+- `Editor/Gui/OpUis/UIs/AdsrEnvelopeUi.cs` — ADSR editor UI control.
+- `Editor/Gui/Windows/SettingsWindow.AudioPanel.cs` — audio panel for settings window.
+- `Operators/Lib/io/audio/AudioPlayerUtils.cs` — shared operator audio utilities.
+- `Operators/Lib/io/audio/AudioToneGenerator.cs` (+ `.t3`/`.t3ui`) — tone generator operator and UI.
+- `Operators/Lib/io/audio/SpatialAudioPlayer.cs` (+ `.t3`/`.t3ui`) — spatial audio operator and UI metadata.
+- `Operators/Lib/io/audio/StereoAudioPlayer.cs` (+ `.t3`/`.t3ui`) — stereo audio operator and UI metadata.
+- `Operators/Lib/numbers/anim/AdsrEnvelope.cs` — ADSR data structure/operator type.
+- `Operators/examples/lib/io/audio/AudioPlaybackExample.*` — example operator for audio playback.
+- `Resources/audio/HH_03.wav`, `Resources/audio/KICK_09.wav`, `Resources/audio/SNARE_01.wav`, `Resources/audio/h445-loop1.wav` — added sample audio resources.
+
+Modified
+
+- `Core/Audio/AudioAnalysis.cs` — FFT/waveform handling updates and buffer ownership changes.
+- `Core/Audio/AudioEngine.cs` — central audio API changes for playback/update/export integration.
+- `Core/Audio/AudioRendering.cs` — export/mixdown improvements and buffer reuse notes.
+- `Core/Audio/BeatSynchronizer.cs` — beat detection / timing adjustments.
+- `Core/Audio/WasapiAudioInput.cs` — Wasapi input adjustments.
+- `Core/Audio/WaveFormProcessing.cs` — waveform processing tweaks.
+- `Core/Core.csproj` — project file updated (Core).
+- `Core/IO/ProjectSettings.cs` — project settings changes.
+- `Core/Operator/PlaybackSettings.cs` — operator playback settings modified.
+- `Core/Operator/Symbol.Child.cs` — symbol child related updates.
+- `Editor/Gui/Audio/AudioImageFactory.cs` — audio image factory updates.
+- `Editor/Gui/Audio/AudioImageGenerator.cs` — audio image generation tweaks.
+- `Editor/Gui/InputUi/VectorInputs/Vector4InputUi.cs` — vector4 input UI changes.
+- `Editor/Gui/Interaction/Timing/PlaybackUtils.cs` — playback timing helpers updated.
+- `Editor/Gui/OpUis/OpUi.cs` — operator UI adjustments.
+- `Editor/Gui/UiHelpers/UserSettings.cs` — user settings persistence/UX changes.
+- `Editor/Gui/Windows/RenderExport/RenderAudioInfo.cs` — render audio info updates.
+- `Editor/Gui/Windows/RenderExport/RenderProcess.cs` — render/export process changes.
+- `Editor/Gui/Windows/RenderExport/RenderTiming.cs` — render timing adjustments.
+- `Editor/Gui/Windows/SettingsWindow.cs` — settings window updated to include audio panel.
+- `Editor/Gui/Windows/TimeLine/PlaybackSettingsPopup.cs` — timeline playback settings tweaks.
+- `Editor/Gui/Windows/TimeLine/TimeControls.cs` — timeline controls updated.
+- `Editor/Program.cs` — editor startup changes to include audio initialization.
+- `Operators/Lib/io/video/PlayAudioClip.cs` — video operator audio clip glue changes.
+- `Operators/Lib/io/video/PlayVideo.cs` — play video operator adjusted for audio changes.
+- `Operators/Lib/io/video/PlayVideoClip.cs` — video clip operator updates.
+- `Operators/Lib/Lib.csproj` — operators lib project updated.
+- `Player/Player.csproj`, `Player/Program.RenderLoop.cs`, `Player/Program.cs` — player project and playback loop adjusted for audio changes.
+
+Renamed
+
+- `Core/Audio/AudioClipDefinition.cs` → `Core/Audio/SoundtrackClipDefinition.cs` — renamed soundtrack clip definition.
+- `Core/Audio/AudioClipStream.cs` → `Core/Audio/SoundtrackClipStream.cs` — renamed soundtrack clip stream.
