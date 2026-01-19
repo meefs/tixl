@@ -380,8 +380,11 @@ public static class AudioEngine
         {
             AudioConfig.LogAudioDebug($"[AudioEngine] Resolved: {filePath} → {absolutePath}");
             return absolutePath;
+        } else
+        {
+            Log.Error($"[AudioEngine] Could not resolve file path: {filePath}");
         }
-        return filePath;
+            return filePath;
     }
 
     private static bool HandleFileChange<T>(OperatorAudioState<T> state, string? resolvedPath, Guid operatorId,

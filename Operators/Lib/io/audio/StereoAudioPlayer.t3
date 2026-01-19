@@ -2,15 +2,23 @@
   "Id": "65e95f77-4743-437f-ab31-f34b831d28d7"/*StereoAudioPlayer*/,
   "Inputs": [
     {
+      "Id": "1a3f4b7c-12d3-4a5b-9c7d-8e1f2a3b4c5d"/*Mute*/,
+      "DefaultValue": false
+    },
+    {
       "Id": "505139a0-71ce-4297-8440-5bf84488902e"/*AudioFile*/,
       "DefaultValue": ""
     },
     {
-      "Id": "726bc4d3-df8b-4abe-a38e-2e09cf44ca10"/*PlayAudio*/,
-      "DefaultValue": false
+      "Id": "53d1622e-b1d5-4b1c-acd0-ebceb7064043"/*Panning*/,
+      "DefaultValue": 0.0
     },
     {
       "Id": "59b659c6-ca1f-4c2b-8dff-3a1da9abd352"/*StopAudio*/,
+      "DefaultValue": false
+    },
+    {
+      "Id": "726bc4d3-df8b-4abe-a38e-2e09cf44ca10"/*PlayAudio*/,
       "DefaultValue": false
     },
     {
@@ -18,19 +26,15 @@
       "DefaultValue": false
     },
     {
+      "Id": "a5de0d72-5924-4f3a-a02f-d5de7c03f07f"/*Seek*/,
+      "DefaultValue": 0.0
+    },
+    {
       "Id": "c0645e37-db4e-4658-9d65-96478851f6f6"/*Volume*/,
       "DefaultValue": 1.0
     },
     {
-      "Id": "1a3f4b7c-12d3-4a5b-9c7d-8e1f2a3b4c5d"/*Mute*/,
-      "DefaultValue": false
-    },
-    {
-      "Id": "53d1622e-b1d5-4b1c-acd0-ebceb7064043"/*Panning*/,
-      "DefaultValue": 0.0
-    },
-    {
-      "Id": "a5de0d72-5924-4f3a-a02f-d5de7c03f07f"/*Seek*/,
+      "Id": "d1a11c4c-9526-4f6b-873e-1798b9dd2b48"/*Speed*/,
       "DefaultValue": 0.0
     }
   ],

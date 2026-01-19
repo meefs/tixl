@@ -1,0 +1,364 @@
+{
+  "Id": "b5720b2d-262e-4fd5-ae90-06114b092338"/*AudioPlaybackExample*/,
+  "Description": "",
+  "InputUis": [],
+  "SymbolChildUis": [
+    {
+      "ChildId": "02c1e8d0-bc4a-4c42-b797-34527a65fa67"/*PlotValueCurve*/,
+      "Position": {
+        "X": 2008.4698,
+        "Y": 1661.464
+      }
+    },
+    {
+      "ChildId": "084d55b3-9e46-4088-8214-b8dd1a38f3b0"/*IsIntEven*/,
+      "Position": {
+        "X": 1560.5149,
+        "Y": 1479.0216
+      }
+    },
+    {
+      "ChildId": "18de7e1f-4322-466b-93c5-e6d437c8444c"/*Trigger*/,
+      "Position": {
+        "X": 1728.4701,
+        "Y": 1479.7462
+      }
+    },
+    {
+      "ChildId": "2374aba6-3e6d-4c8c-809c-9eb8fb849e6e"/*Trigger*/,
+      "Position": {
+        "X": 1728.4703,
+        "Y": 1014.6594
+      }
+    },
+    {
+      "ChildId": "238a5e8b-ef70-4649-ab95-9c80b63f563c"/*Transform*/,
+      "Position": {
+        "X": 2008.4698,
+        "Y": 1119.6593
+      }
+    },
+    {
+      "ChildId": "2901248f-df96-4c85-8595-402f0338bcc9"/*AnimValue*/,
+      "Position": {
+        "X": 1725.3519,
+        "Y": 2031.6053
+      }
+    },
+    {
+      "ChildId": "2ed1ac44-da48-4c1c-8ffd-dbac9318acf2"/*HasValueDecreased*/,
+      "Position": {
+        "X": 1567.0046,
+        "Y": 1014.19434
+      }
+    },
+    {
+      "ChildId": "2efbc9b5-58d6-4827-aeea-6231722dbf97"/*AnimValue*/,
+      "Position": {
+        "X": 1567.0046,
+        "Y": 979.1942
+      }
+    },
+    {
+      "ChildId": "30784f19-7af7-4f5f-b245-7712d83952cf"/*AnimValue*/,
+      "Position": {
+        "X": 1560.5149,
+        "Y": 1591.1005
+      }
+    },
+    {
+      "ChildId": "346e8664-9743-484b-8235-4693f8816914"/*Color*/,
+      "Position": {
+        "X": 1892.4545,
+        "Y": 1923.0243
+      }
+    },
+    {
+      "ChildId": "36154844-89c0-4ff3-a006-dc18b206bb0b"/*TestToneGenerator*/,
+      "Position": {
+        "X": 1868.4701,
+        "Y": 1626.464
+      }
+    },
+    {
+      "ChildId": "37a72d8b-858e-4d34-9dec-c5f2113622f1"/*Vector4Components*/,
+      "Position": {
+        "X": 1892.4545,
+        "Y": 1958.0255
+      }
+    },
+    {
+      "ChildId": "3962ea8a-104a-4d58-8060-d6e36c9201bb"/*Trigger*/,
+      "Position": {
+        "X": 1728.4703,
+        "Y": 1049.6593
+      }
+    },
+    {
+      "ChildId": "39e5752c-f15b-409c-b6bd-88ce060c2f5b"/*RenderTarget*/,
+      "Position": {
+        "X": 2695.0894,
+        "Y": 1820.11
+      }
+    },
+    {
+      "ChildId": "3c3501b6-426c-411a-af8b-18938e85a003"/*HasValueDecreased*/,
+      "Position": {
+        "X": 1560.5149,
+        "Y": 1256.893
+      }
+    },
+    {
+      "ChildId": "4d323845-c177-4a27-bd3c-aef2972e791e"/*CountInt*/,
+      "Position": {
+        "X": 1560.5149,
+        "Y": 1444.0216
+      }
+    },
+    {
+      "ChildId": "5ab1fe2d-7ff6-48d6-b495-0c0439261588"/*ToggleBoolean*/,
+      "Position": {
+        "X": 1560.5149,
+        "Y": 1514.0216
+      }
+    },
+    {
+      "ChildId": "5f99926f-45aa-45be-be49-7ee53196877a"/*String*/,
+      "Position": {
+        "X": 1868.4701,
+        "Y": 1158.9406
+      }
+    },
+    {
+      "ChildId": "7020855f-0f97-4325-83af-50a39cfea7cf"/*AdsrEnvelope*/,
+      "Position": {
+        "X": 1865.3517,
+        "Y": 2101.605
+      }
+    },
+    {
+      "ChildId": "72bf0ca6-684f-43cd-9f10-e461d357ab8a"/*Trigger*/,
+      "Position": {
+        "X": 1725.3519,
+        "Y": 2101.605
+      }
+    },
+    {
+      "ChildId": "740788a2-ed22-44b5-8c24-8df5a70e0cec"/*Vector4*/,
+      "Position": {
+        "X": 2032.4542,
+        "Y": 1958.0255
+      }
+    },
+    {
+      "ChildId": "7d79a538-134d-4e7c-8dc5-a934b332bb9f"/*Trigger*/,
+      "Position": {
+        "X": 1728.4701,
+        "Y": 1263.9406
+      }
+    },
+    {
+      "ChildId": "7e5b06d9-fc1b-43ee-be33-b5431b6c0f8f"/*AnimValue*/,
+      "Position": {
+        "X": 1560.5149,
+        "Y": 1374.0216
+      }
+    },
+    {
+      "ChildId": "7f11ba7e-1fc7-4821-b350-75aceb72a42e"/*String*/,
+      "Position": {
+        "X": 1868.4701,
+        "Y": 944.6593
+      }
+    },
+    {
+      "ChildId": "838d3e08-f5f6-4706-a7b3-57056af98c50"/*Camera*/,
+      "Position": {
+        "X": 2695.0894,
+        "Y": 1785.11
+      }
+    },
+    {
+      "ChildId": "8523fa61-a738-474f-8c68-773aeb8a0c65"/*Transform*/,
+      "Position": {
+        "X": 2008.4698,
+        "Y": 1549.7462
+      }
+    },
+    {
+      "ChildId": "855ba221-df89-414d-88cb-c627da92d21b"/*AnimValue*/,
+      "Position": {
+        "X": 1560.5149,
+        "Y": 1221.893
+      }
+    },
+    {
+      "ChildId": "95c717a6-cab0-4a05-8a6c-76b4544f5ffe"/*HasValueDecreased*/,
+      "Position": {
+        "X": 1560.5149,
+        "Y": 1409.0216
+      }
+    },
+    {
+      "ChildId": "9713b9ae-adde-4f80-8015-21b7fa6e2d67"/*StereoAudioPlayer*/,
+      "Position": {
+        "X": 1868.4701,
+        "Y": 1193.9406
+      }
+    },
+    {
+      "ChildId": "9ac02b48-f504-4851-a3a4-70f0caca4c28"/*BoolToFloat*/,
+      "Position": {
+        "X": 2013.3354,
+        "Y": 2143.014
+      }
+    },
+    {
+      "ChildId": "9b1deb21-5e75-49fb-b88c-760ff63b481b"/*PlotValueCurve*/,
+      "Position": {
+        "X": 2008.4698,
+        "Y": 1514.7462
+      }
+    },
+    {
+      "ChildId": "a551dbde-1567-4cb4-80c5-90cbd167c23a"/*DrawScreenQuad*/,
+      "Position": {
+        "X": 2172.454,
+        "Y": 1923.0243
+      }
+    },
+    {
+      "ChildId": "a8d4f8f2-cff1-4b71-bc5c-3129f7f1e630"/*Execute*/,
+      "Position": {
+        "X": 2181.9941,
+        "Y": 1164.6307
+      }
+    },
+    {
+      "ChildId": "abff4290-c544-4efe-8209-d067d11f10a2"/*PlotValueCurve*/,
+      "Position": {
+        "X": 2008.4698,
+        "Y": 1084.6593
+      }
+    },
+    {
+      "ChildId": "b7281606-dbbf-46d1-b446-dee3b1d8c946"/*StereoAudioPlayer*/,
+      "Position": {
+        "X": 1868.4701,
+        "Y": 979.6593
+      }
+    },
+    {
+      "ChildId": "c4dc35bf-cfd1-41e1-8a9d-6c209b861c63"/*PlotValueCurve*/,
+      "Position": {
+        "X": 2008.4698,
+        "Y": 1298.9406
+      }
+    },
+    {
+      "ChildId": "cd89ad5f-36c2-48b0-9172-103939936fac"/*Transform*/,
+      "Position": {
+        "X": 2008.4698,
+        "Y": 1333.9406
+      }
+    },
+    {
+      "ChildId": "d3dd1d00-c02b-44e2-979e-6996a708cc8f"/*StereoAudioPlayer*/,
+      "Position": {
+        "X": 1868.4701,
+        "Y": 1409.7465
+      }
+    },
+    {
+      "ChildId": "d581f903-38dd-409f-826e-9396c68d39e0"/*HasValueDecreased*/,
+      "Position": {
+        "X": 1725.3519,
+        "Y": 2066.605
+      }
+    },
+    {
+      "ChildId": "d8d290bd-7c08-4905-8a15-c618719a5e45"/*String*/,
+      "Position": {
+        "X": 1868.4701,
+        "Y": 1374.7465
+      }
+    },
+    {
+      "ChildId": "dc5b853a-5c76-40a2-bf60-bb188f2452d0"/*Transform*/,
+      "Position": {
+        "X": 2008.4698,
+        "Y": 1696.464
+      }
+    },
+    {
+      "ChildId": "edd0c633-136b-4b87-92d7-a34d50a32c1c"/*Execute*/,
+      "Position": {
+        "X": 2486.713,
+        "Y": 1863.389
+      }
+    },
+    {
+      "ChildId": "ee33c756-6a05-428b-af63-bf29694a52a1"/*Trigger*/,
+      "Position": {
+        "X": 1728.4701,
+        "Y": 1444.7465
+      }
+    },
+    {
+      "ChildId": "f23ca71b-b361-45bc-ac76-9188dd26a83e"/*Trigger*/,
+      "Position": {
+        "X": 1728.4701,
+        "Y": 1228.9406
+      }
+    }
+  ],
+  "OutputUis": [
+    {
+      "OutputId": "1cbd8587-3974-4984-8dfb-d6d39310c604"/*Texture2D*/,
+      "Position": {
+        "X": 2903.8674,
+        "Y": 1670.4701
+      }
+    }
+  ],
+  "Annotations": [
+    {
+      "Id": "07d4ade6-c122-4d42-9404-b37fa2685d76",
+      "Title": "This is NOT the intended function of the Audio Engine.\nIt will drift, mainly because things are triggered per frame\nSo it's not tightly synced to the samplerate.",
+      "Label": "Simple Sequencer",
+      "Color": {
+        "X": 0.6,
+        "Y": 0.6,
+        "Z": 0.6,
+        "W": 1.0
+      },
+      "Position": {
+        "X": 1531.1456,
+        "Y": 834.2638
+      },
+      "Size": {
+        "X": 811.30896,
+        "Y": 922.0361
+      }
+    },
+    {
+      "Id": "1ddc25b2-2224-42b1-8c9a-f0fd196fe972",
+      "Title": "The ADSR Envelope operator is frame-based.\nIt will cause stepping on audio operators, but perfect for video!",
+      "Label": "ADSR Envelope",
+      "Color": {
+        "X": 0.6,
+        "Y": 0.6,
+        "Z": 0.6,
+        "W": 1.0
+      },
+      "Position": {
+        "X": 1665.3519,
+        "Y": 1803.0248
+      },
+      "Size": {
+        "X": 677.10266,
+        "Y": 358.22363
+      }
+    }
+  ]
+}

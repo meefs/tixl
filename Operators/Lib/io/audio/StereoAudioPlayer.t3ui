@@ -3,52 +3,19 @@
   "Description": "An audio player using the BASS library with independent playback control, pause functionality, and stereo panning",
   "InputUis": [
     {
-      "InputId": "505139a0-71ce-4297-8440-5bf84488902e"/*AudioFile*/,
-      "Position": {
-        "X": -200.0,
-        "Y": 0.0
-      },
-      "Usage": "FilePath",
-      "FileFilter": "(*.wav)|*.wav,(*.flac)|*.flac,(*.mp3)|*.mp3,(*.ogg)|*.ogg"
-    },
-    {
-      "InputId": "726bc4d3-df8b-4abe-a38e-2e09cf44ca10"/*PlayAudio*/,
-      "Position": {
-        "X": -200.0,
-        "Y": 75.0
-      }
-    },
-    {
-      "InputId": "59b659c6-ca1f-4c2b-8dff-3a1da9abd352"/*StopAudio*/,
-      "Position": {
-        "X": -200.0,
-        "Y": 125.0
-      }
-    },
-    {
-      "InputId": "7e42f2a8-3c5d-4f6e-9b8a-1d2e3f4a5b6c"/*PauseAudio*/,
-      "Position": {
-        "X": -200.0,
-        "Y": 175.0
-      }
-    },
-    {
-      "InputId": "c0645e37-db4e-4658-9d65-96478851f6f6"/*Volume*/,
-      "Position": {
-        "X": -200.0,
-        "Y": 250.0
-      },
-      "Min": 0.0,
-      "Max": 2.0,
-      "Scale": 0.001,
-      "ClampMin": true
-    },
-    {
       "InputId": "1a3f4b7c-12d3-4a5b-9c7d-8e1f2a3b4c5d"/*Mute*/,
       "Position": {
         "X": -200.0,
         "Y": 300.0
       }
+    },
+    {
+      "InputId": "505139a0-71ce-4297-8440-5bf84488902e"/*AudioFile*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 0.0
+      },
+      "Usage": "FilePath"
     },
     {
       "InputId": "53d1622e-b1d5-4b1c-acd0-ebceb7064043"/*Panning*/,
@@ -63,6 +30,27 @@
       "ClampMax": true
     },
     {
+      "InputId": "59b659c6-ca1f-4c2b-8dff-3a1da9abd352"/*StopAudio*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 125.0
+      }
+    },
+    {
+      "InputId": "726bc4d3-df8b-4abe-a38e-2e09cf44ca10"/*PlayAudio*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 75.0
+      }
+    },
+    {
+      "InputId": "7e42f2a8-3c5d-4f6e-9b8a-1d2e3f4a5b6c"/*PauseAudio*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 175.0
+      }
+    },
+    {
       "InputId": "a5de0d72-5924-4f3a-a02f-d5de7c03f07f"/*Seek*/,
       "Position": {
         "X": -200.0,
@@ -73,6 +61,24 @@
       "Scale": 0.001,
       "ClampMin": true,
       "ClampMax": true
+    },
+    {
+      "InputId": "c0645e37-db4e-4658-9d65-96478851f6f6"/*Volume*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 250.0
+      },
+      "Min": 0.0,
+      "Max": 2.0,
+      "Scale": 0.001,
+      "ClampMin": true
+    },
+    {
+      "InputId": "d1a11c4c-9526-4f6b-873e-1798b9dd2b48"/*Speed*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 425.0
+      }
     }
   ],
   "SymbolChildUis": [],
@@ -103,6 +109,20 @@
       "Position": {
         "X": 300.0,
         "Y": 300.0
+      }
+    },
+    {
+      "OutputId": "8f4e2d1a-3b7c-4d89-9e12-7a5b8c9d0e1f"/*GetWaveform*/,
+      "Position": {
+        "X": 300.0,
+        "Y": 400.0
+      }
+    },
+    {
+      "OutputId": "7f8e9d2a-4b5c-3e89-8f12-6a5b9c8d0e2f"/*GetSpectrum*/,
+      "Position": {
+        "X": 300.0,
+        "Y": 500.0
       }
     }
   ]

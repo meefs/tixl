@@ -15,12 +15,6 @@ public class ProjectSettings : Settings<ProjectSettings.ConfigData>
     {
         public bool TimeClipSuspending = true;
         public float AudioResyncThreshold = 0.04f;
-        public float SoundtrackPlaybackVolume = 1; // Renamed from PlaybackVolume
-        public float GlobalPlaybackVolume = 1; // New global volume
-        public bool SoundtrackMute; // Renamed from AudioMuted
-        public bool GlobalMute; // New global mute
-        public float OperatorPlaybackVolume = 1; // New operator mixer volume
-        public bool OperatorMute; // New operator mixer mute
 
         public bool EnablePlaybackControlWithKeyboard = true;
 
@@ -40,11 +34,19 @@ public class ProjectSettings : Settings<ProjectSettings.ConfigData>
         // Profiling
         public bool EnableBeatSyncProfiling = false;
         
-        // Audio
+        // Logging
         public bool ShowAudioDebugLogs = false;
         public bool ShowAudioRenderingDebugLogs = false;
         public bool ShowVideoRenderingDebugLogs = false;
-        
+
+        // Audio
+        public bool GlobalMute = false;
+        public float GlobalPlaybackVolume = 1;
+        public bool SoundtrackMute = false;
+        public float SoundtrackPlaybackVolume = 1;
+        public bool OperatorMute = false;
+        public float OperatorPlaybackVolume = 1;
+
         // Audio Advanced Settings
         public int AudioMixerFrequency = 48000;
         public int AudioUpdatePeriodMs = 10;
