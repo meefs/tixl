@@ -10,7 +10,6 @@ cbuffer ParamConstants : register(b0)
     float ClampRange;
     float Mode;
 }
-
 [numthreads(16, 16, 1)] void main(uint3 i : SV_DispatchThreadID)
 {
     uint width, height;

@@ -236,18 +236,6 @@
       }
     },
     {
-      "ChildId": "66154a7b-2798-464b-b39d-4b43e48a0572"/*Source*/,
-      "Style": "Resizable",
-      "Size": {
-        "X": 140.0,
-        "Y": 35.0
-      },
-      "Position": {
-        "X": 2404.7104,
-        "Y": 3321.748
-      }
-    },
-    {
       "ChildId": "66935d7d-2e35-4ebf-b810-0805cd26c1af"/*IntValue*/,
       "Position": {
         "X": 2091.1904,

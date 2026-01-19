@@ -15,7 +15,7 @@
     },
     {
       "Id": "2ded8235-157d-486b-a997-87d09d18f998"/*Filename*/,
-      "DefaultValue": "Sketches/sketch_{id}.json"
+      "DefaultValue": "Lib:Sketches/sketch_{id}.json"
     },
     {
       "Id": "31f3942e-bac5-407f-ad44-6d09920754d9"/*StrokeColor*/,

@@ -15,7 +15,7 @@
     },
     {
       "Id": "67890abc-def1-2345-6789-0abcdef12345"/*SelectedCategories*/,
-      "DefaultValue": null
+      "DefaultValue": ""
     },
     {
       "Id": "7890abcd-ef12-3456-7890-abcdef123456"/*Debug*/,
@@ -23,7 +23,7 @@
     },
     {
       "Id": "890abcde-f123-4567-890a-bcdef1234567"/*CategoryAllowlist*/,
-      "DefaultValue": null
+      "DefaultValue": ""
     }
   ],
   "Children": [],
