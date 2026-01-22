@@ -92,16 +92,6 @@ namespace Lib.io.audio
         // Expose current file path for logging
         public string CurrentFilePath { get; private set; } = string.Empty;
 
-        // --- Export state for offline rendering ---
-        private bool _exportIsPlaying = false;
-        private bool _exportLastPlay = false;
-        private bool _exportLastStop = false;
-        private float _exportLastSeek = 0f;
-        private double _exportLastTime = -1;
-        private int _exportDecodeStream = 0;
-
-        private float _lastSetVolume = 1.0f;
-
         public SpatialAudioPlayer()
         {
             // NOTE: Do NOT register in AudioExportSourceRegistry.
@@ -169,7 +159,6 @@ namespace Lib.io.audio
 
             AudioEngine.UpdateSpatialOperatorPlayback(
                 operatorId: _operatorId,
-                localFxTime: context.LocalFxTime,
                 filePath: filePath,
                 shouldPlay: shouldPlay,
                 shouldStop: shouldStop,

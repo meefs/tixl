@@ -79,7 +79,7 @@ public static class AudioEngine
         if (playback.Settings is { Enabled: true, AudioSource: PlaybackSettings.AudioSources.ProjectSoundTrack })
             AudioAnalysis.ProcessUpdate(playback.Settings.AudioGainFactor, playback.Settings.AudioDecayFactor);
 
-        CheckAndMuteStaleOperators(playback.FxTimeInBars);
+        CheckAndMuteStaleOperators();
 
         _obsoleteSoundtrackHandles.Clear();
         _updatedSoundtrackClipTimes.Clear();
@@ -250,7 +250,7 @@ public static class AudioEngine
     #region Stereo Operator Playback
 
     public static void UpdateStereoOperatorPlayback(
-        Guid operatorId, double localFxTime, string filePath, bool shouldPlay, bool shouldStop,
+        Guid operatorId, string filePath, bool shouldPlay, bool shouldStop,
         float volume, bool mute, float panning, float speed = 1.0f, float seek = 0f)
     {
         _operatorsUpdatedThisFrame.Add(operatorId);
@@ -302,7 +302,7 @@ public static class AudioEngine
     #region Spatial Operator Playback
 
     public static void UpdateSpatialOperatorPlayback(
-        Guid operatorId, double localFxTime, string filePath, bool shouldPlay, bool shouldStop,
+        Guid operatorId, string filePath, bool shouldPlay, bool shouldStop,
         float volume, bool mute, Vector3 position, float minDistance, float maxDistance,
         float speed = 1.0f, float seek = 0f, Vector3? orientation = null,
         float innerConeAngle = 360f, float outerConeAngle = 360f, float outerConeVolume = 1.0f, int mode3D = 0)
@@ -566,7 +566,7 @@ public static class AudioEngine
 
     #region Stale Detection & Export
 
-    private static void CheckAndMuteStaleOperators(double currentTime)
+    private static void CheckAndMuteStaleOperators()
     {
         if (Playback.Current.IsRenderingToFile) return;
 

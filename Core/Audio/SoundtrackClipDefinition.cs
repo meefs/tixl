@@ -12,8 +12,8 @@ namespace T3.Core.Audio;
 
 /// <summary>
 /// A wrapper that provides access to file resources of <see cref="SoundtrackClipDefinition"/> and their
-/// and their filepath .This is then used by the <see cref="AudioEngine"/> to generate
-/// <see cref="AudioClipStream"/>s for playback.
+/// and their filepath. This is then used by the <see cref="AudioEngine"/> to generate
+/// <see cref="SoundtrackClipStream"/>s for playback.
 /// </summary>
 public sealed record AudioClipResourceHandle(SoundtrackClipDefinition Clip, IResourceConsumer? Owner)
 {

@@ -98,7 +98,6 @@ namespace Lib.io.audio
 
             AudioEngine.UpdateStereoOperatorPlayback(
                 operatorId: _operatorId,
-                localFxTime: context.LocalFxTime,
                 filePath: filePath,
                 shouldPlay: shouldPlay,
                 shouldStop: shouldStop,

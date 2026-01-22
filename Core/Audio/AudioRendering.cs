@@ -18,9 +18,7 @@ public static class AudioRendering
 {
     private static bool _isRecording;
     private static readonly ExportState _exportState = new();
-    private static double _exportStartTime;
     private static int _frameCount;
-    private static bool _warnedAboutExternalAudio;
 
     public static void PrepareRecording(Playback playback, double fps)
     {
@@ -28,14 +26,11 @@ public static class AudioRendering
 
         _isRecording = true;
         _frameCount = 0;
-        _exportStartTime = playback.TimeInSecs;
-        _warnedAboutExternalAudio = false;
 
         // Check if we're in external audio mode and warn the user
         if (playback.Settings?.AudioSource == Operator.PlaybackSettings.AudioSources.ExternalDevice)
         {
             Log.Warning("[AudioRendering] External audio source detected - external audio cannot be monitored during export. Only operator audio will be included in the export.");
-            _warnedAboutExternalAudio = true;
         }
 
         _exportState.SaveState();
@@ -63,7 +58,7 @@ public static class AudioRendering
             AudioConfig.LogAudioRenderDebug($"[AudioRendering] Soundtrack '{handle.Clip.FilePath}' removed from mixer");
         }
 
-        AudioConfig.LogAudioRenderDebug($"[AudioRendering] PrepareRecording: startTime={_exportStartTime:F3}s, fps={fps}");
+        AudioConfig.LogAudioRenderDebug($"[AudioRendering] PrepareRecording: fps={fps}");
     }
 
     public static void EndRecording(Playback playback, double fps)
@@ -99,7 +94,7 @@ public static class AudioRendering
         }
     }
 
-    public static float[] GetFullMixDownBuffer(double frameDurationInSeconds, double localFxTime)
+    public static float[] GetFullMixDownBuffer(double frameDurationInSeconds)
     {
         _frameCount++;
         AudioEngine.UpdateStaleStatesForExport();

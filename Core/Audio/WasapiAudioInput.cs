@@ -232,7 +232,6 @@ public static class WasapiAudioInput
     private static List<WasapiInputDevice> _inputDevices;
     internal static double TimeSinceLastUpdate;
     internal static double LastUpdateTime;
-    //private static readonly float[] _fftIntermediate = new float[AudioAnalysis.FftBufferSize];
     internal static long SampleRate = 48000;
 
     public static string ActiveInputDeviceName { get; private set; }

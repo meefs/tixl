@@ -101,7 +101,7 @@ internal static class RenderProcess
                 Log.Debug($"Requested recording from {0.0000:F4} to {(_activeSession.FrameCount / _renderSettings.Fps):F4} seconds");
                 Log.Debug($"Actually recording from {(_frameIndex / _renderSettings.Fps):F4} to {((_frameIndex + 1) / _renderSettings.Fps):F4} seconds due to frame raster");
             }
-            var audioFrameFloat = AudioRendering.GetFullMixDownBuffer(1.0 / _renderSettings.Fps, localFxTime);
+            var audioFrameFloat = AudioRendering.GetFullMixDownBuffer(1.0 / _renderSettings.Fps);
             // Safety: ensure audioFrameFloat is valid and sized
             if (audioFrameFloat == null || audioFrameFloat.Length == 0)
             {
