@@ -106,11 +106,12 @@ internal sealed partial class SettingsWindow : Window
             FormInputs.AddVerticalSpace();
             
             FormInputs.AddSectionSubHeader("Mixer Configuration");
-            changed |= FormInputs.AddInt("Sample Rate (Hz)",
-                                         ref ProjectSettings.Config.AudioMixerFrequency,
-                                         8000, 192000, 1f,
-                                         "Sample rate for all mixer streams. Common values: 44100, 48000, 96000",
-                                         ProjectSettings.Defaults.AudioMixerFrequency);
+            
+            // Sample rate is read-only - determined from device
+            ImGui.TextUnformatted($"Sample Rate: {AudioConfig.MixerFrequency} Hz (from device)");
+            CustomComponents.TooltipForLastItem("Sample rate is automatically determined from the device's current sample rate.");
+            FormInputs.AddVerticalSpace();
+            
             changed |= FormInputs.AddInt("Update Period (ms)",
                                          ref ProjectSettings.Config.AudioUpdatePeriodMs,
                                          1, 100, 0.1f,

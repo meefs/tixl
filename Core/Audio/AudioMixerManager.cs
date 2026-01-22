@@ -63,6 +63,9 @@ public static class AudioMixerManager
             Log.Warning("[AudioMixer] BASS was already initialized by something else - our low-latency config may not apply!");
             Log.Warning("[AudioMixer] To fix this, ensure AudioMixerManager.Initialize() is called BEFORE any Bass.Init() calls.");
             Bass.GetInfo(out var info);
+            
+            // Set the mixer frequency to the device's actual sample rate
+            AudioConfig.MixerFrequency = info.SampleRate;
             AudioConfig.LogAudioInfo($"[AudioMixer] Existing BASS - SampleRate: {info.SampleRate}Hz, MinBuffer: {info.MinBufferLength}ms, Latency: {info.Latency}ms");
         }
         else
@@ -78,22 +81,23 @@ public static class AudioMixerManager
             AudioConfig.LogAudioDebug($"[AudioMixer] Config - UpdatePeriod: {AudioConfig.UpdatePeriodMs}ms, UpdateThreads: {AudioConfig.UpdateThreads}, PlaybackBuffer: {AudioConfig.PlaybackBufferLengthMs}ms, DeviceBuffer: {AudioConfig.DeviceBufferLengthMs}ms");
             
             // Try to initialize with latency flag first
+            // Use frequency=0 to let Bass use the device's default sample rate
             var initFlags = DeviceInitFlags.Latency | DeviceInitFlags.Stereo;
             
-            AudioConfig.LogAudioDebug($"[AudioMixer] Attempting BASS.Init with Latency flag at {AudioConfig.MixerFrequency}Hz...");
-            if (!Bass.Init(-1, AudioConfig.MixerFrequency, initFlags, IntPtr.Zero))
+            AudioConfig.LogAudioDebug("[AudioMixer] Attempting BASS.Init with Latency flag at device's default sample rate...");
+            if (!Bass.Init(-1, 0, initFlags, IntPtr.Zero))
             {
                 var error1 = Bass.LastError;
                 Log.Warning($"{error1} [AudioMixer] Init with Latency flag failed: trying without...");
                 
                 // Fallback without latency flag
-                if (!Bass.Init(-1, AudioConfig.MixerFrequency, DeviceInitFlags.Stereo, IntPtr.Zero))
+                if (!Bass.Init(-1, 0, DeviceInitFlags.Stereo, IntPtr.Zero))
                 {
                     var error2 = Bass.LastError;
                     Log.Warning($"{error2} [AudioMixer] Init with Stereo flag failed: trying basic init...");
                     
                     // Last resort - basic init
-                    if (!Bass.Init(-1, AudioConfig.MixerFrequency, DeviceInitFlags.Default, IntPtr.Zero))
+                    if (!Bass.Init(-1, 0, DeviceInitFlags.Default, IntPtr.Zero))
                     {
                         var error3 = Bass.LastError;
                         Log.Error($"[AudioMixer] Failed to initialize BASS with all methods: {error3}");
@@ -116,6 +120,9 @@ public static class AudioMixerManager
             
             // Get actual device info after init
             Bass.GetInfo(out var info);
+            
+            // Set the mixer frequency to the device's actual sample rate
+            AudioConfig.MixerFrequency = info.SampleRate;
             AudioConfig.LogAudioInfo($"[AudioMixer] BASS Info - Device: {Bass.CurrentDevice}, SampleRate: {info.SampleRate}Hz, MinBuffer: {info.MinBufferLength}ms, Latency: {info.Latency}ms");
         }
 

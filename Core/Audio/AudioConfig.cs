@@ -22,14 +22,16 @@ public static class AudioConfig
     public static bool ShowAudioRenderLogs { get; set; } = false;
     #endregion
 
-    #region Mixer Configuration (Compile-time Constants)
-    // Note: These are const because they are used for static array initialization
-    // and changing them at runtime would require reallocating audio buffers.
+    #region Mixer Configuration
+    // Note: MixerFrequency is determined at runtime from the device's sample rate.
+    // Other values are const because they are used for static array initialization.
 
     /// <summary>
     /// Sample rate for all mixer streams (Hz).
+    /// This is set at runtime to match the device's current sample rate.
+    /// Default value is 48000Hz until Bass is initialized.
     /// </summary>
-    public const int MixerFrequency = 48000;
+    public static int MixerFrequency { get; internal set; } = 48000;
 
     /// <summary>
     /// BASS update period in milliseconds for low-latency playback.

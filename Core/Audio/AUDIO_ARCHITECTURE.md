@@ -55,7 +55,7 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
     │   AUDIO MIXER MANAGER       │    │      AUDIO CONFIG           │
     │   (BASS Mixer)              │    │      (Configuration)        │
     ├─────────────────────────────┤    ├─────────────────────────────┤
-    │  GlobalMixerHandle          │    │  MixerFrequency = 48000 Hz  │
+    │  GlobalMixerHandle          │    │  MixerFrequency (from dev)  │
     │  OperatorMixerHandle        │    │  UpdatePeriodMs = 10        │
     │  SoundtrackMixerHandle      │    │  PlaybackBufferLengthMs=100 │
     │  OfflineMixerHandle         │    │  FftBufferSize = 1024       │
@@ -222,7 +222,7 @@ All audio parameters are managed through `Core/Audio/AudioConfig.cs`:
 
 **Mixer Configuration:**
 ```csharp
-MixerFrequency = 48000           // Professional audio quality (Hz)
+MixerFrequency = (from device)   // Determined from device's current sample rate
 UpdatePeriodMs = 10              // Low-latency BASS updates
 UpdateThreads = 2                // BASS update thread count
 PlaybackBufferLengthMs = 100     // Balanced buffering

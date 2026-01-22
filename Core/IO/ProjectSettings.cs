@@ -48,7 +48,7 @@ public class ProjectSettings : Settings<ProjectSettings.ConfigData>
         public float OperatorPlaybackVolume = 1;
 
         // Audio Advanced Settings
-        public int AudioMixerFrequency = 48000;
+        // Note: AudioMixerFrequency is now automatically determined from the device's sample rate
         public int AudioUpdatePeriodMs = 10;
         public int AudioUpdateThreads = 2;
         public int AudioPlaybackBufferLengthMs = 100;
@@ -90,7 +90,7 @@ public class ProjectSettings : Settings<ProjectSettings.ConfigData>
         public static float OperatorPlaybackVolume = 1;
 
         // Audio Advanced Settings
-        public static int AudioMixerFrequency = 48000;
+        // Note: AudioMixerFrequency is now automatically determined from the device's sample rate
         public static int AudioUpdatePeriodMs = 10;
         public static int AudioUpdateThreads = 2;
         public static int AudioPlaybackBufferLengthMs = 100;
