@@ -8,6 +8,7 @@ using ImGuiNET;
 using T3.Core.Operator;
 using T3.Core.Operator.Slots;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Core.UserData;
 using T3.Core.Utils;
 using T3.Editor.Gui.InputUi.SimpleInputUis;
@@ -52,6 +53,7 @@ internal sealed partial class AssetLibrary : Window
         DrawLibContent();
     }
 
+    // TODO: refactor this to asset registry
     private void UpdateAssetsIfRequired()
     {
         _state.Composition = ProjectView.Focused?.CompositionInstance;
@@ -67,7 +69,7 @@ internal sealed partial class AssetLibrary : Window
         _state.LastFileWatcherState = ResourceFileWatcher.FileStateChangeCounter;
 
         _state.AllAssets.Clear();
-        AssetTypeRegistry.ClearMatchingFileCounts();
+        AssetUseCounter.ClearMatchingFileCounts();
         
         var filePaths = ResourceManager.EnumeratePackagesResources([],
                                                            isFolder: false,
@@ -104,7 +106,7 @@ internal sealed partial class AssetLibrary : Window
                 var fileInfo = new FileInfo(absolutePath);
                 var fileInfoExtension = fileInfo.Extension.Length < 1 ? string.Empty : fileInfo.Extension[1..];
                 var fileExtensionId = FileExtensionRegistry.GetUniqueId(fileInfoExtension);
-                if (!AssetTypeRegistry.TryGetFromId(fileExtensionId, out var assetType))
+                if (!AssetType.TryGetFromId(fileExtensionId, out var assetType))
                 {
                     Log.Warning($"Can't find file type for: {fileInfoExtension}");
                 }
@@ -125,8 +127,8 @@ internal sealed partial class AssetLibrary : Window
             
             if (asset.AssetType != null)
             {
-                asset.AssetType.MatchingFileCount++;
-                AssetTypeRegistry.TotalAssetCount++;
+                AssetUseCounter.IncrementUseCount(asset.AssetType);
+                AssetHandling.TotalAssetCount++;
             }
 
             if (_state.CompatibleExtensionIds.Count == 0
@@ -189,7 +191,7 @@ internal sealed partial class AssetLibrary : Window
             {
                 FileExtensionRegistry.IdsFromFileFilter(stringInputUi.FileFilter, ref _state.CompatibleExtensionIds);
                 _state.ActiveTypeFilters.Clear();
-                foreach (var assetType in AssetTypeRegistry.AssetTypes)
+                foreach (var assetType in AssetType.AvailableTypes)
                 {
                     foreach (var extId in _state.CompatibleExtensionIds)
                     {

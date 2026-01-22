@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using ImGuiNET;
 using T3.Core.DataTypes.Vector;
+using T3.Core.Resource.Assets;
 using T3.Core.SystemUi;
 using T3.Core.Utils;
 using T3.Editor.Gui.Styling;
@@ -51,7 +52,7 @@ internal sealed partial class AssetLibrary
             CustomComponents.SeparatorLine();
 
             var showAllTypes = _state.ActiveTypeFilters.Count == 0;
-            if (DrawAssetFilterOption(_allAssetId, Icon.Stack, UiColors.Text, "All", AssetTypeRegistry.TotalAssetCount, ref showAllTypes))
+            if (DrawAssetFilterOption(_allAssetId, Icon.Stack, UiColors.Text, "All", AssetHandling.TotalAssetCount, ref showAllTypes))
             {
                 _state.ActiveTypeFilters.Clear();
                 _state.CompatibleExtensionIds.Clear();
@@ -60,11 +61,11 @@ internal sealed partial class AssetLibrary
 
             Input.FormInputs.AddVerticalSpace();
 
-            for (var index = 0; index < AssetTypeRegistry.AssetTypes.Count; index++)
+            for (var index = 0; index < AssetType.AvailableTypes.Count; index++)
             {
-                var assetType = AssetTypeRegistry.AssetTypes[index];
-                var count = assetType.MatchingFileCount;
-                var xIcon = assetType.Icon;
+                var assetType = AssetType.AvailableTypes[index];
+                var count = AssetUseCounter.GetUseCount(assetType);
+                var xIcon = (Icon)assetType.IconId;
                 var readOnlySpan = assetType.Name;
                 var iconColor = ColorVariations.OperatorLabel.Apply(assetType.Color);
 

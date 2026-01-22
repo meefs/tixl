@@ -19,6 +19,7 @@ using T3.Editor.Gui.Interaction.StartupCheck;
 using T3.Editor.Gui.Styling;
 using T3.Editor.Gui.UiHelpers;
 using T3.Editor.Gui.Windows;
+using T3.Editor.Gui.Windows.AssetLib;
 using T3.Editor.Skills.Training;
 using T3.Editor.SystemUi;
 using T3.Editor.UiContentDrawing;
@@ -148,7 +149,8 @@ internal static class Program
 
         Log.Debug("Initializing ProgramWindows...");
         ProgramWindows.InitializeMainWindow(FormattedEditorVersion, out var device);
-
+        AssetHandling.InitAssetTypes();
+        
         Device = device;
 
         if (ShaderCompiler.Instance is not DX11ShaderCompiler shaderCompiler)

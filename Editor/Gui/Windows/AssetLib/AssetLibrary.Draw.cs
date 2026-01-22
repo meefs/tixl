@@ -202,7 +202,10 @@ internal sealed partial class AssetLibrary
                                : 0.2f;
 
             var iconColor = ColorVariations.OperatorLabel.Apply(asset.AssetType?.Color ?? UiColors.Text);
-            var icon = asset.AssetType?.Icon ?? Icon.FileImage;
+            var icon = asset.AssetType != null
+                         ? (Icon)asset.AssetType.IconId 
+                         : Icon.FileImage;
+            
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5);
             if (ButtonWithIcon(string.Empty,
                                asset.FileInfo.Name,

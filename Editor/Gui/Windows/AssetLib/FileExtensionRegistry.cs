@@ -7,6 +7,11 @@ namespace T3.Editor.Gui.Windows.AssetLib;
 /// <summary>
 /// Helper class to convert extensions and file filters into unique ids for faster matching
 /// </summary>
+/// <remarks>
+/// <see cref="AssetType"/> then uses these IDs to store a list of supported extensions as int ids.
+/// Maybe similar to a dynamic enum type. The unique Ids are generated while counting the
+/// keys in a dictionary.
+/// </remarks>
 internal static class FileExtensionRegistry
 {
     public static int GetUniqueId(string ext) => _map.TryGetValue(ext, out var id) 
@@ -19,7 +24,7 @@ internal static class FileExtensionRegistry
 
         try
         {
-            var extension = Path.GetExtension(filepath);
+            var extension = Path.GetExtension(filepath); // includes dot (e.g .ext)
             if (extension.Length < 2)
                 return false;
 

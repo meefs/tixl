@@ -5,6 +5,7 @@ using ImGuiNET;
 using T3.Core.Operator;
 using T3.Core.Operator.Slots;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Editor.Gui.MagGraph.Model;
 using T3.Editor.Gui.MagGraph.States;
 using T3.Editor.Gui.Styling;
@@ -178,7 +179,7 @@ internal static class DropHandling
                     // return true;
                 }
                 
-                if (!AssetTypeRegistry.TryGetFromFilePath(destFilepath, out var assetType))
+                if (!AssetHandling.TryGetAssetTypeFromFilePath(destFilepath, out var assetType))
                 {
                     Log.Warning("Can't find this asset type.");
                     continue;
@@ -222,7 +223,7 @@ internal static class DropHandling
     }
 
         
-    private static bool CreateAssetOperator(GraphUiContext context, AssetTypeRegistry.AssetType assetType, string aliasPath, Vector2 dropOffset)
+    private static bool CreateAssetOperator(GraphUiContext context, AssetType assetType, string aliasPath, Vector2 dropOffset)
     {
         if (assetType.PrimaryOperators.Count == 0)
         {

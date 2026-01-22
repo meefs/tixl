@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using T3.Core.Operator;
 using T3.Core.Operator.Slots;
+using T3.Core.Resource.Assets;
 using T3.Editor.UiModel.Helpers;
 
 namespace T3.Editor.Gui.Windows.AssetLib;
@@ -57,7 +58,7 @@ internal sealed class AssetLibState
     
     public readonly SymbolFilter Filter = new();
     
-    public readonly HashSet<AssetTypeRegistry.AssetType> ActiveTypeFilters = [];
+    public readonly HashSet<AssetType> ActiveTypeFilters = [];
 
     #region internal
     /// <summary>
