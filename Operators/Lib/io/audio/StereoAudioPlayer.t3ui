@@ -7,7 +7,8 @@
       "Position": {
         "X": -200.0,
         "Y": 300.0
-      }
+      },
+      "Description": "If true, mutes playback."
     },
     {
       "InputId": "3dbcbbe6-a8b4-4b83-a2c0-e22b24b91b42"/*Envelope*/,
@@ -15,6 +16,7 @@
         "X": -200.0,
         "Y": 700.0
       },
+      "Description": "ADSR envelope input (Vec4) applied to amplitude when enabled.",
       "Min": 0.0,
       "Max": 1.0,
       "ClampMin": true,
@@ -26,7 +28,9 @@
         "X": -200.0,
         "Y": 0.0
       },
-      "Usage": "FilePath"
+      "Usage": "FilePath",
+      "Description": "Path to the audio file to play.",
+      "FileFilter": "Audio files (mp3,wav,ogg,flac)|*.mp3;*.wav;*.ogg;*.flac"
     },
     {
       "InputId": "53d1622e-b1d5-4b1c-acd0-ebceb7064043"/*Panning*/,
@@ -34,6 +38,7 @@
         "X": -200.0,
         "Y": 350.0
       },
+      "Description": "Stereo panning, -1 = left, 0 = center, 1 = right.",
       "Min": -1.0,
       "Max": 1.0,
       "Scale": 0.001,
@@ -45,28 +50,32 @@
       "Position": {
         "X": -200.0,
         "Y": 125.0
-      }
+      },
+      "Description": "Trigger to stop playback and reset position."
     },
     {
       "InputId": "726bc4d3-df8b-4abe-a38e-2e09cf44ca10"/*PlayAudio*/,
       "Position": {
         "X": -200.0,
         "Y": 75.0
-      }
+      },
+      "Description": "Trigger to start or resume playback."
     },
     {
       "InputId": "7e42f2a8-3c5d-4f6e-9b8a-1d2e3f4a5b6c"/*PauseAudio*/,
       "Position": {
         "X": -200.0,
         "Y": 175.0
-      }
+      },
+      "Description": "Trigger to pause playback."
     },
     {
       "InputId": "905d9e01-b1fb-47c0-801c-fc920ed36884"/*TriggerMode*/,
       "Position": {
         "X": -200.0,
         "Y": 475.0
-      }
+      },
+      "Description": "Selects how playback triggers are handled (trigger or gate)."
     },
     {
       "InputId": "a5de0d72-5924-4f3a-a02f-d5de7c03f07f"/*Seek*/,
@@ -74,6 +83,7 @@
         "X": -200.0,
         "Y": 400.0
       },
+      "Description": "Normalized seek position within the track (0..1).",
       "Min": 0.0,
       "Max": 0.99,
       "Scale": 0.001,
@@ -85,7 +95,8 @@
       "Position": {
         "X": -200.0,
         "Y": 625.0
-      }
+      },
+      "Description": "Enable applying the Envelope input to amplitude."
     },
     {
       "InputId": "c0645e37-db4e-4658-9d65-96478851f6f6"/*Volume*/,
@@ -93,6 +104,7 @@
         "X": -200.0,
         "Y": 250.0
       },
+      "Description": "The volume of playback",
       "Min": 0.0,
       "Max": 2.0,
       "Scale": 0.001,
@@ -104,6 +116,7 @@
         "X": -200.0,
         "Y": 425.0
       },
+      "Description": "Playback speed multiplier.",
       "Min": 0.001,
       "Max": 4.0,
       "Scale": 1.0,
@@ -116,6 +129,7 @@
         "X": -200.0,
         "Y": 550.0
       },
+      "Description": "Optional duration override for playback (seconds).",
       "Min": 0.0,
       "ClampMin": true
     }
