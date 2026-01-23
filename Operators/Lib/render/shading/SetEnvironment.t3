@@ -217,7 +217,7 @@
         {
           "Id": "76cc3811-4ae0-48b2-a119-890db5a4eeb2"/*Path*/,
           "Type": "System.String",
-          "Value": "Examples:hdri/studio_small_08-prefiltered.dds"
+          "Value": "Lib:pbr/studio_small_08-prefiltered.dds"
         }
       ],
       "Outputs": []
@@ -277,7 +277,7 @@
         {
           "Id": "76cc3811-4ae0-48b2-a119-890db5a4eeb2"/*Path*/,
           "Type": "System.String",
-          "Value": "Lib:shaders/images/basic/black-pixel.png"
+          "Value": "Lib:images/basic/black-pixel.png"
         }
       ],
       "Outputs": []

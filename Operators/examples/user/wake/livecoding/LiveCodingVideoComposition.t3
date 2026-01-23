@@ -524,7 +524,7 @@
         {
           "Id": "76cc3811-4ae0-48b2-a119-890db5a4eeb2"/*Path*/,
           "Type": "System.String",
-          "Value": "Lib:shaders/images/basic/white-pixel.png"
+          "Value": "Lib:images/basic/white-pixel.png"
         }
       ],
       "Outputs": []
@@ -1120,7 +1120,7 @@
         {
           "Id": "50c9ab21-39f4-4e92-b5a7-ad9e60ae6ec3"/*FontPath*/,
           "Type": "System.String",
-          "Value": "Examples:fonts/RobotoSlab-Black.fnt"
+          "Value": "Lib:fonts/RobotoSlab-Black.fnt"
         },
         {
           "Id": "d89c518c-a862-4f46-865b-0380350b7417"/*Size*/,
@@ -2190,7 +2190,7 @@
         {
           "Id": "50c9ab21-39f4-4e92-b5a7-ad9e60ae6ec3"/*FontPath*/,
           "Type": "System.String",
-          "Value": "Examples:fonts/ShareTechMono.fnt"
+          "Value": "Lib:fonts/ShareTechMono.fnt"
         },
         {
           "Id": "82cc31ff-3307-4b6d-be70-16e471c2ffc9"/*HorizontalAlign*/,
@@ -2254,7 +2254,7 @@
         {
           "Id": "50c9ab21-39f4-4e92-b5a7-ad9e60ae6ec3"/*FontPath*/,
           "Type": "System.String",
-          "Value": "Examples:fonts/ShareTechMono.fnt"
+          "Value": "Lib:fonts/ShareTechMono.fnt"
         },
         {
           "Id": "82cc31ff-3307-4b6d-be70-16e471c2ffc9"/*HorizontalAlign*/,
@@ -2494,7 +2494,7 @@
         {
           "Id": "50c9ab21-39f4-4e92-b5a7-ad9e60ae6ec3"/*FontPath*/,
           "Type": "System.String",
-          "Value": "Examples:fonts/ShareTechMono.fnt"
+          "Value": "Lib:fonts/ShareTechMono.fnt"
         },
         {
           "Id": "82cc31ff-3307-4b6d-be70-16e471c2ffc9"/*HorizontalAlign*/,
