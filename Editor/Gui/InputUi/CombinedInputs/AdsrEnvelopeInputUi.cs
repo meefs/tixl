@@ -329,6 +329,8 @@ public sealed class AdsrEnvelopeInputUi : InputValueUi<Vector4>
     {
         var modified = InputEditStateFlags.Nothing;
         var paramWidth = (availableWidth - 12) / 4;
+        var frameHeight = ImGui.GetFrameHeight();
+        var size = new Vector2(paramWidth, frameHeight);
 
         var attack = envelope.X;
         var decay = envelope.Y;
@@ -338,50 +340,66 @@ public sealed class AdsrEnvelopeInputUi : InputValueUi<Vector4>
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(3, 0));
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2, 2));
 
-        ImGui.SetNextItemWidth(paramWidth);
-        if (ImGui.DragFloat("##A", ref attack, 0.001f, 0.001f, 10f, "A:%.3f"))
+        // Attack
+        ImGui.PushID("A");
+        var editState = SingleValueEdit.Draw(ref attack, size, 0.001f, 10f, true, false, 0.01f, "A:{0:0.000}");
+        if (editState.HasFlag(InputEditStateFlags.Modified))
         {
-            modified = InputEditStateFlags.Modified;
+            modified |= InputEditStateFlags.Modified;
             envelope.X = Math.Max(0.001f, attack);
         }
+        if (editState.HasFlag(InputEditStateFlags.Finished))
+            modified |= InputEditStateFlags.Finished;
+        ImGui.PopID();
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("Attack time (seconds)");
 
         ImGui.SameLine();
 
-        ImGui.SetNextItemWidth(paramWidth);
-        if (ImGui.DragFloat("##D", ref decay, 0.001f, 0.001f, 10f, "D:%.3f"))
+        // Decay
+        ImGui.PushID("D");
+        editState = SingleValueEdit.Draw(ref decay, size, 0.001f, 10f, true, false, 0.01f, "D:{0:0.000}");
+        if (editState.HasFlag(InputEditStateFlags.Modified))
         {
-            modified = InputEditStateFlags.Modified;
+            modified |= InputEditStateFlags.Modified;
             envelope.Y = Math.Max(0.001f, decay);
         }
+        if (editState.HasFlag(InputEditStateFlags.Finished))
+            modified |= InputEditStateFlags.Finished;
+        ImGui.PopID();
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("Decay time (seconds)");
 
         ImGui.SameLine();
 
-        ImGui.SetNextItemWidth(paramWidth);
-        if (ImGui.DragFloat("##S", ref sustain, 0.01f, 0f, 1f, "S:%.2f"))
+        // Sustain
+        ImGui.PushID("S");
+        editState = SingleValueEdit.Draw(ref sustain, size, 0f, 1f, true, true, 0.01f, "S:{0:0.00}");
+        if (editState.HasFlag(InputEditStateFlags.Modified))
         {
-            modified = InputEditStateFlags.Modified;
+            modified |= InputEditStateFlags.Modified;
             envelope.Z = Math.Clamp(sustain, 0f, 1f);
         }
+        if (editState.HasFlag(InputEditStateFlags.Finished))
+            modified |= InputEditStateFlags.Finished;
+        ImGui.PopID();
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("Sustain level (0-1)");
 
         ImGui.SameLine();
 
-        ImGui.SetNextItemWidth(paramWidth);
-        if (ImGui.DragFloat("##R", ref release, 0.001f, 0.001f, 10f, "R:%.3f"))
+        // Release
+        ImGui.PushID("R");
+        editState = SingleValueEdit.Draw(ref release, size, 0.001f, 10f, true, false, 0.01f, "R:{0:0.000}");
+        if (editState.HasFlag(InputEditStateFlags.Modified))
         {
-            modified = InputEditStateFlags.Modified;
+            modified |= InputEditStateFlags.Modified;
             envelope.W = Math.Max(0.001f, release);
         }
+        if (editState.HasFlag(InputEditStateFlags.Finished))
+            modified |= InputEditStateFlags.Finished;
+        ImGui.PopID();
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("Release time (seconds)");
 
         ImGui.PopStyleVar(2);
 
-        if (ImGui.IsItemDeactivatedAfterEdit())
-        {
-            modified |= InputEditStateFlags.Finished;
-        }
 
         return modified;
     }

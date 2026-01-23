@@ -222,24 +222,24 @@ internal static class AdsrEnvelopeUi
                                              HandleInfo[] handles, Vector2 scale)
     {
         var isActive = false;
-        var mousePos = ImGui.GetMousePos();
         // Diamond size and style matching SampleCurveUi
         var diamondSize = 8f;
         var half = diamondSize / 2f;
+        var hitboxSize = 16f; // Larger hitbox for easier interaction
+        var hitboxHalf = hitboxSize / 2f;
         var anyHandleActive = false;
-        var hoveredTarget = DragTarget.None;
 
         for (int i = 0; i < handles.Length; i++)
         {
             var handle = handles[i];
             var id = $"##adsr_handle_{i}";
-            ImGui.SetCursorScreenPos(handle.Position - new Vector2(half, half));
-            ImGui.InvisibleButton(id, new Vector2(diamondSize, diamondSize));
+            ImGui.SetCursorScreenPos(handle.Position - new Vector2(hitboxHalf, hitboxHalf));
+            ImGui.InvisibleButton(id, new Vector2(hitboxSize, hitboxSize));
             var isHovered = ImGui.IsItemHovered();
             var isActiveHandle = ImGui.IsItemActive();
+            
             if (isHovered && !anyHandleActive)
             {
-                hoveredTarget = handle.Target;
                 // Set cursor type based on handle
                 switch (handle.Target)
                 {
@@ -255,7 +255,6 @@ internal static class AdsrEnvelopeUi
             }
             if (isActiveHandle)
             {
-                hoveredTarget = handle.Target;
                 anyHandleActive = true;
             }
             // Draw diamond (rotated square)
@@ -273,6 +272,7 @@ internal static class AdsrEnvelopeUi
             {
                 ImGui.SetTooltip($"{handle.Label}: drag to adjust");
             }
+            
             // Handle dragging
             if (isActiveHandle)
             {
@@ -302,6 +302,7 @@ internal static class AdsrEnvelopeUi
                 data.Envelope.SetTypedInputValue(newEnvelope);
             }
         }
+        
         return isActive;
     }
 
