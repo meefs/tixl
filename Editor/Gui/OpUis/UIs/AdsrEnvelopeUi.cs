@@ -1,5 +1,7 @@
 #nullable enable
+using System.Reflection;
 using ImGuiNET;
+using T3.Core.Audio;
 using T3.Core.Operator;
 using T3.Core.Operator.Slots;
 using T3.Core.Utils;
@@ -17,7 +19,10 @@ internal static class AdsrEnvelopeUi
         internal Binding(Instance instance)
         {
             IsValid = AutoBind(instance);
+            _instance = instance;
         }
+
+        private readonly Instance _instance;
 
         [BindInput("d9e0f1a2-b3c4-4d5e-6f7a-8b9c0d1e2f3a")]
         internal readonly InputSlot<bool> Gate = null!;
@@ -30,6 +35,11 @@ internal static class AdsrEnvelopeUi
 
         [BindOutput("f7a8b9c0-d1e2-4f3a-4b5c-6d7e8f9a0b1c")]
         internal readonly Slot<bool> IsActive = null!;
+
+        [BindField("_calculator")]
+        private readonly FieldInfo? _calculatorField = null!;
+
+        internal AdsrCalculator? Calculator => (AdsrCalculator?)_calculatorField?.GetValue(_instance);
     }
 
     private enum DragTarget
@@ -77,6 +87,9 @@ internal static class AdsrEnvelopeUi
 
         // Draw envelope curve and handles
         var isActive = DrawEnvelopeEditor(data, drawList, innerRect, attack, decay, sustain, release, canvas.Scale);
+
+        // Draw current position indicator line (like SequenceAnimUi)
+        DrawPositionIndicator(data, drawList, innerRect, attack, decay, sustain, release);
 
         // Draw current value indicator
         DrawValueIndicator(data, drawList, innerRect, canvas.Scale);
@@ -290,6 +303,63 @@ internal static class AdsrEnvelopeUi
             }
         }
         return isActive;
+    }
+
+    private static void DrawPositionIndicator(Binding data, ImDrawListPtr drawList, ImRect area,
+                                              float attack, float decay, float sustain, float release)
+    {
+        var calculator = data.Calculator;
+        if (calculator == null || calculator.CurrentStage == AdsrCalculator.Stage.Idle)
+            return;
+
+        const float sustainDuration = 0.15f;
+        var totalTime = attack + decay + sustainDuration + release;
+        var width = area.GetWidth();
+
+        // Calculate position based on current stage and value
+        float normalizedX;
+        
+        switch (calculator.CurrentStage)
+        {
+            case AdsrCalculator.Stage.Attack:
+                // During attack: value goes from 0 to 1
+                // X position: proportional to value within attack region
+                normalizedX = calculator.Value * (attack / totalTime);
+                break;
+
+            case AdsrCalculator.Stage.Decay:
+                // During decay: value goes from 1 to sustain level
+                // X position: attack region + proportional position in decay
+                var decayProgress = (1f - calculator.Value) / (1f - sustain);
+                decayProgress = Math.Clamp(decayProgress, 0f, 1f);
+                normalizedX = (attack / totalTime) + decayProgress * (decay / totalTime);
+                break;
+
+            case AdsrCalculator.Stage.Sustain:
+                // During sustain: value stays at sustain level
+                // X position: middle of sustain region (it's held here)
+                normalizedX = (attack + decay) / totalTime + (sustainDuration / totalTime) * 0.5f;
+                break;
+
+            case AdsrCalculator.Stage.Release:
+                // During release: value goes from sustain to 0
+                // X position: sustain region end + proportional position in release
+                var releaseProgress = 1f - (calculator.Value / sustain);
+                releaseProgress = Math.Clamp(releaseProgress, 0f, 1f);
+                normalizedX = (attack + decay + sustainDuration) / totalTime + releaseProgress * (release / totalTime);
+                break;
+
+            default:
+                return;
+        }
+
+        var posX = area.Min.X + normalizedX * width;
+        
+        // Draw vertical position indicator line (like SequenceAnimUi)
+        drawList.AddRectFilled(
+            new Vector2(posX, area.Min.Y),
+            new Vector2(posX + 2, area.Max.Y),
+            UiColors.WidgetActiveLine);
     }
 
     private static void DrawValueIndicator(Binding data, ImDrawListPtr drawList, ImRect area, Vector2 scale)
