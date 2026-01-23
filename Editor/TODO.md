@@ -28,25 +28,36 @@
 - [ ] Idea: Add option to switch space of SnapToAnglesForce 
 - [ ] Fix: SwitchParticleForce filtering with -1 and -2
 - [ ] Fix: render-Resolution factor is no longer working?
-- 
 - [ ] Complete import T3-project window?
-
 
 # Clean up Asset-Paths
 - [x] Implement auto fix methods
 - [x] Test for Lib and example
 - [x] Sort SharedResources -> Lib/ and Examples/
 - [x] Write new resource-paths to all symbols
-- [ ] Test File drop
-- [ ] Test Asset Library
-- [ ] Fix startup warnings
+- [x] Test File drop
+- [x] Test Asset Library
+- [.] Fix startup warnings
 - [x] Simplify resource uri resolve method
 - [.] Run tests
 - [ ] Check .\Lib\Resources\shaders\points\sim\SimSamplePointAttributes.hlsl
 - [ ] Move obsolete user examples to separate project
 - [ ] Maybe: Fix paths with pasting symbols from (e.g. from Discord)
 - [ ] Add some kind of cache which projects have been "fixed" 
-- 
+- [x] Extra AssetRegistry
+- [x] Move AssetTypes to Core
+- [ ] Use AssetTypes and AssetRegistry to draw FilePicking with filters
+- [ ] Extend Asset with isDirectory
+- [ ] Return temp Assets
+- [ ] Update conform
+- [ ] Add FolderPaths Assets
+- [ ] In AssetLib (only use AssetRegistry)
+- [ ] Collect AssetReferences on package load
+- [ ] Test Recompile / Symbol Reload
+- [ ] Handle File asset Drag and Drop between folders
+- [ ] List all uses for an Asset
+
+
 - [ ] Rename "Resources" -> "Assets"
 
 # Skill Quest

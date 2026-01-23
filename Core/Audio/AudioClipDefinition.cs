@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using T3.Core.Logging;
 using T3.Core.Operator;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Serialization;
 
 namespace T3.Core.Audio;
@@ -43,7 +44,7 @@ public sealed record AudioClipResourceHandle(AudioClipDefinition Clip, IResource
     /// </summary>
     public bool TryToApplyFilePath(string newFilePath, Instance composition)
     {
-        if (!ResourceManager.TryResolveUri(newFilePath, composition, out var absolutePath, out var resourceContainer))
+        if (!AssetRegistry.TryResolveUri(newFilePath, composition, out var absolutePath, out var resourceContainer))
         {
             Clip.FilePath = string.Empty;
             return false;

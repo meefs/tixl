@@ -96,7 +96,7 @@ internal sealed partial class AssetLibrary : Window
             
             if (!_state.AssetCache.TryGetValue(aliasedPath, out var asset))
             {
-                if (!ResourceManager.TryResolveUri(aliasedPath, _state.Composition, out var absolutePath, out var package))
+                if (!AssetRegistry.TryResolveUri(aliasedPath, _state.Composition, out var absolutePath, out var package))
                 {
                     Log.Warning($"Can't find file {aliasedPath}");
                     continue;
@@ -186,7 +186,7 @@ internal sealed partial class AssetLibrary : Window
         if (SymbolAnalysis.TryGetFileInputFromInstance(instance, out _state.ActivePathInput, out var stringInputUi))
         {
             var filePath = _state.ActivePathInput.GetCurrentValue();
-            ResourceManager.TryResolveUri(filePath, instance, out _state.ActiveAbsolutePath, out _);
+            AssetRegistry.TryResolveUri(filePath, instance, out _state.ActiveAbsolutePath, out _);
 
             if (UserSettings.Config.SyncWithOperatorSelection)
             {

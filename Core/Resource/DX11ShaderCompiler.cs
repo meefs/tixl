@@ -10,6 +10,7 @@ using T3.Core.DataTypes;
 using T3.Core.IO;
 using T3.Core.Logging;
 using T3.Core.Model;
+using T3.Core.Resource.Assets;
 using ComputeShader = SharpDX.Direct3D11.ComputeShader;
 using GeometryShader = SharpDX.Direct3D11.GeometryShader;
 using PixelShader = SharpDX.Direct3D11.PixelShader;
@@ -143,7 +144,7 @@ public sealed partial class DX11ShaderCompiler : ShaderCompiler
         public Stream Open(IncludeType type, string fileName, Stream parentStream)
         {
             var fileNameInLib = "Lib:shaders/" + fileName; 
-            if (ResourceManager.TryResolveUri(fileNameInLib, _owner, out var path, out _))
+            if (AssetRegistry.TryResolveUri(fileNameInLib, _owner, out var path, out _))
             {
                 _streamReader = new StreamReader(path);
                 return _streamReader.BaseStream;

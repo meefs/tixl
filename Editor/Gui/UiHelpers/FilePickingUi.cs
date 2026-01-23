@@ -6,6 +6,7 @@ using SilkWindows.Implementations.FileManager;
 using T3.Core.Operator;
 using T3.Core.Operator.Interfaces;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Core.Utils;
 using T3.Editor.Gui.Styling;
 using T3.Editor.UiModel.InputsAndTypes;
@@ -47,7 +48,7 @@ internal static class FilePickingUi
         }
 
         var isFolder = type == FileOperations.FilePickerTypes.Folder;
-        var exists = ResourceManager.TryResolveUri(filterAndSelectedPath, SearchResourceConsumer, out _, out _, isFolder);
+        var exists = AssetRegistry.TryResolveUri(filterAndSelectedPath, SearchResourceConsumer, out _, out _, isFolder);
 
         var warning = type switch
                           {

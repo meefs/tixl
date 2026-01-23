@@ -20,19 +20,19 @@ public static partial class ResourceManager
         if (allowSharedNonCodeFiles)
             _sharedResourcePackages.Add(resourcePackage);
 
-        _shaderPackages.Add(resourcePackage);
+        ShaderPackages.Add(resourcePackage);
         resourcePackage.ResourcesFolder.ToForwardSlashesUnsafe();
     }
 
     internal static void RemoveSharedResourceFolder(IResourcePackage resourcePackage)
     {
-        _shaderPackages.Remove(resourcePackage);
+        ShaderPackages.Remove(resourcePackage);
         _sharedResourcePackages.Remove(resourcePackage);
     }
 
-    public static IReadOnlyList<IResourcePackage> SharedShaderPackages => _shaderPackages;
+    public static IReadOnlyList<IResourcePackage> SharedShaderPackages => ShaderPackages;
     private static readonly List<IResourcePackage> _sharedResourcePackages = new(4);
-    private static readonly List<IResourcePackage> _shaderPackages = new(4);
+    public static readonly List<IResourcePackage> ShaderPackages = new(4);
 
     public enum PathMode
     {

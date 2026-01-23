@@ -186,7 +186,7 @@ internal static class DropHandling
                     continue;
                 }
 
-                if (!ResourceManager.TryConstructAssetUri(destFilepath, context.CompositionInstance, out var uri))
+                if (!AssetRegistry.TryConstructAddressFromFilePath(destFilepath, context.CompositionInstance, out var uri))
                 {
                     Log.Warning($"Can't construct uri for {destFilepath}");
                     continue;

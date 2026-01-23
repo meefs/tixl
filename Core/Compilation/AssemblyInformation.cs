@@ -10,6 +10,7 @@ using System.Runtime.Loader;
 using System.Threading;
 using T3.Core.IO;
 using T3.Core.Logging;
+using T3.Core.Utils;
 using T3.Serialization;
 
 namespace T3.Core.Compilation;
@@ -42,7 +43,8 @@ public sealed partial class AssemblyInformation
     public string Directory => _directory!;
 
     // The mocked ID based on the Name
-    public Guid Id => GenerateGuidFromName(Name);
+    // This is only temporary. Eventually the ID should be generated and stored in csproj file
+    public Guid Id => StringUtils.GenerateGuidFromString(Name);
     
     public bool IsLoaded => _loadContext != null;
 
@@ -411,19 +413,5 @@ public sealed partial class AssemblyInformation
                 Log.Error($"Failed to invoke Loaded event for {Name}: {ex}");
             }
         }
-    }
-    
-    /// <summary>
-    /// This is only temporary. Eventually the ID should be generated and stored in csproj file
-    /// </summary>
-    private static Guid GenerateGuidFromName(string name)
-    {
-        if (string.IsNullOrEmpty(name))
-            return Guid.Empty;
-
-        // Use MD5 to create a deterministic 16-byte hash from the name
-        using var md5 = System.Security.Cryptography.MD5.Create();
-        byte[] hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(name));
-        return new Guid(hash);
     }
 }

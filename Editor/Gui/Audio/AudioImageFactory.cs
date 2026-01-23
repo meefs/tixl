@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using T3.Core.Audio;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 
 namespace T3.Editor.Gui.Audio;
 
@@ -32,7 +33,7 @@ internal static class AudioImageFactory
         }
         
         // Generate image, if file exists.
-        if (!ResourceManager.TryResolveUri(handle.Clip.FilePath, handle.Owner, out _, out _))
+        if (!AssetRegistry.TryResolveUri(handle.Clip.FilePath, handle.Owner, out _, out _))
         {
             return false;
         }

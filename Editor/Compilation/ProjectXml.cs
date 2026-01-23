@@ -7,6 +7,7 @@ using Microsoft.Build.Construction;
 using T3.Core.Compilation;
 using T3.Core.Model;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Core.UserData;
 using T3.Editor.UiModel;
 
@@ -365,7 +366,7 @@ internal static partial class ProjectXml
                 ])
         ];
 
-    private static string CreateIncludePath(params string[] args) => string.Join(separator: ResourceManager.PathSeparator, value: args);
+    private static string CreateIncludePath(params string[] args) => string.Join(separator: AssetRegistry.PathSeparator, value: args);
 
     private readonly record struct Using(string Name, string? Alias = null, bool Static = false);
 

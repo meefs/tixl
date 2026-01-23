@@ -7,6 +7,7 @@ using System.IO;
 using T3.Core.Logging;
 using T3.Core.Model;
 using T3.Core.Operator;
+using T3.Core.Resource.Assets;
 using T3.Core.Stats;
 using T3.Core.Utils;
 
@@ -110,7 +111,7 @@ public sealed partial class FileResource: IResource
             return false;
         }
         
-        if (!ResourceManager.TryResolveUri(relativePath, owner, out var absolutePath, out var resourceContainer))
+        if (!AssetRegistry.TryResolveUri(relativePath, owner, out var absolutePath, out var resourceContainer))
         {
             var message = $"Path not found: '{relativePath}' (Resolved to '{absolutePath}').";
             if (owner is Instance instance)

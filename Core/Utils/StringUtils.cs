@@ -624,4 +624,18 @@ public static class StringUtils
 
         return text.AsSpan(0, len);
     }
+
+    /// <summary>
+    
+    /// </summary>
+    public static Guid GenerateGuidFromString(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return Guid.Empty;
+
+        // Use MD5 to create a deterministic 16-byte hash from the name
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        byte[] hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(name));
+        return new Guid(hash);
+    }
 }

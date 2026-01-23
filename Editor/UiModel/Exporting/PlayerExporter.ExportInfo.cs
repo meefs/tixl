@@ -4,6 +4,7 @@ using System.Threading;
 using T3.Core.Model;
 using T3.Core.Operator;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Core.UserData;
 
 namespace T3.Editor.UiModel.Exporting;
@@ -65,7 +66,7 @@ internal static partial class PlayerExporter
             var searchDirs = otherDirs ?? resources;
             
             var tempResourceConsumer = new TempResourceConsumer(searchDirs);
-            if (!ResourceManager.TryResolveUri(resourcePath, tempResourceConsumer, out var absolutePath, out var package))
+            if (!AssetRegistry.TryResolveUri(resourcePath, tempResourceConsumer, out var absolutePath, out var package))
             {
                 Log.Error($"Can't find file: {resourcePath}");
                 return false;

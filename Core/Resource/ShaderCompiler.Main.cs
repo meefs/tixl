@@ -8,6 +8,8 @@ using System.Linq;
 using T3.Core.DataTypes;
 using T3.Core.Logging;
 using T3.Core.Model;
+using T3.Core.Resource.Assets;
+using T3.Core.Utils;
 
 namespace T3.Core.Resource;
 
@@ -24,7 +26,7 @@ public abstract partial class ShaderCompiler
         {
             //TODO: This is an ugly work around to get it running.
             var includeInLib = "Lib:shaders/" + include;
-            if (!ResourceManager.TryResolveUri(includeInLib, includeDirectories, out _, out _))
+            if (!AssetRegistry.TryResolveUri(includeInLib, includeDirectories, out _, out _))
             {
                 reason = $"Can't find include file: {includeInLib}";
                 shader = null;
@@ -180,6 +182,7 @@ public abstract partial class ShaderCompiler
     public sealed class ShaderResourcePackage : IResourcePackage
     {
         public string DisplayName => ResourcesFolder;
+        public Guid Id => StringUtils.GenerateGuidFromString(ResourcesFolder); 
         public string? Name => null;
         public string ResourcesFolder { get; }
         public ResourceFileWatcher? FileWatcher => _resourceConsumer?.Package?.FileWatcher;

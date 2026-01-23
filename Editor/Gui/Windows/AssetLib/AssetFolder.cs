@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using T3.Core.Operator;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Editor.Gui.Windows.SymbolLib;
 using T3.Editor.UiModel.ProjectHandling;
 
@@ -43,7 +44,7 @@ internal sealed class AssetFolder
         FolderType = type;
 
         AliasPath = GetAliasPath();
-        if (!ResourceManager.TryResolveUri(AliasPath, selectedInstance, out AbsolutePath, out _, isFolder: true))
+        if (!AssetRegistry.TryResolveUri(AliasPath, selectedInstance, out AbsolutePath, out _, isFolder: true))
         {
             Log.Warning($"Can't resolve folder path ? {AliasPath}");
         }
@@ -132,12 +133,12 @@ internal sealed class AssetFolder
             sb.Append(stack.Pop());
             if (first)
             {
-                sb.Append(ResourceManager.PackageSeparator);
+                sb.Append(AssetRegistry.PackageSeparator);
                 first = false;
             }
             else
             {
-                sb.Append(ResourceManager.PathSeparator);
+                sb.Append(AssetRegistry.PathSeparator);
             }
         }
 

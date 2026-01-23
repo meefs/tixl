@@ -27,7 +27,7 @@ public static partial class ResourceManager
         {
             // we don't need to check for read-only packages here as any package that is in ShaderPackages but not SharedResourcePackages will be read-only
             packages = packages
-               .Concat(_shaderPackages.Except(_sharedResourcePackages)
+               .Concat(ShaderPackages.Except(_sharedResourcePackages)
                                       .Where(package => GetMatchingPackageUris(package, false, PathMode.Absolute, shaderFilters).Any()));
         }
 
@@ -50,7 +50,7 @@ public static partial class ResourceManager
 
         if (filterAcceptsShaders && shaderFilters.Length > 0)
         {
-            allFiles = allFiles.Concat(_shaderPackages.Except(_sharedResourcePackages)
+            allFiles = allFiles.Concat(ShaderPackages.Except(_sharedResourcePackages)
                                                       .SelectMany(x => GetMatchingPackageUris(x, isFolder, pathMode, shaderFilters)));
         }
 

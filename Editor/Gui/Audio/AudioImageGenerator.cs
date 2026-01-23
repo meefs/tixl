@@ -5,6 +5,7 @@ using System.IO;
 using ManagedBass;
 using T3.Core.Audio;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Core.Utils;
 using T3.Editor.Gui.UiHelpers;
 
@@ -22,7 +23,7 @@ internal static class AudioImageGenerator
             return false;
         }
             
-        if (!ResourceManager.TryResolveUri(relativePath, instance, out var soundFilePathAbsolute, out _))
+        if (!AssetRegistry.TryResolveUri(relativePath, instance, out var soundFilePathAbsolute, out _))
         {
             Log.Error($"Could not get absolute path for audio clip: {relativePath}");
             imagePathAbsolute = null;
