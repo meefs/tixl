@@ -27,10 +27,6 @@ public sealed class AdsrCalculator
         Trigger = 1
     }
 
-    /// <summary>
-    /// Marker enum for MappedType to trigger ADSR envelope UI for Vector4
-    /// </summary>
-    public enum AdsrMapping { }
 
     // Current state
     public float Value { get; private set; }

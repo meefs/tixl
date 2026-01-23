@@ -47,7 +47,7 @@ namespace Lib.io.audio
         public readonly InputSlot<bool> UseEnvelope = new();
 
         // ADSR Envelope as Vector4: X=Attack, Y=Decay, Z=Sustain, W=Release
-        [Input(Guid = "3dbcbbe6-a8b4-4b83-a2c0-e22b24b91b42", MappedType = typeof(AdsrCalculator.AdsrMapping))]
+        [Input(Guid = "3dbcbbe6-a8b4-4b83-a2c0-e22b24b91b42")]
         public readonly InputSlot<Vector4> Envelope = new();
 
         [Output(Guid = "2433f838-a8ba-4f3a-809e-2d41c404bb84")]

@@ -31,7 +31,7 @@ internal sealed class AdsrEnvelope : Instance<AdsrEnvelope>
     public readonly InputSlot<int> Mode = new();
 
     // ADSR Envelope as Vector4: X=Attack, Y=Decay, Z=Sustain, W=Release
-    [Input(Guid = "a2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6d", MappedType = typeof(AdsrCalculator.AdsrMapping))]
+    [Input(Guid = "a2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6d")]
     public readonly InputSlot<Vector4> Envelope = new();
 
     [Input(Guid = "b3c4d5e6-f7a8-4b9c-0d1e-2f3a4b5c6d7e")]

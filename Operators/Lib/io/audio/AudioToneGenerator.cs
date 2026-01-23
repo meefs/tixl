@@ -50,7 +50,7 @@ namespace Lib.io.audio
         public readonly InputSlot<int> TriggerMode = new();
 
         // ADSR Envelope as Vector4: X=Attack, Y=Decay, Z=Sustain, W=Release
-        [Input(Guid = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d", MappedType = typeof(AdsrCalculator.AdsrMapping))]
+        [Input(Guid = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")]
         public readonly InputSlot<Vector4> Envelope = new();
 
         [Output(Guid = "b7e2c1a4-5d3f-4e8a-9c2f-1e4b7a6c3d8f")]
