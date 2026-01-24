@@ -40,9 +40,6 @@ namespace Lib.io.audio
         [Input(Guid = "1a3f4b7c-12d3-4a5b-9c7d-8e1f2a3b4c5d")]
         public readonly InputSlot<bool> Mute = new();
 
-        [Input(Guid = "53d1622e-b1d5-4b1c-acd0-ebceb7064043")]
-        public readonly InputSlot<float> Panning = new();
-
         [Input(Guid = "5a7e9f2c-8d4b-4c1f-9a5e-3b2d6f7c8a4e", MappedType = typeof(WaveformTypes))]
         public readonly InputSlot<int> WaveformType = new();
 
@@ -62,15 +59,6 @@ namespace Lib.io.audio
         [Output(Guid = "b09d215a-bcf0-479a-a649-56f9c698ecb1")]
         public readonly Slot<float> GetLevel = new();
 
-        [Output(Guid = "8f4e2d1a-3b7c-4d89-9e12-7a5b8c9d0e1f")]
-        public readonly Slot<List<float>> GetWaveform = new();
-
-        [Output(Guid = "7f8e9d2a-4b5c-3e89-8f12-6a5b9c8d0e2f")]
-        public readonly Slot<List<float>> GetSpectrum = new();
-
-        [Output(Guid = "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b")]
-        public readonly Slot<float> EnvelopeValue = new();
-
         private Guid _operatorId;
         private ProceduralToneStream? _toneStream;
         private bool _previousTrigger;
@@ -80,9 +68,6 @@ namespace Lib.io.audio
             Result.UpdateAction += Update;
             IsPlaying.UpdateAction += Update;
             GetLevel.UpdateAction += Update;
-            GetWaveform.UpdateAction += Update;
-            GetSpectrum.UpdateAction += Update;
-            EnvelopeValue.UpdateAction += Update;
         }
 
         private void Update(EvaluationContext context)
@@ -98,7 +83,6 @@ namespace Lib.io.audio
             var duration = Duration.GetValue(context);
             var volume = Volume.GetValue(context);
             var mute = Mute.GetValue(context);
-            var panning = Panning.GetValue(context);
             var waveformType = WaveformType.GetValue(context);
             var triggerMode = (AdsrCalculator.TriggerMode)TriggerMode.GetValue(context);
             var envelope = Envelope.GetValue(context);
@@ -120,16 +104,12 @@ namespace Lib.io.audio
             {
                 IsPlaying.Value = false;
                 GetLevel.Value = 0;
-                GetWaveform.Value = null;
-                GetSpectrum.Value = null;
-                EnvelopeValue.Value = 0;
                 return;
             }
 
             // Update audio parameters (thread-safe)
             _toneStream.Frequency = frequency;
             _toneStream.WaveformType = (WaveformTypes)waveformType;
-            _toneStream.SetPanning(panning);
             _toneStream.SetVolume(volume, mute);
             
             // Update ADSR parameters on the shared calculator (thread-safe)
@@ -157,9 +137,6 @@ namespace Lib.io.audio
 
             IsPlaying.Value = isActive;
             GetLevel.Value = _toneStream.GetLevel();
-            GetWaveform.Value = _toneStream.GetWaveform();
-            GetSpectrum.Value = _toneStream.GetSpectrum();
-            EnvelopeValue.Value = _toneStream.Adsr.Value;
         }
 
         private void EnsureToneStream()
@@ -210,18 +187,17 @@ namespace Lib.io.audio
         /// </summary>
         private sealed class ProceduralToneStream
         {
-            private const int Channels = 2;
+            private const int Channels = 1;
 
             // Thread-safe audio parameters
             private volatile float _frequency = 440f;
             private volatile int _waveformType;
             private volatile float _currentVolume = 1.0f;
-            private volatile float _currentPanning;
             private volatile bool _isMuted;
 
             // Shared ADSR calculator (used by audio thread)
             public readonly AdsrCalculator Adsr = new();
-            
+
             // Sample rate from AudioConfig (set at creation)
             private readonly int _sampleRate;
 
@@ -292,18 +268,17 @@ namespace Lib.io.audio
             private int StreamCallback(int handle, IntPtr buffer, int length, IntPtr user)
             {
                 int floatCount = length / sizeof(float);
-                int sampleCount = floatCount / Channels;
+                int sampleCount = floatCount; // Mono: 1 sample per float
 
                 var floatBuffer = new float[floatCount];
 
                 // Read thread-safe parameters
                 float freq = _frequency;
                 int waveType = _waveformType;
-                float pan = _currentPanning;
                 float baseVol = _isMuted ? 0f : _currentVolume;
                 double phaseIncrement = 2.0 * Math.PI * freq / _sampleRate;
 
-                // Generate samples with sample-accurate envelope
+                // Generate mono samples with sample-accurate envelope
                 for (int i = 0; i < sampleCount; i++)
                 {
                     // Get envelope value for this sample (advances internal state)
@@ -315,11 +290,7 @@ namespace Lib.io.audio
                     if (_phase >= 2.0 * Math.PI)
                         _phase -= 2.0 * Math.PI;
 
-                    float leftGain = pan <= 0 ? 1f : 1f - pan;
-                    float rightGain = pan >= 0 ? 1f : 1f + pan;
-
-                    floatBuffer[i * 2] = sample * leftGain;
-                    floatBuffer[i * 2 + 1] = sample * rightGain;
+                    floatBuffer[i] = sample;
                 }
 
                 Marshal.Copy(floatBuffer, 0, buffer, floatCount);
@@ -367,11 +338,6 @@ namespace Lib.io.audio
                 _isMuted = mute;
             }
 
-            public void SetPanning(float panning)
-            {
-                _currentPanning = Math.Clamp(panning, -1f, 1f);
-            }
-
             public float GetLevel()
             {
                 if (!Adsr.IsActive) return 0f;
@@ -383,54 +349,6 @@ namespace Lib.io.audio
                 var right = ((level >> 16) & 0xFFFF) / 32768f;
                 _lastLevel = Math.Min(Math.Max(left, right), 1f);
                 return _lastLevel;
-            }
-
-            public List<float> GetWaveform()
-            {
-                if (!Adsr.IsActive)
-                {
-                    EnsureBuffer(_waveformBuffer, 512);
-                    return _waveformBuffer;
-                }
-
-                _waveformBuffer.Clear();
-                int waveType = _waveformType;
-                for (int i = 0; i < 512; i++)
-                {
-                    double t = i / 512.0 * 4 * Math.PI;
-                    float sample = GenerateSample(t, waveType);
-                    _waveformBuffer.Add(Math.Abs(sample));
-                }
-                return _waveformBuffer;
-            }
-
-            public List<float> GetSpectrum()
-            {
-                if (!Adsr.IsActive)
-                {
-                    EnsureBuffer(_spectrumBuffer, 512);
-                    return _spectrumBuffer;
-                }
-
-                _spectrumBuffer.Clear();
-                float freq = _frequency;
-                int freqBin = (int)(freq / (_sampleRate / 2f) * 512);
-                freqBin = Math.Clamp(freqBin, 0, 511);
-
-                for (int i = 0; i < 512; i++)
-                {
-                    int dist = Math.Abs(i - freqBin);
-                    float val = dist == 0 ? 1f : Math.Max(0f, 1f - dist * 0.1f);
-                    _spectrumBuffer.Add(val * (_isMuted ? 0f : _currentVolume));
-                }
-                return _spectrumBuffer;
-            }
-
-
-            private static void EnsureBuffer(List<float> buffer, int size)
-            {
-                if (buffer.Count == 0)
-                    for (int i = 0; i < size; i++) buffer.Add(0f);
             }
 
             public void Dispose()
