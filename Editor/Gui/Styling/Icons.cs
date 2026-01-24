@@ -287,14 +287,14 @@ internal static class Icons
             new(Icon.Cross, slotIndex: 139),
         };
 
-    public static readonly string IconAtlasPath = Path.Combine(SharedResources.Directory, @"images\editor\t3-icons.png");
+    public static readonly string IconAtlasPath = Path.Combine(SharedResources.Directory, @"editor\images\t3-icons.png");
 
     public static readonly Dictionary<float, string> IconFilePathForResolutions
         = new()
               {
-                  { 1f, Path.Combine(SharedResources.Directory, @"images\editor\t3-icons.png") },
-                  { 2f, Path.Combine(SharedResources.Directory, @"images\editor\t3-icons@2x.png") },
-                  { 3f, Path.Combine(SharedResources.Directory, @"images\editor\t3-icons@3x.png") },
+                  { 1f, Path.Combine(SharedResources.Directory, @"editor\images\t3-icons.png") },
+                  { 2f, Path.Combine(SharedResources.Directory, @"editor\images\t3-icons@2x.png") },
+                  { 3f, Path.Combine(SharedResources.Directory, @"editor\images\t3-icons@3x.png") },
               };
 }
 

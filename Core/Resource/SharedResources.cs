@@ -18,14 +18,16 @@ namespace T3.Core.Resource;
 /// </summary>
 public static class SharedResources
 {
-    public static readonly string Directory = Path.Combine(FileLocations.StartFolder, FileLocations.ResourcesSubfolder);
-    public static readonly IResourcePackage ResourcePackage = new SharedResourceObject();
-        
-    static SharedResources()
-    {
-        ResourceManager.AddSharedResourceFolder(ResourcePackage, true);
-    }
-
+    // static SharedResources()
+    // {
+    //     ResourceManager.AddSharedResourceFolder(ResourcePackage, true);
+    // }
+    
+    
+    public static readonly string Directory = Path.Combine(FileLocations.StartFolder, FileLocations.EditorResourcesSubfolder);
+    public static readonly string EditorSubFolder = "Editor";
+    //public static readonly IResourcePackage ResourcePackage = new SharedResourceObject();
+    
     public static void Initialize()
     {
         if (ShaderCompiler.Instance == null)
@@ -33,8 +35,9 @@ public static class SharedResources
             throw new Exception($"{nameof(ShaderCompiler)}.{nameof(ShaderCompiler.Instance)} not initialized");
         }
             
-        _fullScreenVertexShaderResource = ResourceManager.CreateShaderResource<VertexShader>(@"dx11/fullscreen-texture.hlsl", null, () => "vsMain");
-        _fullScreenPixelShaderResource = ResourceManager.CreateShaderResource<PixelShader>(@"dx11/fullscreen-texture.hlsl", null, () => "psMain");
+        _fullScreenVertexShaderResource = ResourceManager.CreateShaderResource<VertexShader>(Path.Combine(Directory, EditorSubFolder,
+                                                                                             "dx11/fullscreen-texture.hlsl"), null, () => "vsMain");
+        _fullScreenPixelShaderResource = ResourceManager.CreateShaderResource<PixelShader>(Path.Combine(Directory, EditorSubFolder, "dx11/fullscreen-texture.hlsl"), null, () => "psMain");
             
         if (_fullScreenVertexShaderResource.Value == null)
         {
@@ -60,9 +63,11 @@ public static class SharedResources
                                                                                         IsAntialiasedLineEnabled = false
                                                                                     }); 
             
-        _viewWindowDefaultTexture = ResourceManager.CreateTextureResource(@"images/editor/t3-background.png", null);
-        _t3logoAlphaTexture = ResourceManager.CreateTextureResource(@"images/t3-logo-alpha.png", null); //add t3logo to resources for use in about dialog
-        _colorPickerTexture = ResourceManager.CreateTextureResource(@"images/editor/t3-colorpicker.png", null);
+        _viewWindowDefaultTexture = ResourceManager.CreateTextureResource(Path.Combine(Directory, EditorSubFolder,  "images/t3-background.png"), null);
+        //_t3logoAlphaTexture = ResourceManager.CreateTextureResource(@"images/t3-logo-alpha.png", null); //add t3logo to resources for use in about dialog
+        _t3LogoAlphaTexture = ResourceManager.CreateTextureResource(Path.Combine(Directory, EditorSubFolder, "images/t3-logo-alpha.png"), null); //add t3logo to resources for use in about dialog
+        //_colorPickerTexture = ResourceManager.CreateTextureResource(@"images/editor/t3-colorpicker.png", null);
+        _colorPickerTexture = ResourceManager.CreateTextureResource(Path.Combine(Directory, EditorSubFolder, "images/t3-colorpicker.png"), null);
         
         if (_viewWindowDefaultTexture.Value == null)
         {
@@ -70,7 +75,7 @@ public static class SharedResources
         }
         else
         {
-            _viewWindowDefaultTexture.Value.CreateShaderResourceView(ref ViewWindowDefaultTextureSrv, "view window default texture SRV");
+            _viewWindowDefaultTexture.Value.CreateShaderResourceView(ref _viewWindowDefaultTextureSrv, "view window default texture SRV");
         }
             
         if (_colorPickerTexture.Value == null)
@@ -81,38 +86,38 @@ public static class SharedResources
         {
             _colorPickerTexture.Value.CreateShaderResourceView(ref ColorPickerImageSrv, "color picker image SRV");
         }
-        if (_t3logoAlphaTexture.Value == null)
+        if (_t3LogoAlphaTexture.Value == null)
         {
             Log.Error("Failed to load t3 logo texture");
         }
         else
         {
-            _t3logoAlphaTexture.Value.CreateShaderResourceView(ref t3logoAlphaTextureImageSrv, "t3 logo image SRV"); // convert to shader resource view
+            _t3LogoAlphaTexture.Value.CreateShaderResourceView(ref T3LogoAlphaTextureImageSrv, "t3 logo image SRV"); // convert to shader resource view
         }
 
     }
     public static RasterizerState ViewWindowRasterizerState;
-    public static ShaderResourceView ViewWindowDefaultTextureSrv;
+    private static ShaderResourceView _viewWindowDefaultTextureSrv;
     public static ShaderResourceView ColorPickerImageSrv;
-    public static ShaderResourceView t3logoAlphaTextureImageSrv;
+    public static ShaderResourceView T3LogoAlphaTextureImageSrv;
     private static Resource<VertexShader> _fullScreenVertexShaderResource;
     private static Resource<PixelShader> _fullScreenPixelShaderResource;
     private static Resource<Texture2D> _viewWindowDefaultTexture;
     private static Resource<Texture2D> _colorPickerTexture;
-    private static Resource<Texture2D> _t3logoAlphaTexture; //create texture for t3logo for about dialog 
+    private static Resource<Texture2D> _t3LogoAlphaTexture; //create texture for t3logo for about dialog 
     public static Resource<VertexShader> FullScreenVertexShaderResource => _fullScreenVertexShaderResource;
 
     public static Resource<PixelShader> FullScreenPixelShaderResource => _fullScreenPixelShaderResource;
 
-    private sealed class SharedResourceObject : IResourcePackage
-    {
-        public string DisplayName => "Shared Resources";
-        public string Alias => "t3";
-        // ReSharper disable once ReplaceAutoPropertyWithComputedProperty
-        public string ResourcesFolder { get; } = Directory;
-        public string RootNamespace => null;
-        public ResourceFileWatcher FileWatcher => null;
-        public bool IsReadOnly => true;
-        public IReadOnlyCollection<DependencyCounter> Dependencies { get; } = Array.Empty<DependencyCounter>();
-    }
+    // private sealed class SharedResourceObject : IResourcePackage
+    // {
+    //     public string DisplayName => "Shared Resources";
+    //     public string Name => "t3";
+    //     // ReSharper disable once ReplaceAutoPropertyWithComputedProperty
+    //     public string ResourcesFolder { get; } = Directory;
+    //     public string RootNamespace => null;
+    //     public ResourceFileWatcher FileWatcher => null;
+    //     public bool IsReadOnly => true;
+    //     public IReadOnlyCollection<DependencyCounter> Dependencies { get; } = Array.Empty<DependencyCounter>();
+    // }
 }

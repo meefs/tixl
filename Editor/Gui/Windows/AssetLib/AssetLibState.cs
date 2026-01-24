@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using T3.Core.Operator;
 using T3.Core.Operator.Slots;
+using T3.Core.Resource.Assets;
 using T3.Editor.UiModel.Helpers;
 
 namespace T3.Editor.Gui.Windows.AssetLib;
@@ -16,12 +17,12 @@ internal sealed class AssetLibState
     /// All assets found in resource folders.
     /// This is completely cleared and recreated on external file changes.  
     /// </summary>
-    public readonly List<AssetItem> AllAssets = [];
+    public readonly List<Asset> AllAssets = [];
     
     /// <summary>
     /// Stores assetItem data by alias path
     /// </summary>
-    public readonly Dictionary<string, AssetItem> AssetCache = [];
+    public readonly Dictionary<string, Asset> AssetCache = [];
     
     /// <summary>
     /// The available / relevant resource folders depends on the context of the current composition instance.
@@ -46,7 +47,9 @@ internal sealed class AssetLibState
     /// <summary>
     /// We need to indicate if a closed folder contains the file referenced in the <see cref="ActivePathInput"/> 
     /// </summary>
-    public string? ActiveAbsolutePath;
+    public string? ActiveAssetAddress;
+
+    public Asset? ActiveAsset;
     
     /// <summary>
     /// List of extensions than can be opened by <see cref="ActiveInstance"/> operator
@@ -57,7 +60,7 @@ internal sealed class AssetLibState
     
     public readonly SymbolFilter Filter = new();
     
-    public readonly HashSet<AssetTypeRegistry.AssetType> ActiveTypeFilters = [];
+    public readonly HashSet<AssetType> ActiveTypeFilters = [];
 
     #region internal
     /// <summary>

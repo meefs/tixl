@@ -8,7 +8,7 @@
         <OutputType>Exe</OutputType>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <StartupObject>T3.Editor.Program</StartupObject>
-        <ApplicationIcon>..\Resources\images\editor\t3.ico</ApplicationIcon>
+        <ApplicationIcon>..\Resources\editor\images\t3.ico</ApplicationIcon>
         <RootNamespace>T3.Editor</RootNamespace>
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
         <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>

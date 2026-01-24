@@ -106,7 +106,7 @@ internal static partial class Program
             _vsyncInterval = Convert.ToInt16(!_resolvedOptions.NoVsync);
             Log.Debug($": {_vsyncInterval}, windowed: {_resolvedOptions.Windowed}, size: {resolution}, loop: {_resolvedOptions.Loop}, logging: {_resolvedOptions.Logging}");
 
-            var iconPath = Path.Combine(SharedResources.Directory,  "images", "editor","t3.ico");
+            var iconPath = Path.Combine(SharedResources.Directory,  SharedResources.EditorSubFolder,"images", "t3.ico");
             var gotIcon = File.Exists(iconPath);
 
             Icon icon;

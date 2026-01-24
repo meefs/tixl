@@ -888,62 +888,61 @@ internal sealed class GraphView : ScalableCanvas, IGraphView
         {
             var symbol = selectedChildUis.Single().SymbolChild.Symbol;
             CustomComponents.DrawSymbolCodeContextMenuItem(symbol);
-            var childUi = selectedChildUis.Single();
-
+            // var childUi = selectedChildUis.Single();
             // get instance that is currently selected
-            var instance = compositionOp.Children[childUi.Id];
+            //var instance = compositionOp.Children[childUi.Id];
 
-            if (NodeActions.TryGetShaderPath(instance, out var filePath, out var owner))
-            {
-                var shaderIsReadOnly = owner.IsReadOnly;
-
-                if (ImGui.MenuItem("Open in Shader Editor", true))
-                {
-                    if (shaderIsReadOnly)
-                    {
-                        CopyToTempShaderPath(filePath, out filePath);
-                        BlockingWindow.Instance.ShowMessageBox("Warning - viewing a read-only shader. Modifications will not be saved.\n" +
-                                                               "Following #include directives outside of the temp folder may lead you to read-only files, " +
-                                                               "and editing those can break operators.\n\nWith great power...", "Warning");
-                    }
-
-                    EditorUi.Instance.OpenWithDefaultApplication(filePath);
-                }
-            }
+            // if (NodeActions.TryGetShaderPath(instance, out var filePath, out var owner))
+            // {
+            //     var shaderIsReadOnly = owner.IsReadOnly;
+            //
+            //     if (ImGui.MenuItem("Open in Shader Editor", true))
+            //     {
+            //         if (shaderIsReadOnly)
+            //         {
+            //             CopyToTempShaderPath(filePath, out filePath);
+            //             BlockingWindow.Instance.ShowMessageBox("Warning - viewing a read-only shader. Modifications will not be saved.\n" +
+            //                                                    "Following #include directives outside of the temp folder may lead you to read-only files, " +
+            //                                                    "and editing those can break operators.\n\nWith great power...", "Warning");
+            //         }
+            //
+            //         EditorUi.Instance.OpenWithDefaultApplication(filePath);
+            //     }
+            // }
         }
     }
 
-    private static void CopyToTempShaderPath(string filePath, out string newFilePath)
-    {
-        var directory = Path.GetDirectoryName(filePath)!;
-        var destinationDirectory = Path.Combine(FileLocations.TempFolder, "ReadOnlyShaders");
-
-        if (Directory.Exists(destinationDirectory))
-        {
-            try
-            {
-                Directory.Delete(destinationDirectory, true);
-            }
-            catch (Exception e)
-            {
-                Log.Warning($"Failed to delete temp directory: {e}");
-            }
-        }
-
-        var directoryInfo = Directory.CreateDirectory(destinationDirectory);
-
-        // copy all files in directory to temp directory for intellisense to work
-        var allFilesInDirectory = Directory.EnumerateFiles(directory);
-        foreach (var file in allFilesInDirectory)
-        {
-            var destinationPath = Path.Combine(destinationDirectory, Path.GetFileName(file));
-            File.Copy(file, destinationPath);
-        }
-
-        ShaderLinter.AddPackage(new ShaderCompiler.ShaderResourcePackage(directoryInfo), ResourceManager.SharedShaderPackages,
-                                replaceExisting: true);
-        newFilePath = Path.Combine(destinationDirectory, Path.GetFileName(filePath));
-    }
+    // private static void CopyToTempShaderPath(string filePath, out string newFilePath)
+    // {
+    //     var directory = Path.GetDirectoryName(filePath)!;
+    //     var destinationDirectory = Path.Combine(FileLocations.TempFolder, "ReadOnlyShaders");
+    //
+    //     if (Directory.Exists(destinationDirectory))
+    //     {
+    //         try
+    //         {
+    //             Directory.Delete(destinationDirectory, true);
+    //         }
+    //         catch (Exception e)
+    //         {
+    //             Log.Warning($"Failed to delete temp directory: {e}");
+    //         }
+    //     }
+    //
+    //     var directoryInfo = Directory.CreateDirectory(destinationDirectory);
+    //
+    //     // copy all files in directory to temp directory for intellisense to work
+    //     var allFilesInDirectory = Directory.EnumerateFiles(directory);
+    //     foreach (var file in allFilesInDirectory)
+    //     {
+    //         var destinationPath = Path.Combine(destinationDirectory, Path.GetFileName(file));
+    //         File.Copy(file, destinationPath);
+    //     }
+    //
+    //     ShaderLinter.AddPackage(new ShaderCompiler.ShaderResourcePackage(directoryInfo), ResourceManager.SharedShaderPackages,
+    //                             replaceExisting: true);
+    //     newFilePath = Path.Combine(destinationDirectory, Path.GetFileName(filePath));
+    // }
 
     private void DrawGrid(ImDrawListPtr drawList)
     {

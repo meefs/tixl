@@ -170,7 +170,7 @@ internal sealed class AppWindow
 
     private void CreateRenderForm(string windowTitle, bool disableClose)
     {
-        var fileName = Path.Combine(SharedResources.Directory, @"images/editor/t3.ico");
+        var fileName = Path.Combine(SharedResources.Directory, SharedResources.EditorSubFolder, "images", "t3.ico");
         Form = disableClose
                    ? new NoCloseRenderForm(windowTitle)
                          {

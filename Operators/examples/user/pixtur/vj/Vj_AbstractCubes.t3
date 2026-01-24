@@ -1692,7 +1692,7 @@
         {
           "Id": "ca9778e7-072c-4304-9043-eeb2dc4ca5d7"/*Folder*/,
           "Type": "System.String",
-          "Value": "Resources\\user\\wake\\proj-bigeater\\images\\00-cats"
+          "Value": "Examples:user/wake/proj-bigeater/images/00-cats/"
         }
       ],
       "Outputs": []

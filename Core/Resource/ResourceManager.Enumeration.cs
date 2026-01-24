@@ -11,27 +11,34 @@ namespace T3.Core.Resource;
 
 public static partial class ResourceManager
 {
-    public static IEnumerable<IResourcePackage> GetSharedPackagesForFilters(string[] fileExtensionFilters, bool isFolder, out string[] culledFilters)
+    /// <summary>
+    /// This method will become obsolete if file manage is no longer used.
+    /// </summary>
+    public static IEnumerable<IResourcePackage> GetSharedPackagesForFiltersForFileManager(string[] fileExtensionFilters, 
+                                                                            bool isFolder, 
+                                                                            out string[] culledFilters)
     {
         // if the package is read-only and has no files that match any of the filters, it should not be included
-
         CullFilters(isFolder, ref fileExtensionFilters, out var filterAcceptsShaders, out var shaderFilters);
         var packages = _sharedResourcePackages
-           .Where(package => !package.IsReadOnly || AllMatchingPathsIn(package, false, PathMode.Raw, fileExtensionFilters).Any());
+           .Where(package => !package.IsReadOnly || GetMatchingPackageUris(package, false, PathMode.Absolute, fileExtensionFilters).Any());
 
         if (filterAcceptsShaders && shaderFilters.Length > 0)
         {
             // we don't need to check for read-only packages here as any package that is in ShaderPackages but not SharedResourcePackages will be read-only
             packages = packages
-               .Concat(_shaderPackages.Except(_sharedResourcePackages)
-                                      .Where(package => AllMatchingPathsIn(package, false, PathMode.Raw, shaderFilters).Any()));
+               .Concat(ShaderPackages.Except(_sharedResourcePackages)
+                                      .Where(package => GetMatchingPackageUris(package, false, PathMode.Absolute, shaderFilters).Any()));
         }
 
         culledFilters = fileExtensionFilters;
         return packages;
     }
 
-    public static IEnumerable<string> EnumerateResources(string[] fileExtensionFilters, bool isFolder, IEnumerable<IResourcePackage> packages,
+    
+    public static IEnumerable<string> EnumeratePackagesResources(string[] fileExtensionFilters, 
+                                                         bool isFolder, 
+                                                         IEnumerable<IResourcePackage> packages,
                                                          PathMode pathMode)
     {
         CullFilters(isFolder, ref fileExtensionFilters, out var filterAcceptsShaders, out var shaderFilters);
@@ -39,19 +46,19 @@ public static partial class ResourceManager
         var allFiles = packages
                       .Concat(_sharedResourcePackages)
                       .Distinct()
-                      .SelectMany(x => AllMatchingPathsIn(x, isFolder, pathMode, fileExtensionFilters));
+                      .SelectMany(x => GetMatchingPackageUris(x, isFolder, pathMode, fileExtensionFilters));
 
         if (filterAcceptsShaders && shaderFilters.Length > 0)
         {
-            allFiles = allFiles.Concat(_shaderPackages.Except(_sharedResourcePackages)
-                                                      .SelectMany(x => AllMatchingPathsIn(x, isFolder, pathMode, shaderFilters)));
+            allFiles = allFiles.Concat(ShaderPackages.Except(_sharedResourcePackages)
+                                                      .SelectMany(x => GetMatchingPackageUris(x, isFolder, pathMode, shaderFilters)));
         }
 
         // handle always-shared shaders
         return (!isFolder && filterAcceptsShaders
                     ? allFiles.Concat(SharedShaderPackages
                                      .Except(_sharedResourcePackages)
-                                     .SelectMany(x => AllMatchingPathsIn(x, false, pathMode, shaderFilters)))
+                                     .SelectMany(x => GetMatchingPackageUris(x, false, pathMode, shaderFilters)))
                     : allFiles).Distinct();
     }
 
@@ -82,12 +89,16 @@ public static partial class ResourceManager
     }
 
     /// <summary>
-    /// Method to enumerate all files in a package that match the given filters. If a file matches any of the filters, it will be included.
+    /// Method to enumerate all files in a package that match the given filters.
+    /// If a file matches any of the filters, it will be included.
     /// Potentially performance-critical.
     /// </summary>
     /// <returns>Matching file path formatted by PathMode provided</returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    private static IEnumerable<string> AllMatchingPathsIn(IResourcePackage package, bool useFolder, PathMode pathMode, string[] filters)
+    private static IEnumerable<string> GetMatchingPackageUris(IResourcePackage package, 
+                                                          bool useFolder, 
+                                                          PathMode pathMode, 
+                                                          string[] filters)
     {
         var directory = package.ResourcesFolder;
         if (!Directory.Exists(directory))
@@ -100,22 +111,22 @@ public static partial class ResourceManager
                               AttributesToSkip = FileAttributes.ReparsePoint // avoids many junction/symlink surprises
                           };
 
-        IEnumerable<string> paths = useFolder
-                                        ? Directory.EnumerateDirectories(directory, "*", options)
-                                        : Directory.EnumerateFiles(directory, "*", options);
+        var paths = useFolder
+                        ? Directory.EnumerateDirectories(directory, "*", options)
+                        : Directory.EnumerateFiles(directory, "*", options);
 
         using var it = paths.GetEnumerator();
 
         while (true)
         {
-            string path;
+            string absolutePath;
 
             try
             {
                 if (!it.MoveNext())
                     break;
 
-                path = it.Current;
+                absolutePath = it.Current;
             }
             catch (Exception e) when (
                 e is UnauthorizedAccessException ||
@@ -126,21 +137,21 @@ public static partial class ResourceManager
                 continue; // skip the offending subtree/entry and keep going
             }
 
-            if (string.IsNullOrEmpty(path))
+            if (string.IsNullOrEmpty(absolutePath))
             {
                 Log.Warning($"Failed to enumerate resources under '{directory}'");
                 continue;
             }
 
-            path.ToForwardSlashesUnsafe();
+            absolutePath.ToForwardSlashesUnsafe();
 
-            var lastSlashIndex = path.LastIndexOf('/');
-            var endIndexExclusive = path.Length;
+            var lastSlashIndex = absolutePath.LastIndexOf('/');
+            var endIndexExclusive = absolutePath.Length;
             var range = lastSlashIndex == -1
                             ? new Range(0, endIndexExclusive)
                             : new Range(lastSlashIndex + 1, endIndexExclusive);
 
-            var fileNameSpan = path.AsSpan()[range];
+            var fileNameSpan = absolutePath.AsSpan()[range];
 
             var passed = false;
             foreach (var filter in filters)
@@ -162,24 +173,14 @@ public static partial class ResourceManager
             switch (pathMode)
             {
                 case PathMode.Absolute:
-                case PathMode.Raw:
-                    result = path;
+                    result = absolutePath;
                     break;
-
-                case PathMode.Relative:
-                    if (!_relativePathsCache.TryGetValue(path, out result))
+                
+                case PathMode.PackageUri:
+                    if (!_packagePathsCache.TryGetValue(absolutePath, out result))
                     {
-                        result = path[(directory.Length + 1)..];
-                        _relativePathsCache.TryAdd(path, result);
-                    }
-
-                    break;
-
-                case PathMode.Aliased:
-                    if (!_aliasedPathsCache.TryGetValue(path, out result))
-                    {
-                        result = $"/{package.Alias}/{path.AsSpan()[(directory.Length + 1)..]}";
-                        _aliasedPathsCache.TryAdd(path, result);
+                        result = $"{package.Name}:{absolutePath.AsSpan()[(directory.Length + 1)..]}";
+                        _packagePathsCache.TryAdd(absolutePath, result);
                     }
 
                     break;
@@ -191,8 +192,8 @@ public static partial class ResourceManager
             yield return result;
         }
 
-        CheckSizeOf(_relativePathsCache);
-        CheckSizeOf(_aliasedPathsCache);
+        CheckSizeOf(_uriPathsCache);
+        CheckSizeOf(_packagePathsCache);
 
         static void CheckSizeOf(ConcurrentDictionary<string, string> pathCache)
         {
@@ -204,25 +205,14 @@ public static partial class ResourceManager
         }
     }
 
-    private static readonly ConcurrentDictionary<string, string> _aliasedPathsCache = new();
-    private static readonly ConcurrentDictionary<string, string> _relativePathsCache = new();
+    private static readonly ConcurrentDictionary<string, string> _packagePathsCache = new();
+    private static readonly ConcurrentDictionary<string, string> _uriPathsCache = new();
     private const int MaxPathCacheSize = 1_000_000; // 1 million path entries ~= 320MB + dictionary cache overhead
 
     public const string DefaultShaderFilter = "*.hlsl";
     private static bool PathIsShader(ReadOnlySpan<char> path) => StringUtils.MatchesSearchFilter(path, DefaultShaderFilter, true);
+    
+    
+    
 }
 
-public static class ResourceExtensions
-{
-    public static IEnumerable<IResourcePackage> PackagesInCommon(this IReadOnlyCollection<Instance> instances)
-    {
-        if (instances.Count == 0)
-            return [];
-
-        if (instances.Count == 1)
-            return instances.First().AvailableResourcePackages;
-
-        return instances.Select(x => x.AvailableResourcePackages)
-                        .Aggregate<IEnumerable<IResourcePackage>>((a, b) => a.Intersect(b));
-    }
-}

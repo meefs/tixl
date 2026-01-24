@@ -3,7 +3,7 @@
   "Inputs": [
     {
       "Id": "2418e72c-b15f-42a8-9689-a53fe59aa9ad"/*Folder*/,
-      "DefaultValue": "/t3/images/sequences/agingFacesFemale"
+      "DefaultValue": "Examples:t3/images/sequences/agingFacesFemale/"
     }
   ],
   "Children": [
@@ -79,7 +79,7 @@
         {
           "Id": "ca9778e7-072c-4304-9043-eeb2dc4ca5d7"/*Folder*/,
           "Type": "System.String",
-          "Value": "Resources/user/pixtur/VJ/agingFacesMale2"
+          "Value": "Examples:user/pixtur/VJ/agingFacesMale2/"
         },
         {
           "Id": "e14a4aae-e253-4d14-80ef-a90271cd306a"/*TriggerUpdate*/,
@@ -125,7 +125,7 @@
         {
           "Id": "76cc3811-4ae0-48b2-a119-890db5a4eeb2"/*Path*/,
           "Type": "System.String",
-          "Value": "Resources\\user\\pixtur\\VJ\\agingFacesFemale\\female_40yd.jpg"
+          "Value": "Examples:images/sequences/agingFacesFemale/female_40yd.jpg"
         }
       ],
       "Outputs": []
@@ -547,7 +547,7 @@
         {
           "Id": "ca9778e7-072c-4304-9043-eeb2dc4ca5d7"/*Folder*/,
           "Type": "System.String",
-          "Value": "Resources/user/pixtur/VJ/agingFacesFemale"
+          "Value": "Examples:user/pixtur/VJ/agingFacesFemale/"
         },
         {
           "Id": "e14a4aae-e253-4d14-80ef-a90271cd306a"/*TriggerUpdate*/,

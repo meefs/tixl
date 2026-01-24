@@ -1,16 +1,11 @@
 ﻿#nullable enable
 
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Runtime.CompilerServices;
-using System.Text;
 using ImGuiNET;
 using T3.Core.Operator;
-using T3.Core.Operator.Slots;
 using T3.Core.Resource;
-using T3.Editor.Gui.InputUi.SimpleInputUis;
+using T3.Core.Resource.Assets;
 using T3.Editor.Gui.UiHelpers;
-using T3.Editor.UiModel;
+using T3.Editor.UiModel.Helpers;
 using T3.Editor.UiModel.ProjectHandling;
 using T3.Editor.UiModel.Selection;
 
@@ -57,7 +52,7 @@ internal sealed partial class AssetLibrary : Window
             return;
 
         if (_state.LastFileWatcherState == ResourceFileWatcher.FileStateChangeCounter
-            && !HasObjectChanged(_state.Composition, ref _lastCompositionObjId)
+            && !Core.Utils.Utilities.HasObjectChanged(_state.Composition, ref _lastCompositionObjId)
             && !_state.FilteringNeedsUpdate)
             return;
 
@@ -65,73 +60,29 @@ internal sealed partial class AssetLibrary : Window
         _state.LastFileWatcherState = ResourceFileWatcher.FileStateChangeCounter;
 
         _state.AllAssets.Clear();
-        AssetTypeRegistry.ClearMatchingFileCounts();
-        
-        var filePaths = ResourceManager.EnumerateResources([],
-                                                           isFolder: false,
-                                                           _state.Composition.AvailableResourcePackages,
-                                                           ResourceManager.PathMode.Aliased);
+        AssetTypeUseCounter.ClearMatchingFileCounts();
 
-        foreach (var aliasedPath in filePaths)
+        var unfilteredAssets = AssetRegistry.AllAssets
+                                            .Where(MatchFilters);
+
+        // Sorting by Address ensures they are grouped by Package then by Path
+        var sortedAssets = unfilteredAssets.OrderBy(a => a.Address).ToList();
+
+        foreach (var asset in sortedAssets)
         {
-            if (!_state.AssetCache.TryGetValue(aliasedPath, out var asset))
-            {
-                if (!ResourceManager.TryResolveRelativePath(aliasedPath, _state.Composition, out var absolutePath, out var package))
-                {
-                    Log.Warning($"Can't find file {aliasedPath}");
-                    continue;
-                }
-
-                ParsePath(aliasedPath, out var packageName, out var folders);
-
-                var fileInfo = new FileInfo(absolutePath);
-                var fileInfoExtension = fileInfo.Extension.Length < 1 ? string.Empty : fileInfo.Extension[1..];
-                var fileExtensionId = FileExtensionRegistry.GetUniqueId(fileInfoExtension);
-                if (!AssetTypeRegistry.TryGetFromId(fileExtensionId, out var assetType))
-                {
-                    Log.Warning($"Can't find file type for: {fileInfoExtension}");
-                }
-
-                asset = new AssetItem
-                            {
-                                FileAliasPath = aliasedPath,
-                                FileInfo = fileInfo,
-                                Package = package,
-                                PackageName = packageName,
-                                FilePathFolders = folders,
-                                AbsolutePath = absolutePath, // With forward slashes
-                                FileExtensionId = fileExtensionId,
-                                AssetType = assetType,
-                            };
-                _state.AssetCache[aliasedPath] = asset;
-            }
-            
-            if (asset.AssetType != null)
-            {
-                asset.AssetType.MatchingFileCount++;
-                AssetTypeRegistry.TotalAssetCount++;
-            }
-
-            if (_state.CompatibleExtensionIds.Count == 0
-                || _state.CompatibleExtensionIds.Contains(asset.FileExtensionId))
-            {
-                _state.AllAssets.Add(asset);
-            }
-            
+            _state.AllAssets.Add(asset);
+            AssetTypeUseCounter.IncrementUseCount(asset.AssetType);
         }
 
         AssetFolder.PopulateCompleteTree(_state, filterAction: null);
-        _state.FilteringNeedsUpdate = false;
     }
 
-    private static void ParsePath(string path, out string package, out List<string> folders)
+    private static bool MatchFilters(Asset asset)
     {
-        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-        package = parts.Length > 0 ? parts[0] : string.Empty;
-        folders = parts.Length > 1
-                      ? parts[0..^1].ToList()
-                      : [];
+        // Apply filters (Search, Compatibility, etc.)
+        return !asset.IsDirectory &&
+               (string.IsNullOrEmpty(_state.Filter.SearchString) ||
+               asset.Address.Contains(_state.Filter.SearchString, StringComparison.OrdinalIgnoreCase));
     }
 
     private static void UpdateActiveSelection(Instance selectedInstance)
@@ -141,107 +92,42 @@ internal sealed partial class AssetLibrary : Window
             return;
 
         _state.TimeActiveInstanceChanged = ImGui.GetTime();
-
+        
         _state.ActiveInstance = selectedInstance;
         _state.ActivePathInput = null;
-        _state.ActiveAbsolutePath = null;
+        _state.ActiveAssetAddress = null;
         _state.CompatibleExtensionIds.Clear();
 
         // Check if active instance has asset reference...
-        var instance = _state.ActiveInstance;
-        
-        if (TryGetFileInputFromInstance(instance, out _state.ActivePathInput, out var stringInputUi))
+        if (SymbolAnalysis.TryGetFileInputFromInstance(selectedInstance, out _state.ActivePathInput, out var stringInputUi))
         {
-            var filePath = _state.ActivePathInput.GetCurrentValue();
-            ResourceManager.TryResolveRelativePath(filePath, instance, out _state.ActiveAbsolutePath, out _);
+            _state.ActiveAssetAddress = _state.ActivePathInput.GetCurrentValue();
+            AssetRegistry.TryGetAsset(_state.ActiveAssetAddress, out _state.ActiveAsset);
 
-            if (UserSettings.Config.SyncWithOperatorSelection)
+            if (!UserSettings.Config.SyncWithOperatorSelection) 
+                return;
+            
+            FileExtensionRegistry.IdsFromFileFilter(stringInputUi.FileFilter, ref _state.CompatibleExtensionIds);
+            _state.ActiveTypeFilters.Clear();
+            foreach (var assetType in AssetType.AvailableTypes)
             {
-                FileExtensionRegistry.IdsFromFileFilter(stringInputUi.FileFilter, ref _state.CompatibleExtensionIds);
-                _state.ActiveTypeFilters.Clear();
-                foreach (var assetType in AssetTypeRegistry.AssetTypes)
+                foreach (var extId in _state.CompatibleExtensionIds)
                 {
-                    foreach (var extId in _state.CompatibleExtensionIds)
-                    {
-                        if (!assetType.ExtensionIds.Contains(extId)) 
-                            continue;
-                        
-                        _state.ActiveTypeFilters.Add(assetType);
-                        break;
-                    }
+                    if (!assetType.ExtensionIds.Contains(extId))
+                        continue;
+
+                    _state.ActiveTypeFilters.Add(assetType);
+                    break;
                 }
-                
             }
         }
         else
         {
-            _state.ActiveAbsolutePath = null;
+            _state.ActiveAsset = null;
+            _state.ActiveAssetAddress = null;
+            _state.ActivePathInput = null;
+            _state.ActiveTypeFilters.Clear();
         }
-    }
-
-    // TODO: move to separate op utils helper class
-    public static bool TryGetFileInputFromInstance(Instance instance,
-                                                   [NotNullWhen(true)] out InputSlot<string>? stringInput,
-                                                   [NotNullWhen(true)] out StringInputUi? stringInputUi)
-    {
-        stringInput = null;
-        stringInputUi = null;
-
-        var symbolUi = instance.GetSymbolUi();
-        foreach (var input in instance.Inputs)
-        {
-            if (input is not InputSlot<string> tmpStringInput)
-                continue;
-
-            stringInput = tmpStringInput;
-
-            var inputUi = symbolUi.InputUis[input.Id];
-            if (inputUi is not StringInputUi { Usage: StringInputUi.UsageType.FilePath } tmpStringInputUi)
-                continue;
-
-            stringInputUi = tmpStringInputUi;
-
-            // Found a file path input in selected op
-            //_state.ActivePathInput = tmpStringInput;
-
-            // var sb = new StringBuilder();
-            // foreach (var id in AssetLibState.CompatibleExtensionIds)
-            // {
-            //     if (FileExtensionRegistry.TryGetExtensionForId(id, out var ext))
-            //     {
-            //         sb.Append(ext);
-            //         sb.Append(", ");
-            //     }
-            //     else
-            //     {
-            //         sb.Append($"#{id}");
-            //     }
-            // }
-            //
-            // Log.Debug("matching extensions " + sb);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Useful for checking if a reference has changed without keeping an GC reference. 
-    /// </summary>
-    private static bool HasObjectChanged(object? obj, ref int? lastObjectId)
-    {
-        int? id = obj is null ? null : RuntimeHelpers.GetHashCode(obj);
-        if (id == lastObjectId)
-            return false;
-
-        lastObjectId = id;
-        return true;
-    }
-
-    internal static bool GetAssetFromAliasPath(string aliasPath, [NotNullWhen(true)] out AssetItem? asset)
-    {
-        return _state.AssetCache.TryGetValue(aliasPath, out asset);
     }
 
     private int? _lastCompositionObjId = 0;

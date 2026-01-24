@@ -416,7 +416,7 @@ internal static partial class SkillTraining
             if (p is not EditorSymbolPackage editorProject)
                 continue;
             
-            if (editorProject.Alias == "Skills")
+            if (editorProject.Name == "Skills")
             {
                 skillProject = editorProject;
                 return true;

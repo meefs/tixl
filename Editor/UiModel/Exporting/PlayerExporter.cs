@@ -7,6 +7,7 @@ using T3.Core.Model;
 using T3.Core.Operator;
 using T3.Core.Operator.Slots;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Core.SystemUi;
 using T3.Core.UserData;
 using T3.Editor.Compilation;
@@ -89,7 +90,7 @@ internal static partial class PlayerExporter
             }
         }
 
-        var generalResourceTargetDir = Path.Combine(exportDir, FileLocations.ResourcesSubfolder);
+        var generalResourceTargetDir = Path.Combine(exportDir, FileLocations.AssetsSubfolder);
         Directory.CreateDirectory(generalResourceTargetDir);
         if (!TryCopyDirectory(SharedResources.Directory, generalResourceTargetDir, out reason))
             return false;
@@ -162,7 +163,7 @@ internal static partial class PlayerExporter
         var relativePathInPackageResources = Path.GetRelativePath(symbol.SymbolPackage.ResourcesFolder, absolutePath);
         targetPath = Path.Combine(exportDir, "Operators",
                                   symbol.SymbolPackage.RootNamespace,
-                                  FileLocations.ResourcesSubfolder,
+                                  FileLocations.AssetsSubfolder,
                                   relativePathInPackageResources);
         return true;
     }
@@ -171,7 +172,7 @@ internal static partial class PlayerExporter
     private static bool TryExportPackages(out string reason, IEnumerable<SymbolPackage> symbolPackages, string operatorDir)
     {
         // note: I think this is only intended to export dll files? if so, this should make use of TixlAssemblyLoadContexts instead to get specific dlls in use
-        string[] excludeSubdirectories = [FileLocations.SymbolUiSubFolder, FileLocations.SourceCodeSubFolder, ".git", FileLocations.ResourcesSubfolder];
+        string[] excludeSubdirectories = [FileLocations.SymbolUiSubFolder, FileLocations.SourceCodeSubFolder, ".git", FileLocations.AssetsSubfolder];
         foreach (var package in symbolPackages)
         {
             Log.Debug($"Exporting package {package.AssemblyInformation?.Name}");
@@ -432,7 +433,7 @@ internal static partial class PlayerExporter
                 var relativeDirectory = stringValue.Value;
                 var isFolder = relativeDirectory.EndsWith('/');
 
-                if (!ResourceManager.TryResolveRelativePath(relativeDirectory, parent, out var absoluteDirectory, out var package, isFolder))
+                if (!AssetRegistry.TryResolveAddress(relativeDirectory, parent, out var absoluteDirectory, out var package, isFolder))
                 {
                     Log.Warning($"Directory '{relativeDirectory}' was not found in any resource folder");
                     break;

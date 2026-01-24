@@ -4,6 +4,7 @@ using System.IO;
 using T3.Core.Compilation;
 using T3.Core.Operator;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Core.SystemUi;
 using T3.Editor.Compilation;
 
@@ -20,7 +21,8 @@ internal sealed partial class EditableSymbolProject : EditorSymbolPackage
     /// <summary>
     /// Create a new <see cref="EditableSymbolProject"/> using the given <see cref="CsProjectFile"/>.
     /// </summary>
-    public EditableSymbolProject(CsProjectFile csProjectFile) : base(assembly: AssemblyInformation.CreateUninitialized(), directory: csProjectFile.Directory, false)
+    public EditableSymbolProject(CsProjectFile csProjectFile) : 
+        base(assembly: AssemblyInformation.CreateUninitialized(), directory: csProjectFile.Directory, false)
     {
         AssemblyInformation.Initialize(csProjectFile.GetBuildTargetDirectory(), false);
         CsProjectFile = csProjectFile;
@@ -122,6 +124,21 @@ internal sealed partial class EditableSymbolProject : EditorSymbolPackage
     {
         base.InitializeResources();
         _resourceFileWatcher = new ResourceFileWatcher(ResourcesFolder);
+        
+        _resourceFileWatcher.FileCreated += (sender, path) => 
+                                            {
+                                                AssetRegistry.RegisterEntry(new FileInfo(path), ResourcesFolder, Name, Id, false);
+                                            };
+
+        _resourceFileWatcher.FileRenamed += (oldPath, newPath) => 
+                                            {
+                                                AssetRegistry.UpdateEntry(oldPath, newPath, this);
+                                            };
+
+        _resourceFileWatcher.FileDeleted += (sender, path) => 
+                                            {
+                                                AssetRegistry.UnregisterEntry(path, this);
+                                            };
     }
 
     public override void Dispose()

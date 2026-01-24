@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using T3.Core.Operator;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Editor.Gui.Windows.SymbolLib;
 using T3.Editor.UiModel.ProjectHandling;
 
@@ -18,6 +19,8 @@ internal sealed class AssetFolder
     internal string Name { get; private set; }
     internal List<AssetFolder> SubFolders { get; } = [];
     private AssetFolder? Parent { get; }
+    internal int MatchingAssetCount;
+    
     public int HashCode;
 
     /// <summary>
@@ -33,7 +36,7 @@ internal sealed class AssetFolder
     }
 
     internal readonly string AbsolutePath;
-    internal readonly string AliasPath;
+    internal readonly string Address;
     
 
     internal AssetFolder(string name, Instance? selectedInstance, AssetFolder? parent = null, FolderTypes type = FolderTypes.Directory)
@@ -42,17 +45,23 @@ internal sealed class AssetFolder
         Parent = parent;
         FolderType = type;
 
-        AliasPath = GetAliasPath();
-        if (!string.IsNullOrEmpty(AliasPath))
+        if (name == RootNodeId)
         {
-            ResourceManager.TryResolveRelativePath(AliasPath, selectedInstance, out AbsolutePath, out _, isFolder: true);
+            AbsolutePath = string.Empty;
+            Address = string.Empty;
+            return;
+        }
+
+        Address = GetAliasPath();
+        if (!AssetRegistry.TryResolveAddress(Address, selectedInstance, out AbsolutePath, out _, isFolder: true))
+        {
+            Log.Warning($"Can't resolve folder path '{Address}'? ");
         }
         
-        HashCode = AliasPath.GetHashCode();
+        HashCode = Address.GetHashCode();
     }
-
-    // Define an action delegate that takes a Symbol and returns a bool
-    internal static void PopulateCompleteTree(AssetLibState state, Predicate<AssetItem>? filterAction)
+    
+    internal static void PopulateCompleteTree(AssetLibState state, Predicate<Asset>? filterAction)
     {
         if (state.Composition == null)
             return;
@@ -68,44 +77,58 @@ internal sealed class AssetFolder
 
             state.RootFolder.SortInAssets(file, state.Composition);
         }
+        
+        state.RootFolder.UpdateMatchingAssetCounts(state.CompatibleExtensionIds);
     }
 
+    
+    private int UpdateMatchingAssetCounts(List<int> compatibleExtensionIds)
+    {
+        var count = 0;
+
+        // Count direct assets in this folder
+        if (compatibleExtensionIds.Count == 0)
+        {
+            count += FolderAssets.Count;
+        }
+        else
+        {
+            foreach (var asset in FolderAssets)
+            {
+                if (compatibleExtensionIds.Contains(asset.ExtensionId))
+                    count++;
+            }
+        }
+
+        // Aggregate counts from subfolders
+        foreach (var subFolder in SubFolders)
+        {
+            count += subFolder.UpdateMatchingAssetCounts(compatibleExtensionIds);
+        }
+
+        MatchingAssetCount = count;
+        return count;
+    }
+    
     /// <summary>
     /// Build up folder structure by sorting in one asset at a time
     /// creating required sub folders on the way.
     /// </summary>
-    private void SortInAssets(AssetItem assetItem, Instance composition)
+    private void SortInAssets(Asset asset, Instance composition)
     {
-        // Roll out recursion
         var currentFolder = this;
-        var expandingSubTree = false;
-
-        foreach (var pathPart in assetItem.FilePathFolders)
+        foreach (var pathPart in asset.PathParts) // Using core pre-calculated parts
         {
-            if (string.IsNullOrEmpty(pathPart))
-                continue;
-
-            if (!expandingSubTree)
+            if (currentFolder.TryGetSubFolder(pathPart, out var folder))
+                currentFolder = folder;
+            else
             {
-                if (currentFolder.TryGetSubFolder(pathPart, out var folder))
-                {
-                    currentFolder = folder;
-                }
-                else
-                {
-                    expandingSubTree = true;
-                }
+                var newFolder = new AssetFolder(pathPart, composition, currentFolder);
+                currentFolder.SubFolders.Add(newFolder);
+                currentFolder = newFolder;
             }
-
-            if (!expandingSubTree)
-                continue;
-
-            var newFolderNode = new AssetFolder(pathPart, composition, currentFolder);
-            currentFolder.SubFolders.Add(newFolderNode);
-            currentFolder = newFolderNode;
         }
-
-        currentFolder.FolderAssets.Add(assetItem);
+        currentFolder.FolderAssets.Add(asset);
     }
 
     private bool TryGetSubFolder(string folderName, [NotNullWhen(true)] out AssetFolder? subFolder)
@@ -129,14 +152,16 @@ internal sealed class AssetFolder
         var first = true;
         while (stack.Count > 0)
         {
+            sb.Append(stack.Pop());
             if (first)
             {
-                sb.Append(ResourceManager.PathSeparator);
+                sb.Append(AssetRegistry.PackageSeparator);
                 first = false;
             }
-
-            sb.Append(stack.Pop());
-            sb.Append(ResourceManager.PathSeparator);
+            else
+            {
+                sb.Append(AssetRegistry.PathSeparator);
+            }
         }
 
         return sb.ToString();
@@ -148,6 +173,6 @@ internal sealed class AssetFolder
         FolderAssets.Clear();
     }
 
-    internal readonly List<AssetItem> FolderAssets = [];
+    internal readonly List<Asset> FolderAssets = [];
     internal const string RootNodeId = "__root__";
 }
