@@ -1,7 +1,7 @@
 # Audio System Architecture
 
-**Version:** 1.1  
-**Last Updated:** 2026-01-23
+**Version:** 2.0  
+**Last Updated:** 2026-01-24
 **Status:** Production Ready
 
 ---
@@ -9,11 +9,16 @@
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Architecture Overview](#architecture-overview)
-3. [Class Hierarchy](#class-hierarchy)
-4. [Audio Operators](#audio-operators)
-5. [Configuration System](#configuration-system)
-6. [Documentation Index](#documentation-index)
-7. [Future Enhancement Opportunities](#future-enhancement-opportunities)
+3. [Core Components](#core-components)
+4. [Class Hierarchy](#class-hierarchy)
+5. [Mixer Architecture](#mixer-architecture)
+6. [Signal Flow](#signal-flow)
+7. [Audio Operators](#audio-operators)
+8. [Configuration System](#configuration-system)
+9. [Export and Rendering](#export-and-rendering)
+10. [Documentation Index](#documentation-index)
+11. [Future Enhancement Opportunities](#future-enhancement-opportunities)
+
 ---
 
 ## Introduction
@@ -22,23 +27,22 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
 
 ### Key Features
 - **Dual-mode playback**: Stereo and 3D spatial audio operators
-- **Professional audio**: Device-native sample rate with hardware acceleration
+- **Device-native sample rate**: Automatically matches output device sample rate via WASAPI query
+- **Low-latency configuration**: Configurable update periods and buffer sizes
 - **Native 3D audio**: BASS 3D engine with directional cones, Doppler effects, velocity-based positioning
 - **Real-time analysis**: FFT spectrum, waveform, and level metering for both live and export
-- **Centralized configuration**: Single source of truth for all audio settings
+- **Centralized configuration**: Single source of truth via `AudioConfig`
 - **Debug control**: Suppressible logging for cleaner development experience
 - **Isolated offline analysis**: Waveform image generation without interfering with playback
 - **Stale detection**: Automatic muting of inactive operator streams per-frame
 - **Export support**: Direct stream reading for video export with audio (soundtrack + operator mixing)
 - **Unified codebase**: Common base class (`OperatorAudioStreamBase`) eliminates code duplication
 - **FLAC support**: Native BASS FLAC plugin for high-quality audio files
-- **External audio mode support**: Handles external device audio sources during export
+- **External audio mode support**: Handles external device audio sources during export (operators only)
 
 ---
 
 ## Architecture Overview
-
-### Core Components
 
 ```
                               AUDIO ENGINE (API)
@@ -46,10 +50,11 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
     │  UpdateStereoOperatorPlayback()    Set3DListenerPosition()    │
     │  UpdateSpatialOperatorPlayback()   CompleteFrame()            │
     │  UseSoundtrackClip()               ReloadSoundtrackClip()     │
-    │  PauseOperator/ResumeOperator      GetOperatorLevel/Waveform  │
+    │  PauseOperator/ResumeOperator      GetOperatorLevel           │
     │  UnregisterOperator()              SetGlobalVolume/Mute       │
     │  OnAudioDeviceChanged()            SetSoundtrackMute()        │
     │  TryGetStereoOperatorStream()      TryGetSpatialOperatorStream│
+    │  GetClipChannelCount()             GetClipSampleRate()        │
     └───────────────────────────────────────────────────────────────┘
                        │                              │
                        ▼                              ▼
@@ -74,7 +79,7 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
     │              OPERATOR AUDIO STREAM BASE (Abstract)              │
     ├─────────────────────────────────────────────────────────────────┤
     │  • Play/Pause/Resume/Stop      • Volume/Speed/Seek              │
-    │  • Stale/User muting           • Level/Waveform/Spectrum        │
+    │  • Stale/User muting           • GetLevel (metering)            │
     │  • Export metering             • RenderAudio for export         │
     │  • PrepareForExport            • RestartAfterExport             │
     │  • UpdateFromBuffer            • ClearExportMetering            │
@@ -100,117 +105,178 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
     ┌─────────────────────────────────────────────────────────────────┐
     │                    OPERATOR GRAPH INTEGRATION                   │
     ├────────────────────────────────┬────────────────────────────────┤
-    │     StereoAudioPlayer          │       SpatialAudioPlayer       │
+    │     AudioPlayer                │       SpatialAudioPlayer       │
     │     (Uses AudioPlayerUtils)    │       (Uses AudioPlayerUtils)  │
     └────────────────────────────────┴────────────────────────────────┘
 ```
 
-### Class Hierarchy
+---
+
+## Core Components
+
+### AudioEngine
+The central API for all audio operations. Key responsibilities:
+- **Soundtrack Management**: `UseSoundtrackClip()`, `ReloadSoundtrackClip()`, `CompleteFrame()`
+- **Operator Playback**: `UpdateStereoOperatorPlayback()`, `UpdateSpatialOperatorPlayback()`
+- **3D Listener**: `Set3DListenerPosition()`, `Get3DListenerPosition/Forward/Up()`
+- **State Queries**: `IsOperatorStreamPlaying()`, `IsOperatorPaused()`, `GetOperatorLevel()`
+- **Device Management**: `OnAudioDeviceChanged()`, `SetGlobalVolume()`, `SetGlobalMute()`
+- **Export Support**: `ResetAllOperatorStreamsForExport()`, `RestoreOperatorAudioStreams()`
+
+### AudioMixerManager
+Manages the BASS mixer hierarchy. Key features:
+- **Automatic device sample rate detection** via WASAPI query before BASS init
+- **Low-latency configuration** applied before initialization
+- **FLAC plugin loading** for native FLAC support
+- **Four mixer handles** for different purposes (see Mixer Architecture)
+- **Level metering** via `GetGlobalMixerLevel()`, `GetOperatorMixerLevel()`, `GetSoundtrackMixerLevel()`
+- **Offline analysis streams** via `CreateOfflineAnalysisStream()` / `FreeOfflineAnalysisStream()`
+
+### AudioConfig
+Centralized configuration with compile-time and runtime settings:
+- **Runtime**: `MixerFrequency` (set from device), `ShowAudioLogs`, `ShowAudioRenderLogs`
+- **Compile-time**: Buffer sizes, FFT configuration, frequency band counts
+- **Logging helpers**: `LogAudioDebug()`, `LogAudioInfo()`, `LogAudioRenderDebug()`, `LogAudioRenderInfo()`
+
+---
+
+## Class Hierarchy
 
 ```
 OperatorAudioStreamBase (abstract)
 ├── Properties: Duration, StreamHandle, MixerStreamHandle, IsPaused, IsPlaying, FilePath
-├── Protected: DefaultPlaybackFrequency, CurrentVolume, CurrentSpeed, IsStaleMuted, IsUserMuted
+├── Protected: DefaultPlaybackFrequency, CachedChannels, CachedFrequency, IsStaleMuted
 ├── Methods: Play, Pause, Resume, Stop, SetVolume, SetSpeed, Seek
-├── Metering: GetLevel, GetWaveform, GetSpectrum, UpdateFromBuffer
-├── Export: PrepareForExport, RestartAfterExport, RenderAudio, ClearExportMetering
+├── Metering: GetLevel, UpdateFromBuffer, ClearExportMetering
+├── Export: PrepareForExport, RestartAfterExport, RenderAudio, GetCurrentPosition
 │
 ├── StereoOperatorAudioStream
-│   └── SetPanning(float)  - Pan audio left (-1) to right (+1)
+│   ├── TryLoadStream(filePath, mixerHandle) - Factory method
+│   └── SetPanning(float) - Pan audio left (-1) to right (+1)
 │
 └── SpatialOperatorAudioStream
-    ├── Update3DPosition(Vector3, float, float)  - Position + min/max distance
-    ├── Set3DOrientation(Vector3)                 - Directional facing
-    ├── Set3DCone(float, float, float)            - Inner/outer angle + volume
-    ├── Set3DMode(Mode3D)                         - Normal/Relative/Off
-    └── Initialize3DAudio()                       - Setup 3D attributes
+    ├── TryLoadStream(filePath, mixerHandle) - Factory method (loads as mono)
+    ├── Initialize3DAudio() - Setup 3D attributes
+    ├── Update3DPosition(Vector3, float, float) - Position + min/max distance
+    ├── Set3DOrientation(Vector3) - Directional facing
+    ├── Set3DCone(float, float, float) - Inner/outer angle + volume
+    └── Set3DMode(Mode3D) - Normal/Relative/Off
 
 AudioPlayerUtils (static utility)
-└── ComputeInstanceGuid(IEnumerable<Guid>)  - Stable operator identification
+└── ComputeInstanceGuid(IEnumerable<Guid>) - Stable operator identification via FNV-1a hash
 
 OperatorAudioUtils (static utility)
-├── FillAndResample(...)   - Buffer filling with resampling/channel conversion
-└── LinearResample(...)    - Simple linear resampler and up/down-mixer
+├── FillAndResample(...) - Buffer filling with resampling/channel conversion
+└── LinearResample(...) - Simple linear resampler and up/down-mixer
+
+AudioEngine (static)
+├── Soundtrack: SoundtrackClipStreams, UseSoundtrackClip, ReloadSoundtrackClip
+├── Operators: _stereoOperatorStates, _spatialOperatorStates, Update*OperatorPlayback
+├── 3D Listener: _listenerPosition, _listenerForward, _listenerUp, Set3DListenerPosition
+├── Stale Detection: _operatorsUpdatedThisFrame, CheckAndMuteStaleOperators
+└── Device: OnAudioDeviceChanged, SetGlobalVolume, SetGlobalMute, SetOperatorMute
 ```
 
-### Mixer Architecture
+---
 
-**Live Playback Path:**
+## Mixer Architecture
+
+The mixer architecture uses a hierarchical structure with separate paths for different audio sources:
+
+### Mixer Handles
+
+| Handle | Flags | Purpose |
+|--------|-------|---------|
+| **GlobalMixerHandle** | `Float \| MixerNonStop` | Master output to soundcard |
+| **OperatorMixerHandle** | `MixerNonStop \| Decode \| Float` | Operator audio decode submixer |
+| **SoundtrackMixerHandle** | `MixerNonStop \| Decode \| Float` | Soundtrack decode submixer |
+| **OfflineMixerHandle** | `Decode \| Float` | Isolated decode for analysis (no output) |
+
+### Live Playback Path
 ```
-Operator Clips ──► OperatorMixer (Decode) ─────┐
-                                               ├──► GlobalMixer ──► Soundcard
-Soundtrack Clips ──► SoundtrackMixer (Decode) ─┘
+Operator Clips ──► OperatorMixer (Decode) ──────┐
+                   [MixerChanBuffer]            │
+                                                ├──► GlobalMixer ──► Soundcard
+Soundtrack Clips ──► SoundtrackMixer (Decode) ──┘
+                     [MixerChanBuffer]
 ```
 
-**Export Path (GlobalMixer Paused):**
+### Export Path (GlobalMixer Paused)
 ```
 Soundtrack Clips ──► Direct ChannelGetData() ──┐
+                     (removed from mixer)      │
                                                ├──► ResampleAndMix() ──► Video Encoder
 OperatorMixer ──► ChannelGetData() ────────────┘
+                  (stays in mixer)
 ```
 
-**Isolated Analysis (No Output):**
+### Isolated Analysis (No Output)
 ```
 AudioFile ──► CreateOfflineAnalysisStream() ──► FFT/Waveform ──► Image Generation
+              (Decode + Prescan flags)          (no soundcard)
 ```
 
-**Mixer Handles:**
-- **GlobalMixerHandle**: Master output to soundcard (BassFlags.MixerNonStop)
-- **OperatorMixerHandle**: Operator audio decode submixer (BassFlags.Decode)
-- **SoundtrackMixerHandle**: Soundtrack decode submixer (BassFlags.Decode)
-- **OfflineMixerHandle**: Isolated decode for analysis (no soundcard output)
+---
 
-### Signal Flow
+## Signal Flow
 
-**Stereo Audio:**
+### Stereo Audio
 ```
-AudioFile ──► Decode ──► MixerAddChannel ──► OperatorMixer ──► GlobalMixer ──► Soundcard
-                │
-                └──► Volume/Panning/Speed ──► StaleMute ──► FFT ──► Level/Waveform/Spectrum
-```
-
-**Spatial Audio:**
-```
-AudioFile ──► Decode (Mono) ──► MixerAddChannel ──► OperatorMixer ──► GlobalMixer ──► Soundcard
-                │
-                └──► 3D Position ──► Distance/Cone/Doppler ──► Apply3D()
+AudioFile ──► Bass.CreateStream (Decode|Float|AsyncFile)
+          │
+          ├──► BassMix.MixerAddChannel (MixerChanBuffer|MixerChanPause)
+          │                │
+          │                └──► OperatorMixer ──► GlobalMixer ──► Soundcard
+          │
+          └──► SetVolume/SetPanning/SetSpeed ──► BassMix.ChannelGetLevel ──► Metering
 ```
 
-**Export:**
+### Spatial Audio
 ```
-PrepareRecording() ──► Pause GlobalMixer ──► Remove Soundtracks from Mixer
-        │
-        ▼
-GetFullMixDownBuffer()
-        │
-        ├──► MixSoundtrackClip() ──► Seek + Read + ResampleAndMix()
-        ├──► MixOperatorAudio() ──► Read OperatorMixer
-        └──► UpdateOperatorMetering()
-        │
-        ▼
-PopulateFromExportBuffer() ──► WaveForm/FFT buffers for AudioReaction/etc.
-        │
-        ▼
-EndRecording() ──► Re-add Soundtracks ──► Restore Streams ──► Resume GlobalMixer
+AudioFile ──► Bass.CreateStream (Decode|Float|AsyncFile|Mono)
+          │
+          ├──► BassMix.MixerAddChannel (MixerChanBuffer|MixerChanPause)
+          │                │
+          │                └──► OperatorMixer ──► GlobalMixer ──► Soundcard
+          │
+          └──► 3D Position ──► Distance/Cone/Velocity ──► Bass.Apply3D()
+```
+
+### FFT and Waveform Analysis (Live)
+```
+GlobalMixer ──► Bass.ChannelGetData(FFT2048) ──► FftGainBuffer ──► ProcessUpdate()
+            │                                                          │
+            │                                    ┌─────────────────────┘
+            │                                    ▼
+            │                              FrequencyBands[32]
+            │                              FrequencyBandPeaks[32]
+            │                              FrequencyBandAttacks[32]
+            │
+            └──► Bass.ChannelGetData(samples) ──► InterleavenSampleBuffer
+                                                          │
+                                                          ▼
+                                                    WaveformLeftBuffer[1024]
+                                                    WaveformRightBuffer[1024]
+                                                    WaveformLow/Mid/HighBuffer[1024]
 ```
 
 ---
 
 ## Audio Operators
 
-### StereoAudioPlayer
+### AudioPlayer
 **Purpose:** High-quality stereo audio playback with real-time control and analysis.
 
 **Key Parameters:**
-- Playback control: Play, Stop, Pause (trigger-based, rising edge detection)
-- Audio parameters: Volume, Mute, Panning (-1 to 1), Speed (0.1x to 4x), Seek (0-1 normalized)
-- Analysis outputs: IsPlaying, IsPaused, Level (0-1), Waveform (512 samples), Spectrum (512 bands)
+- Playback control: Play, Stop (trigger-based, rising edge detection)
+- Audio parameters: Volume (0-1), Mute, Panning (-1 to 1), Speed (0.1x to 4x), Seek (0-1 normalized)
+- Analysis outputs: IsPlaying, IsPaused, Level (0-1)
 
 **Implementation Details:**
 - Uses `AudioPlayerUtils.ComputeInstanceGuid()` for stable operator identification
 - Delegates all audio logic to `AudioEngine.UpdateStereoOperatorPlayback()`
 - Supports `RenderAudio()` for export functionality
-- Finalizer unregisters operator from AudioEngine
+- Finalizer unregisters operator from AudioEngine via `UnregisterOperator()`
 
 **Use Cases:**
 - Background music playback
@@ -229,9 +295,10 @@ EndRecording() ──► Re-add Soundtracks ──► Restore Streams ──► 
 - Advanced: Audio3DMode (Normal/Relative/Off)
 
 **Implementation Details:**
+- Loads audio as mono for optimal 3D positioning
 - Listener orientation auto-normalized if invalid
 - 3D position updated every frame via `AudioEngine.Set3DListenerPosition()`
-- Uses mono sources for optimal 3D positioning
+- Velocity computed from position delta (assumes ~60fps)
 - Supports `RenderAudio()` for export functionality
 
 **Use Cases:**
@@ -250,7 +317,7 @@ All audio parameters are managed through `Core/Audio/AudioConfig.cs`:
 
 **Mixer Configuration:**
 ```csharp
-MixerFrequency = (from device)   // Determined from device's current sample rate
+MixerFrequency       // Determined from device's current sample rate (runtime)
 UpdatePeriodMs = 10              // Low-latency BASS updates
 UpdateThreads = 2                // BASS update thread count
 PlaybackBufferLengthMs = 100     // Balanced buffering
@@ -292,6 +359,46 @@ Audio configuration is accessible through the Editor Settings window:
 
 ---
 
+## Export and Rendering
+
+### Export Flow
+
+```
+PrepareRecording()
+        │
+        ├──► Pause GlobalMixer
+        ├──► Clear AudioExportSourceRegistry
+        ├──► Reset WaveFormProcessing export buffer
+        ├──► ResetAllOperatorStreamsForExport()
+        └──► Remove Soundtrack streams from SoundtrackMixer (for direct reading)
+        │
+        ▼
+GetFullMixDownBuffer() [per frame]
+        │
+        ├──► UpdateStaleStatesForExport()
+        ├──► MixSoundtrackClip() ──► Seek + Read + ResampleAndMix()
+        ├──► MixOperatorAudio() ──► Read from OperatorMixer
+        ├──► UpdateOperatorMetering()
+        ├──► PopulateFromExportBuffer() ──► WaveForm buffers
+        └──► ComputeFftFromBuffer() ──► FFT buffers
+        │
+        ▼
+EndRecording()
+        │
+        ├──► Re-add Soundtrack streams to SoundtrackMixer
+        ├──► RestoreState() (export state)
+        └──► RestoreOperatorAudioStreams()
+```
+
+### External Audio Mode
+When `AudioSource` is set to `ExternalDevice` during export:
+- Soundtrack mixing is skipped entirely
+- Only operator audio is included in export
+- Warning is logged to inform user
+- Waveform buffers are cleared (external audio can't be monitored)
+
+---
+
 ## Documentation Index
 
 ### Core Files
@@ -299,35 +406,38 @@ Audio configuration is accessible through the Editor Settings window:
 | File                              | Purpose                                          |
 |-----------------------------------|--------------------------------------------------|
 | `AudioEngine.cs`                  | Central API for operator and soundtrack playback |
-| `OperatorAudioStreamBase.cs`      | Common stream functionality                      |
-| `StereoOperatorAudioStream.cs`    | Stereo-specific stream                           |
-| `SpatialOperatorAudioStream.cs`   | 3D spatial stream                                |
+| `OperatorAudioStreamBase.cs`      | Common stream functionality (abstract base)      |
+| `StereoOperatorAudioStream.cs`    | Stereo-specific stream with panning              |
+| `SpatialOperatorAudioStream.cs`   | 3D spatial stream with positioning               |
 | `AudioRendering.cs`               | Export/recording functionality                   |
 | `AudioMixerManager.cs`            | BASS mixer setup and level metering              |
 | `AudioConfig.cs`                  | Centralized configuration                        |
 | `AudioAnalysis.cs`                | FFT processing and frequency bands               |
+| `AudioAnalysisResult.cs`          | Analysis result data structures                  |
 | `OperatorAudioUtils.cs`           | Buffer filling and resampling utilities          |
-| `WaveFormProcessing.cs`           | Waveform buffer management                       |
+| `WaveFormProcessing.cs`           | Waveform buffer management and filtering         |
 | `SoundtrackClipDefinition.cs`     | Soundtrack clip data structures                  |
 | `SoundtrackClipStream.cs`         | Soundtrack stream playback                       |
 | `AudioExportSourceRegistry.cs`    | Registry for export audio sources                |
 | `IAudioExportSource.cs`           | Interface for exportable audio sources           |
 | `WasapiAudioInput.cs`             | External WASAPI audio device input               |
 | `BeatSynchronizer.cs`             | Beat detection and timing                        |
+| `BeatTimingDetails.cs`            | Beat timing data structures                      |
 | `AdsrCalculator.cs`               | ADSR envelope calculation utility                |
 
 ### Operator Files
 
-| File                    | Purpose           |
-|-------------------------|-------------------|
-| `StereoAudioPlayer.cs`  | Stereo operator   |
-| `SpatialAudioPlayer.cs` | Spatial operator  |
-| `AudioPlayerUtils.cs`   | Shared utilities  |
-| `AudioToneGenerator.cs` | Tone generator    |
+| File              | Purpose                         |
+|-------------------|---------------------------------|
+| `AudioPlayer.cs`  | Stereo playback operator        |
+| `SpatialAudioPlayer.cs` | 3D spatial playback operator    |
+| `AudioPlayerUtils.cs` | Shared utilities (instance GUID)|
+| `AudioToneGenerator.cs` | Tone generation operator        |
 
 ### Guides
 - **[STALE_DETECTION.md](STALE_DETECTION.md)** - Stale detection system
 - **[TODO.md](TODO.md)** - Technical review and next steps 
+
 ---
 
 ## Future Enhancement Opportunities
@@ -347,7 +457,7 @@ Audio configuration is accessible through the Editor Settings window:
 - Centralized `Apply3D()` batching
 - Stream pooling and recycling
 - Async file loading
-- Multi-threaded FFT processing
+- Multithreaded FFT processing
 
 ### Current Limitations
 1. No EAX environmental effects (BASS supports, not yet exposed)
@@ -373,6 +483,7 @@ Added
 
 - `Core/Audio/AUDIO_ARCHITECTURE.md` — new architecture/design doc for the audio subsystem.
 - `Core/Audio/AdsrCalculator.cs` — ADSR envelope calculation utility.
+- `Core/Audio/AudioAnalysisResult.cs` — analysis result data structures.
 - `Core/Audio/AudioConfig.cs` — centralized audio configuration and logging toggles.
 - `Core/Audio/AudioExportSourceRegistry.cs` — registry for export/record audio sources.
 - `Core/Audio/AudioMixerManager.cs` — BASS mixer initialization/management and helpers.
@@ -383,6 +494,7 @@ Added
 - `Core/Audio/SpatialOperatorAudioStream.cs` — spatial/3D operator stream implementation.
 - `Core/Audio/StereoOperatorAudioStream.cs` — stereo operator stream implementation.
 - `Core/Audio/TODO.md` — audio-specific TODO / technical review list.
+- `Core/Audio/BeatTimingDetails.cs` — beat timing data structures.
 - `Dependencies/bassflac.dll` — native FLAC plugin binary (new dependency).
 - `Dependencies/bassmix.dll` — native BASS mixer plugin (new dependency).
 - `Editor/Gui/InputUi/CombinedInputs/AdsrEnvelopeInputUi.cs` — UI input for ADSR envelope.
@@ -391,7 +503,7 @@ Added
 - `Operators/Lib/io/audio/AudioPlayerUtils.cs` — shared operator audio utilities.
 - `Operators/Lib/io/audio/AudioToneGenerator.cs` (+ `.t3`/`.t3ui`) — tone generator operator and UI.
 - `Operators/Lib/io/audio/SpatialAudioPlayer.cs` (+ `.t3`/`.t3ui`) — spatial audio operator and UI metadata.
-- `Operators/Lib/io/audio/StereoAudioPlayer.cs` (+ `.t3`/`.t3ui`) — stereo audio operator and UI metadata.
+- `Operators/Lib/io/audio/AudioPlayer.cs` (+ `.t3`/`.t3ui`) — stereo audio operator and UI metadata.
 - `Operators/Lib/numbers/anim/AdsrEnvelope.cs` — ADSR data structure/operator type.
 - `Operators/examples/lib/io/audio/AudioPlaybackExample.*` — example operator for audio playback.
 - `Resources/audio/HH_03.wav`, `Resources/audio/KICK_09.wav`, `Resources/audio/SNARE_01.wav`, `Resources/audio/h445-loop1.wav` — added sample audio resources.
