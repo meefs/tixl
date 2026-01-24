@@ -4,7 +4,7 @@ using T3.Core.Audio;
 namespace Lib.io.audio
 {
     [Guid("65e95f77-4743-437f-ab31-f34b831d28d7")]
-    internal sealed class StereoAudioPlayer : Instance<StereoAudioPlayer>
+    internal sealed class AudioPlayer : Instance<AudioPlayer>
     {
         [Input(Guid = "505139a0-71ce-4297-8440-5bf84488902e")]
         public readonly InputSlot<string> AudioFile = new();
@@ -59,7 +59,7 @@ namespace Lib.io.audio
         private bool _previousPlayTrigger;
         private readonly AdsrCalculator _calculator = new();
 
-        public StereoAudioPlayer()
+        public AudioPlayer()
         {
             Result.UpdateAction += Update;
             IsPlaying.UpdateAction += Update;
@@ -73,7 +73,7 @@ namespace Lib.io.audio
             if (_operatorId == Guid.Empty)
             {
                 _operatorId = AudioPlayerUtils.ComputeInstanceGuid(InstancePath);
-                AudioConfig.LogAudioDebug($"[StereoAudioPlayer] Initialized: {_operatorId}");
+                AudioConfig.LogAudioDebug($"[AudioPlayer] Initialized: {_operatorId}");
             }
 
             string filePath = AudioFile.GetValue(context);
@@ -153,7 +153,7 @@ namespace Lib.io.audio
             GetLevel.Value = AudioEngine.GetOperatorLevel(_operatorId);
         }
 
-        ~StereoAudioPlayer()
+        ~AudioPlayer()
         {
             if (_operatorId != Guid.Empty)
                 AudioEngine.UnregisterOperator(_operatorId);
