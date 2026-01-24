@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using T3.Core.Operator;
 using T3.Core.Operator.Interfaces;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Core.SystemUi;
 using T3.Core.Utils;
 using T3.Editor.Gui.Input;
@@ -68,7 +69,7 @@ public sealed class StringInputUi : InputValueUi<string>
                 {
                     if (value != null)
                     {
-                        ResourceManager.TryResolveRelativePath(value, FilePickingUi.SearchResourceConsumer, out var absolutePath, out _);
+                        AssetRegistry.TryResolveAddress(value, FilePickingUi.SearchResourceConsumer, out var absolutePath, out _);
                         if (!File.Exists(absolutePath))
                         {
                             Log.Error("Can't open non-existing file " + absolutePath);

@@ -184,7 +184,7 @@
         {
           "Id": "ca9778e7-072c-4304-9043-eeb2dc4ca5d7"/*Folder*/,
           "Type": "System.String",
-          "Value": "Resources\\Example\\user\\pixtur\\research\\1000Images\\images"
+          "Value": "Examples:Example/user/pixtur/research/1000Images/images/"
         },
         {
           "Id": "e14a4aae-e253-4d14-80ef-a90271cd306a"/*TriggerUpdate*/,
@@ -264,7 +264,7 @@
         {
           "Id": "afb69c81-5063-4cb9-9d42-841b994b5ec0"/*Source*/,
           "Type": "System.String",
-          "Value": "/Examples/user/pixtur/research/1000Images/PhotoMosaic-SortImages.hlsl"
+          "Value": "Examples:user/pixtur/research/1000Images/PhotoMosaic-SortImages.hlsl"
         }
       ],
       "Outputs": []

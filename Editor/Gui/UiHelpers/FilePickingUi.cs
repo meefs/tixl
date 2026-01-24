@@ -6,6 +6,7 @@ using SilkWindows.Implementations.FileManager;
 using T3.Core.Operator;
 using T3.Core.Operator.Interfaces;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 using T3.Core.Utils;
 using T3.Editor.Gui.Styling;
 using T3.Editor.UiModel.InputsAndTypes;
@@ -41,13 +42,13 @@ internal static class FilePickingUi
             // || !selectedInstances.Except(StringInputUi._selectedInstances).Any();
             if (needsToGatherPackages)
             {
-                var packagesInCommon = selectedInstances.PackagesInCommon().ToArray();
+                var packagesInCommon = selectedInstances.GetLocalPackagesForInstances().ToArray();
                 SearchResourceConsumer = new TempResourceConsumer(packagesInCommon);
             }
         }
 
         var isFolder = type == FileOperations.FilePickerTypes.Folder;
-        var exists = ResourceManager.TryResolveRelativePath(filterAndSelectedPath, SearchResourceConsumer, out _, out _, isFolder);
+        var exists = AssetRegistry.TryResolveAddress(filterAndSelectedPath, SearchResourceConsumer, out _, out _, isFolder);
 
         var warning = type switch
                           {
@@ -70,10 +71,10 @@ internal static class FilePickingUi
         var inputEditStateFlags = InputEditStateFlags.Nothing;
         if (filterAndSelectedPath != null && SearchResourceConsumer != null)
         {
-            var allItems = ResourceManager.EnumerateResources(fileFiltersInCommon,
+            var allItems = ResourceManager.EnumeratePackagesResources(fileFiltersInCommon,
                                                               isFolder,
                                                               SearchResourceConsumer.AvailableResourcePackages,
-                                                              ResourceManager.PathMode.Aliased);
+                                                              ResourceManager.PathMode.PackageUri);
 
             var changed = ResourceInputWithTypeAheadSearch.Draw("##filePathSearch", allItems, !exists, ref filterAndSelectedPath, out _);
 
@@ -168,14 +169,41 @@ internal static class FilePickingUi
         return fileFiltersInCommon;
     }
 
+    public static IEnumerable<IResourcePackage> GetAvailablePackagesForInstances(this IReadOnlyCollection<Instance> instances)
+    {
+        if (instances.Count == 0)
+            return [];
+
+        if (instances.Count == 1)
+            return instances.First().AvailableResourcePackages;
+
+        return instances.Select(x => x.AvailableResourcePackages)
+                        .Aggregate<IEnumerable<IResourcePackage>>((a, b) => a.Intersect(b));
+    }
+    
+    public static IEnumerable<IResourcePackage> GetLocalPackagesForInstances(this IReadOnlyCollection<Instance> instances)
+    {
+        if (instances.Count == 0)
+            return [];
+
+        if (instances.Count == 1)
+            return instances.First().LocalResourcePackages;
+
+        return instances.Select(x => x.LocalResourcePackages)
+                        .Aggregate<IEnumerable<IResourcePackage>>((a, b) => a.Intersect(b));
+    }
+
+    
+    
+    
     private static void OpenFileManager(FileOperations.FilePickerTypes type, IEnumerable<IResourcePackage> packagesInCommon, string[] fileFiltersInCommon,
                                         bool isFolder, bool async)
     {
         var rootDirectories = packagesInCommon
-                                .Concat(ResourceManager.GetSharedPackagesForFilters(fileFiltersInCommon, isFolder, out var culledFilters))
+                                .Concat(ResourceManager.GetSharedPackagesForFiltersForFileManager(fileFiltersInCommon, isFolder, out var culledFilters))
                                 .Distinct()
                                 .OrderBy(package => !package.IsReadOnly)
-                                .Select(package => new ManagedDirectory(package.ResourcesFolder, package.IsReadOnly, !package.IsReadOnly, package.Alias));
+                                .Select(package => new ManagedDirectory(package.ResourcesFolder, package.IsReadOnly, !package.IsReadOnly, package.Name));
 
         var fileManagerMode = type == FileOperations.FilePickerTypes.File ? FileManagerMode.PickFile : FileManagerMode.PickDirectory;
 

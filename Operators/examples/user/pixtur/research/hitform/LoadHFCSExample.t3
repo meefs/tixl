@@ -310,7 +310,7 @@
         {
           "Id": "a1e08fde-2d9b-4a2d-bf09-a5e54ad8cfa0"/*FilePath*/,
           "Type": "System.String",
-          "Value": "D:\\Framefield Dropbox\\Thomas Mann\\_projects\\2024-07-03 ArCapture\\03-Test3-Movement\\jpg-sequence"
+          "Value": "D:/Framefield Dropbox/Thomas Mann/_projects/2024-07-03 ArCapture/03-Test3-Movement/jpg-sequence"
         }
       ],
       "Outputs": [
@@ -939,7 +939,7 @@
         {
           "Id": "a1e08fde-2d9b-4a2d-bf09-a5e54ad8cfa0"/*FilePath*/,
           "Type": "System.String",
-          "Value": "D:\\Framefield Dropbox\\Thomas Mann\\_projects\\2024-07-03 ArCapture\\03-Test3-Movement\\jpg-sequence"
+          "Value": "D:/Framefield Dropbox/Thomas Mann/_projects/2024-07-03 ArCapture/03-Test3-Movement/jpg-sequence"
         }
       ],
       "Outputs": [

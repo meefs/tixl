@@ -8,6 +8,8 @@ using System.Linq;
 using T3.Core.DataTypes;
 using T3.Core.Logging;
 using T3.Core.Model;
+using T3.Core.Resource.Assets;
+using T3.Core.Utils;
 
 namespace T3.Core.Resource;
 
@@ -22,9 +24,11 @@ public abstract partial class ShaderCompiler
 
         foreach (var include in includes)
         {
-            if (!ResourceManager.TryResolveRelativePath(include, includeDirectories, out _, out _))
+            //TODO: This is an ugly work around to get it running.
+            var includeInLib = "Lib:shaders/" + include;
+            if (!AssetRegistry.TryResolveAddress(includeInLib, includeDirectories, out _, out _))
             {
-                reason = $"Can't find include file: {include}";
+                reason = $"Can't find include file: {includeInLib}";
                 shader = null;
                 return false;
             }
@@ -110,8 +114,8 @@ public abstract partial class ShaderCompiler
     /// <summary>
     /// A simple method to prepare <see cref="ShaderCompilationArgs"/> before calling the actual shader compilation.
     /// </summary>
-    internal static bool TryPrepareSourceFile(ShaderCompilationFileArgs fileArgs,
-                                              out string errorMessage, out ShaderCompilationArgs args)
+    private static bool TryPrepareSourceFile(ShaderCompilationFileArgs fileArgs,
+                                             out string errorMessage, out ShaderCompilationArgs args)
     {
         var fileResource = fileArgs.FileResource;
         var file = fileResource.FileInfo;
@@ -161,20 +165,32 @@ public abstract partial class ShaderCompiler
                                  .Select(x => x[1]);
     }
 
-    internal record struct ShaderCompilationFileArgs(FileResource FileResource, string EntryPoint, IResourceConsumer? Owner, byte[]? OldBytecode);
-    public record struct ShaderCompilationArgs(string SourceCode, string EntryPoint, IResourceConsumer Owner, string Name, byte[]? OldBytecode);
+    internal record struct ShaderCompilationFileArgs(
+        FileResource FileResource, 
+        string EntryPoint, 
+        IResourceConsumer? Owner, 
+        byte[]? OldBytecode);
+    
+    public record struct ShaderCompilationArgs(
+        string SourceCode, 
+        string EntryPoint, 
+        IResourceConsumer Owner, 
+        string Name, 
+        byte[]? OldBytecode);
 
+    
     public sealed class ShaderResourcePackage : IResourcePackage
     {
         public string DisplayName => ResourcesFolder;
-        public string? Alias => null;
+        public Guid Id => StringUtils.GenerateGuidFromString(ResourcesFolder); 
+        public string? Name => null;
         public string ResourcesFolder { get; }
         public ResourceFileWatcher? FileWatcher => _resourceConsumer?.Package?.FileWatcher;
         public string? RootNamespace => _resourceConsumer?.Package?.RootNamespace;
         public bool IsReadOnly => true;
         public IReadOnlyCollection<DependencyCounter> Dependencies => _resourceConsumer?.Package?.Dependencies ?? Array.Empty<DependencyCounter>();
         public IReadOnlyList<IResourcePackage> AvailableResourcePackages { get; }
-        private readonly IResourceConsumer? _resourceConsumer;
+        private readonly IResourceConsumer? _resourceConsumer = null;
 
         public ShaderResourcePackage(FileInfo shaderFile)
         {
@@ -188,37 +204,37 @@ public abstract partial class ShaderCompiler
             AvailableResourcePackages = new List<IResourcePackage> { this };
         }
 
-        public ShaderResourcePackage(IResourceConsumer resourceConsumer)
-        {
-            _resourceConsumer = resourceConsumer;
-            ResourcesFolder = resourceConsumer.Package!.ResourcesFolder;
-            AvailableResourcePackages = resourceConsumer.AvailableResourcePackages;
-        }
-        
-        public ShaderResourcePackage(FileInfo shaderFile, IResourceConsumer resourceConsumer)
-        {
-            _resourceConsumer = resourceConsumer;
-            ResourcesFolder = shaderFile?.DirectoryName ?? resourceConsumer?.Package!.ResourcesFolder!;
-            
-            if(ResourcesFolder == null)
-                throw new ArgumentException("ResourcesFolder must not be null");
-
-            if (resourceConsumer != null)
-            {
-                var ownerPackages = resourceConsumer.AvailableResourcePackages;
-                var availableResourcePackages = new List<IResourcePackage>(ownerPackages.Count + 1)
-                                                    {
-                                                        this
-                                                    };
-
-                availableResourcePackages.AddRange(ownerPackages);
-                AvailableResourcePackages = availableResourcePackages;
-            }
-            else
-            {
-                AvailableResourcePackages = new List<IResourcePackage> { this };
-            }
-        }
+        // public ShaderResourcePackage(IResourceConsumer resourceConsumer)
+        // {
+        //     _resourceConsumer = resourceConsumer;
+        //     ResourcesFolder = resourceConsumer.Package!.ResourcesFolder;
+        //     AvailableResourcePackages = resourceConsumer.AvailableResourcePackages;
+        // }
+        //
+        // public ShaderResourcePackage(FileInfo shaderFile, IResourceConsumer resourceConsumer)
+        // {
+        //     _resourceConsumer = resourceConsumer;
+        //     ResourcesFolder = shaderFile?.DirectoryName ?? resourceConsumer?.Package!.ResourcesFolder!;
+        //     
+        //     if(ResourcesFolder == null)
+        //         throw new ArgumentException("ResourcesFolder must not be null");
+        //
+        //     if (resourceConsumer != null)
+        //     {
+        //         var ownerPackages = resourceConsumer.AvailableResourcePackages;
+        //         var availableResourcePackages = new List<IResourcePackage>(ownerPackages.Count + 1)
+        //                                             {
+        //                                                 this
+        //                                             };
+        //
+        //         availableResourcePackages.AddRange(ownerPackages);
+        //         AvailableResourcePackages = availableResourcePackages;
+        //     }
+        //     else
+        //     {
+        //         AvailableResourcePackages = new List<IResourcePackage> { this };
+        //     }
+        // }
 
         //public SymbolPackage? Package => _resourceConsumer?.Package;
         //public event Action? Disposing;

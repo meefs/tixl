@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using T3.Core.Logging;
+using T3.Core.Resource.Assets;
+using T3.Core.UserData;
 using T3.Core.Utils;
 
 namespace T3.Core.Resource;
@@ -83,9 +85,8 @@ public sealed class ResourceFileWatcher : IDisposable
     internal void RaiseQueuedFileChanges()
     {
         var currentTime = DateTime.UtcNow.Ticks;
-            
-        const long thresholdMs = 394;
-        const long thresholdTicks = thresholdMs * TimeSpan.TicksPerMillisecond;
+        const long thresholdTicks = 394 * TimeSpan.TicksPerMillisecond;
+
         lock (_eventLock)
         {
             if (_newFileEvents.Count == 0)
@@ -93,6 +94,7 @@ public sealed class ResourceFileWatcher : IDisposable
 
             var fileEvents = _newFileEvents.OrderBy(x => x.Value.TimeTicks).ToArray();
             FileKey previous = default;
+
             foreach (var (fileKey, details) in fileEvents)
             {
                 if (currentTime - details.TimeTicks < thresholdTicks)
@@ -100,36 +102,52 @@ public sealed class ResourceFileWatcher : IDisposable
 
                 _newFileEvents.Remove(fileKey);
 
-                if (fileKey == previous) // ignore duplicates
+                if (fileKey == previous)
                     continue;
 
                 previous = fileKey;
-
-                if (fileKey.isRename)
-                {
-                    HandleRename((RenamedEventArgs)details.Args);
-                }
-
                 var path = details.Args.FullPath;
-                if (!_fileChangeActions.TryGetValue(path, out var actions))
+
+                // 1. Synchronize the AssetRegistry
+                if (fileKey.isRename && details.Args is RenamedEventArgs renamedArgs)
                 {
-                    continue;
+                    HandleRename(renamedArgs); // Update internal hooks
+                    FileRenamed?.Invoke(renamedArgs.OldFullPath, renamedArgs.FullPath);
+                    FileStateChangeCounter++;
+                }
+                else if (fileKey.ChangeType == WatcherChangeTypes.Deleted)
+                {
+                    FileDeleted?.Invoke(this, path);
+                    FileStateChangeCounter++;
+                }
+                else if (fileKey.ChangeType == WatcherChangeTypes.Created)
+                {
+                    // Only register if it's a file we care about
+                    if (!FileLocations.IgnoredFiles.Contains(Path.GetFileName(path)))
+                    {
+                        FileCreated?.Invoke(this, path);
+                    }
+                    FileStateChangeCounter++;
                 }
 
-                // queue these actions so that we don't hold the lock while executing them
-                foreach (var action in actions)
+                // 2. Dispatch hooks to Resources/Operators
+                if (_fileChangeActions.TryGetValue(path, out var actions))
                 {
-                    _queuedActions.Enqueue(new FileWatchQueuedAction(details.Args, action));
+                    foreach (var action in actions)
+                    {
+                        _queuedActions.Enqueue(new FileWatchQueuedAction(details.Args, action));
+                    }
+                    FileStateChangeCounter++;
                 }
             }
         }
 
+        // Process the actions outside the lock
         while (_queuedActions.TryDequeue(out var queuedAction))
         {
             try
             {
-                var args = queuedAction.Args;
-                queuedAction.Action(args.ChangeType, args.FullPath);
+                queuedAction.Action(queuedAction.Args.ChangeType, queuedAction.Args.FullPath);
             }
             catch (Exception exception)
             {
@@ -138,7 +156,7 @@ public sealed class ResourceFileWatcher : IDisposable
         }
 
         return;
-            
+
         void HandleRename(RenamedEventArgs e)
         {
             if (!_fileChangeActions.Remove(e.OldFullPath, out var actions))
@@ -172,7 +190,7 @@ public sealed class ResourceFileWatcher : IDisposable
             renamedArgs.OldFullPath.ToForwardSlashesUnsafe();
             isRenamed = true;
         }
-        
+
         var fileKey = new FileKey(e.FullPath, e.ChangeType, isRenamed);
         lock (_eventLock)
         {
@@ -222,7 +240,9 @@ public sealed class ResourceFileWatcher : IDisposable
     private readonly ConcurrentDictionary<string, List<FileWatcherAction>> _fileChangeActions = new();
     private readonly Queue<FileWatchQueuedAction> _queuedActions = new();
     public event EventHandler<string>? FileCreated;
-    
+    public event EventHandler<string>? FileDeleted;
+    public event Action<string, string>? FileRenamed; // OldPath, NewPath
+
     /// <summary>
     /// This is incremented on every file change event and can be used for cache invalidation (e.g. for complex FileLists)
     /// </summary>

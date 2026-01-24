@@ -10,6 +10,7 @@ using T3.Editor.Gui.Window;
 using T3.Editor.Gui.Input;
 using T3.Editor.Gui.Interaction;
 using T3.Editor.Gui.Interaction.Keyboard;
+using T3.Editor.Gui.Interaction.StartupCheck;
 using T3.Editor.Gui.Styling;
 using T3.Editor.Gui.UiHelpers;
 using T3.Editor.Gui.UiHelpers.Wiki;
@@ -290,6 +291,9 @@ internal static class AppMenuBar
                     EditTourPointsPopup.ShowNextFrame();
                 
                 ImGui.Separator();
+
+                if (ImGui.MenuItem("Fix asset paths"))
+                    ConformAssetPaths.ConformAllPaths();
                 
                 if (ImGui.BeginMenu("Clear shader cache"))
                 {

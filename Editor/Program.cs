@@ -19,6 +19,7 @@ using T3.Editor.Gui.Interaction.StartupCheck;
 using T3.Editor.Gui.Styling;
 using T3.Editor.Gui.UiHelpers;
 using T3.Editor.Gui.Windows;
+using T3.Editor.Gui.Windows.AssetLib;
 using T3.Editor.Skills.Training;
 using T3.Editor.SystemUi;
 using T3.Editor.UiContentDrawing;
@@ -109,7 +110,7 @@ internal static class Program
         Console.WriteLine("Creating SplashScreen");
         ISplashScreen splashScreen = new SplashScreen.SplashScreen();
 
-        var path = Path.Combine(SharedResources.Directory, "images", "editor", "t3-SplashScreen.png");
+        var path = Path.Combine(SharedResources.EditorResourcesDirectory,  "images", "t3-SplashScreen.png");
         splashScreen.Show(path);
 
         Console.WriteLine("Initializing logging");
@@ -152,7 +153,8 @@ internal static class Program
 
         Log.Debug("Initializing ProgramWindows...");
         ProgramWindows.InitializeMainWindow(FormattedEditorVersion, out var device);
-
+        AssetHandling.InitAssetTypes();
+        
         Device = device;
 
         if (ShaderCompiler.Instance is not DX11ShaderCompiler shaderCompiler)
@@ -201,6 +203,7 @@ internal static class Program
         }
 
         SymbolAnalysis.UpdateSymbolUsageCounts();
+        ConformAssetPaths.ConformAllPaths();
             
         UiContentContentDrawer.InitializeScaling();
         UiContentUpdate.SetupResourcesAndFontsWithScaling();

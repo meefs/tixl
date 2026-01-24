@@ -7,6 +7,7 @@ using T3.Core.Animation;
 using T3.Core.Audio;
 using T3.Core.DataTypes.DataSet;
 using T3.Core.IO;
+using T3.Core.Resource.Assets;
 using T3.Core.Utils;
 // ReSharper disable MemberCanBePrivate.Global
 
@@ -46,7 +47,7 @@ internal sealed class PlayVideo : Instance<PlayVideo>, IStatusProvider
                                 : context.Playback.SecondsFromBars(context.LocalTime);
 
         var relativePath = Path.GetValue(context);
-        if (!ResourceManager.TryResolveRelativePath(relativePath, this, out var absolutePath, out _))
+        if (!AssetRegistry.TryResolveAddress(relativePath, this, out var absolutePath, out _))
         {
             _playbackController.ErrorMessageForStatus = "Can't find video " + relativePath;
             return;

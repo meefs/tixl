@@ -7,6 +7,7 @@ using System.Threading;
 using T3.Core.Logging;
 using T3.Core.Operator;
 using T3.Core.Operator.Slots;
+using T3.Core.Resource.Assets;
 using T3.Core.Stats;
 using T3.Core.Utils;
 
@@ -197,7 +198,7 @@ public sealed class Resource<T> : IDisposable, IResource
             // we know the fileResource is not null because this is only called by the file resource
             var newPath = _fileResource!.AbsolutePath;
 
-            if (ResourceManager.TryConvertToRelativePath(newPath, out var relativePath))
+            if (AssetRegistry.TryConvertToRelativePath(newPath, out var relativePath))
             {
                 newPath = relativePath;
             }

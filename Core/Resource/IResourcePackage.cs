@@ -7,18 +7,19 @@ namespace T3.Core.Resource;
 
 public interface IResourcePackage
 {
-    public string DisplayName { get; }
-    public string? Alias { get; }
-    public string ResourcesFolder { get; }
-    public string? RootNamespace { get; }
-    public ResourceFileWatcher? FileWatcher { get; }
-    public bool IsReadOnly { get; }
-    public IReadOnlyCollection<DependencyCounter> Dependencies { get; }
+    string DisplayName { get; }
+    string? Name { get; }
+    Guid Id { get; }
+    string ResourcesFolder { get; }
+    string? RootNamespace { get; }
+    ResourceFileWatcher? FileWatcher { get; }
+    bool IsReadOnly { get; }
+    IReadOnlyCollection<DependencyCounter> Dependencies { get; }
 }
 
 public interface IResourceConsumer
 {
-    public IReadOnlyList<IResourcePackage> AvailableResourcePackages { get; }
-    public SymbolPackage? Package { get; }
-    public event Action<IResourceConsumer>? Disposing;
+    IReadOnlyList<IResourcePackage> AvailableResourcePackages { get; }
+    SymbolPackage? Package { get; }
+    event Action<IResourceConsumer>? Disposing;
 }

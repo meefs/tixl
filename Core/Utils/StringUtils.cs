@@ -381,10 +381,10 @@ public static class StringUtils
     /// so "a*b**c" will match "a/b/anything/c" (expected) and "a/anything/b/c" (possibly unexpected) -
     /// there is no special directory treatment as is standard in most file search implementations.
     /// 
-    /// Technically, the search begins from the end of the filter and the end of the possible match, and works backwards. This is because
+    /// Technically, the search begins from the end of the filter and the end of the possible match, and works backwards.
     /// 
-    /// This is mostly intended for use in file path searches, where the end of the path is the most likely to be the most specific, and the end of the search term
-    /// is most likely to change with consecutive calls.
+    /// This is mostly intended for use in file path searches, where the end of the path is the most likely to be the most specific,
+    /// and the end of the search term is most likely to change with consecutive calls.
     /// </summary>
     /// <param name="possibleMatch">string you want to check for a match</param>
     /// <param name="filter">The filter to match against</param>
@@ -623,5 +623,19 @@ public static class StringUtils
             len = text.Length;
 
         return text.AsSpan(0, len);
+    }
+
+    /// <summary>
+    
+    /// </summary>
+    public static Guid GenerateGuidFromString(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return Guid.Empty;
+
+        // Use MD5 to create a deterministic 16-byte hash from the name
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        byte[] hash = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(name));
+        return new Guid(hash);
     }
 }
