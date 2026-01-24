@@ -9,6 +9,7 @@ using T3.Core.IO;
 using T3.Core.Logging;
 using T3.Core.Operator;
 using T3.Core.Resource;
+using T3.Core.Resource.Assets;
 
 namespace T3.Core.Audio;
 
@@ -402,7 +403,7 @@ public static class AudioEngine
         if (string.IsNullOrEmpty(filePath)) return filePath;
         if (System.IO.File.Exists(filePath)) return filePath;
 
-        if (ResourceManager.TryResolveRelativePath(filePath, null, out var absolutePath, out _))
+        if (AssetRegistry.TryResolveAddress(filePath, null, out var absolutePath, out var resourceContainer))
         {
             AudioConfig.LogAudioDebug($"[AudioEngine] Resolved: {filePath} → {absolutePath}");
             return absolutePath;
