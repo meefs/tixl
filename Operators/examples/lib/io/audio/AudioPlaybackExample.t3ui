@@ -4,6 +4,13 @@
   "InputUis": [],
   "SymbolChildUis": [
     {
+      "ChildId": "06e35bbd-c97d-4a51-b57a-8eb23195d2c8"/*AnimValue*/,
+      "Position": {
+        "X": 909.6284,
+        "Y": 1012.7285
+      }
+    },
+    {
       "ChildId": "0738d904-a3ef-4337-9bd8-b40f16b61297"/*LinearSamplePointAttributes*/,
       "Position": {
         "X": 1273.4781,
@@ -27,15 +34,15 @@
     {
       "ChildId": "08b108bb-7ef9-47b2-9092-f50242d2797b"/*SequenceAnim*/,
       "Position": {
-        "X": 946.6329,
-        "Y": 905.10406
+        "X": 948.58954,
+        "Y": 856.01886
       }
     },
     {
       "ChildId": "09c61105-619e-4877-a21d-92b132176247"/*AudioToneGenerator*/,
       "Position": {
-        "X": 1122.3676,
-        "Y": 1214.8961
+        "X": 1152.8706,
+        "Y": 1270.643
       }
     },
     {
@@ -55,8 +62,8 @@
     {
       "ChildId": "27374ba9-2136-4833-8c52-a24a27068def"/*StereoAudioPlayer*/,
       "Position": {
-        "X": 1104.4865,
-        "Y": 905.0364
+        "X": 1106.4431,
+        "Y": 855.9512
       }
     },
     {
@@ -102,17 +109,24 @@
       }
     },
     {
+      "ChildId": "444ecbcf-fbcb-4d25-b48b-e5fb8c6a8403"/*SequenceAnim*/,
+      "Position": {
+        "X": 946.6328,
+        "Y": 1134.6774
+      }
+    },
+    {
       "ChildId": "47df1ca4-012e-4866-8cdd-18660bfed7e7"/*PickFloatFromList*/,
       "Position": {
-        "X": 842.3675,
-        "Y": 1249.8961
+        "X": 872.8705,
+        "Y": 1305.643
       }
     },
     {
       "ChildId": "4b2b63df-b01d-41cf-aeae-e87d77341c9c"/*SequenceAnim*/,
       "Position": {
-        "X": 686.18207,
-        "Y": 1237.3693
+        "X": 716.68506,
+        "Y": 1293.1161
       }
     },
     {
@@ -125,8 +139,8 @@
     {
       "ChildId": "50d283a1-832d-4ca2-bbdd-9570ce51a95d"/*Transform*/,
       "Position": {
-        "X": 842.3675,
-        "Y": 1354.8956
+        "X": 872.8705,
+        "Y": 1410.6425
       }
     },
     {
@@ -139,8 +153,8 @@
     {
       "ChildId": "5b04c564-2ba6-4a1a-9baf-341db6587cf6"/*FloatToInt*/,
       "Position": {
-        "X": 702.3675,
-        "Y": 1284.8961
+        "X": 732.8705,
+        "Y": 1340.643
       }
     },
     {
@@ -193,6 +207,13 @@
       }
     },
     {
+      "ChildId": "76039d3e-382c-404e-9c02-cade364738b0"/*StereoAudioPlayer*/,
+      "Position": {
+        "X": 1106.443,
+        "Y": 1135.1057
+      }
+    },
+    {
       "ChildId": "7f3191e8-8c6b-4fd2-88d4-cc7bf44e7ab3"/*DrawLines*/,
       "Position": {
         "X": 1273.4781,
@@ -202,8 +223,8 @@
     {
       "ChildId": "821f09f0-08d9-4c40-aa39-921228aa3231"/*Damp*/,
       "Position": {
-        "X": 982.3675,
-        "Y": 1249.8961
+        "X": 1012.8705,
+        "Y": 1305.643
       }
     },
     {
@@ -224,7 +245,7 @@
       "ChildId": "9c770b7d-356d-499a-9f0a-bca3f40a0776"/*StereoAudioPlayer*/,
       "Position": {
         "X": 1106.4431,
-        "Y": 980.78375
+        "Y": 934.32806
       }
     },
     {
@@ -244,8 +265,8 @@
     {
       "ChildId": "a987e158-5a27-4dbb-9cc7-fd99db7f59de"/*PlotValueCurve*/,
       "Position": {
-        "X": 842.3675,
-        "Y": 1319.8961
+        "X": 872.8705,
+        "Y": 1375.643
       }
     },
     {
@@ -265,8 +286,8 @@
     {
       "ChildId": "b64f0a0b-6d75-4ccc-8c77-ec5d0f17b913"/*SequenceAnim*/,
       "Position": {
-        "X": 946.63293,
-        "Y": 1164.3005
+        "X": 977.1359,
+        "Y": 1220.0474
       }
     },
     {
@@ -279,8 +300,8 @@
     {
       "ChildId": "c3e5df07-2842-43d4-904d-0d9275ede83d"/*PlotValueCurve*/,
       "Position": {
-        "X": 1262.3676,
-        "Y": 1284.8961
+        "X": 1292.8706,
+        "Y": 1340.643
       }
     },
     {
@@ -293,8 +314,8 @@
     {
       "ChildId": "ce5c1cec-f682-4b0e-ad96-b54cc1c1ff59"/*SequenceAnim*/,
       "Position": {
-        "X": 946.6328,
-        "Y": 980.7469
+        "X": 946.6326,
+        "Y": 937.79736
       }
     },
     {
@@ -335,8 +356,8 @@
     {
       "ChildId": "f7cc7951-60ab-4a71-aa7b-6094483d7e45"/*Transform*/,
       "Position": {
-        "X": 1262.3676,
-        "Y": 1319.8951
+        "X": 1292.8706,
+        "Y": 1375.642
       }
     }
   ],
@@ -352,7 +373,7 @@
   "Annotations": [
     {
       "Id": "07d4ade6-c122-4d42-9404-b37fa2685d76",
-      "Title": "This is NOT the intended function of the Audio Engine. Things might drift.\n\nBut its fun!",
+      "Title": "This is NOT the intended function of the Audio Engine. But its fun!",
       "Label": "Simple Sequencer",
       "Color": {
         "X": 0.6,
