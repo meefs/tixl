@@ -117,7 +117,7 @@ public static class AudioRendering
         }
 
         // Mix operator audio (always included)
-        MixOperatorAudio(mixBuffer, floatCount);
+        MixOperatorAudio(mixBuffer, floatCount, currentTime, frameDurationInSeconds);
 
         LogMixStats(mixBuffer, floatCount, currentTime);
         UpdateOperatorMetering();
@@ -163,8 +163,9 @@ public static class AudioRendering
         }
     }
 
-    private static void MixOperatorAudio(float[] mixBuffer, int floatCount)
+    private static void MixOperatorAudio(float[] mixBuffer, int floatCount, double currentTime, double frameDuration)
     {
+        // Mix stereo operator audio from the operator mixer
         float[] operatorBuffer = new float[floatCount];
         int bytesRead = Bass.ChannelGetData(AudioMixerManager.OperatorMixerHandle, operatorBuffer, floatCount * sizeof(float));
 
@@ -175,6 +176,33 @@ public static class AudioRendering
             {
                 if (!float.IsNaN(operatorBuffer[i]))
                     mixBuffer[i] += operatorBuffer[i];
+            }
+        }
+
+        // Mix spatial operator audio (these are not in the mixer - they use native 3D)
+        // We need to render each spatial stream separately with manual 3D processing
+        MixSpatialOperatorAudio(mixBuffer, currentTime, frameDuration);
+    }
+
+    private static void MixSpatialOperatorAudio(float[] mixBuffer, double currentTime, double frameDuration)
+    {
+        foreach (var kvp in AudioEngine.GetAllSpatialOperatorStates())
+        {
+            var stream = kvp.Value.Stream;
+            if (stream == null || !stream.IsPlaying || stream.IsPaused || kvp.Value.IsStale)
+                continue;
+
+            // Allocate a buffer for this stream's contribution
+            float[] streamBuffer = new float[mixBuffer.Length];
+            
+            // RenderAudio handles 3D attenuation and panning for export
+            stream.RenderAudio(currentTime, frameDuration, streamBuffer, AudioConfig.MixerFrequency, 2);
+
+            // Mix into the main buffer
+            for (int i = 0; i < mixBuffer.Length; i++)
+            {
+                if (!float.IsNaN(streamBuffer[i]))
+                    mixBuffer[i] += streamBuffer[i];
             }
         }
     }
@@ -226,12 +254,11 @@ public static class AudioRendering
 
     private static void UpdateOperatorMetering()
     {
-        UpdateMeteringForStates(AudioEngine.GetAllStereoOperatorStates());
-        UpdateMeteringForStates(AudioEngine.GetAllSpatialOperatorStates());
+        UpdateStereoMeteringForStates(AudioEngine.GetAllStereoOperatorStates());
+        UpdateSpatialMeteringForStates(AudioEngine.GetAllSpatialOperatorStates());
     }
 
-    private static void UpdateMeteringForStates<T>(IEnumerable<KeyValuePair<Guid, (T? Stream, bool IsStale)>> states)
-        where T : OperatorAudioStreamBase
+    private static void UpdateStereoMeteringForStates(IEnumerable<KeyValuePair<Guid, (StereoOperatorAudioStream? Stream, bool IsStale)>> states)
     {
         foreach (var kvp in states)
         {
@@ -240,6 +267,25 @@ public static class AudioRendering
                 continue;
 
             var level = BassMix.ChannelGetLevel(stream.StreamHandle);
+            if (level != -1)
+            {
+                float left = (level & 0xFFFF) / 32768f;
+                float right = ((level >> 16) & 0xFFFF) / 32768f;
+                stream.UpdateFromBuffer([left, right]);
+            }
+        }
+    }
+
+    private static void UpdateSpatialMeteringForStates(IEnumerable<KeyValuePair<Guid, (SpatialOperatorAudioStream? Stream, bool IsStale)>> states)
+    {
+        foreach (var kvp in states)
+        {
+            var stream = kvp.Value.Stream;
+            if (stream == null || !stream.IsPlaying || stream.IsPaused || kvp.Value.IsStale)
+                continue;
+
+            // For spatial streams during export, use Bass.ChannelGetLevel directly (not through mixer)
+            var level = Bass.ChannelGetLevel(stream.StreamHandle);
             if (level != -1)
             {
                 float left = (level & 0xFFFF) / 32768f;

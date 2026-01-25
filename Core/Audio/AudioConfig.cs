@@ -54,6 +54,26 @@ public static class AudioConfig
     public const int DeviceBufferLengthMs = 20;
     #endregion
 
+    #region 3D Audio Configuration
+    /// <summary>
+    /// Distance factor for 3D audio. This is the number of units per meter.
+    /// Default is 1.0 (1 unit = 1 meter). Set to 100 if your world uses centimeters.
+    /// </summary>
+    public static float DistanceFactor { get; set; } = 1.0f;
+
+    /// <summary>
+    /// Rolloff factor for 3D audio distance attenuation.
+    /// 0 = no rolloff, 1 = real-world rolloff, higher = faster rolloff.
+    /// </summary>
+    public static float RolloffFactor { get; set; } = 1.0f;
+
+    /// <summary>
+    /// Doppler factor for 3D audio velocity effects.
+    /// 0 = no Doppler, 1 = real-world Doppler, higher = exaggerated Doppler.
+    /// </summary>
+    public static float DopplerFactor { get; set; } = 1.0f;
+    #endregion
+
     #region FFT and Analysis Configuration (Compile-time Constants)
     // Note: These are const because AudioAnalysis uses them to allocate static arrays.
 

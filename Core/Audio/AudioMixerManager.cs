@@ -112,7 +112,8 @@ public static class AudioMixerManager
             
             // Try to initialize BASS with the device's actual sample rate first,
             // then fall back to common sample rates if that fails
-            var initFlags = DeviceInitFlags.Latency | DeviceInitFlags.Stereo;
+            // Enable 3D audio support along with latency optimization
+            var initFlags = DeviceInitFlags.Latency | DeviceInitFlags.Stereo | DeviceInitFlags.Device3D;
             
             // Build frequency list: device rate first (if known), then common fallbacks
             var frequenciesToTry = new List<int>();
@@ -167,13 +168,13 @@ public static class AudioMixerManager
                     bool isDeviceRate = (freq == deviceSampleRate && deviceSampleRate > 0);
                     var freqDesc = isDeviceRate ? $"{freq}Hz (device)" : $"{freq}Hz (fallback)";
                     
-                    if (Bass.Init(-1, freq, DeviceInitFlags.Stereo, IntPtr.Zero))
+                    if (Bass.Init(-1, freq, DeviceInitFlags.Stereo | DeviceInitFlags.Device3D, IntPtr.Zero))
                     {
-                        Log.Warning($"[AudioMixer] BASS initialized with STEREO flag at {freqDesc} (no latency optimization)");
+                        Log.Warning($"[AudioMixer] BASS initialized with STEREO+3D flag at {freqDesc} (no latency optimization)");
                         initialized = true;
                         usedFrequency = freq;
                         usedDeviceDefault = isDeviceRate;
-                        initMethod = "STEREO";
+                        initMethod = "STEREO+3D";
                         break;
                     }
                     
@@ -187,7 +188,7 @@ public static class AudioMixerManager
                 }
             }
             
-            // Last resort - basic init
+            // Last resort - basic init with 3D
             if (!initialized)
             {
                 foreach (var freq in frequenciesToTry)
@@ -195,13 +196,13 @@ public static class AudioMixerManager
                     bool isDeviceRate = (freq == deviceSampleRate && deviceSampleRate > 0);
                     var freqDesc = isDeviceRate ? $"{freq}Hz (device)" : $"{freq}Hz (fallback)";
                     
-                    if (Bass.Init(-1, freq, DeviceInitFlags.Default, IntPtr.Zero))
+                    if (Bass.Init(-1, freq, DeviceInitFlags.Default | DeviceInitFlags.Device3D, IntPtr.Zero))
                     {
-                        Log.Warning($"[AudioMixer] BASS initialized with DEFAULT flags at {freqDesc}");
+                        Log.Warning($"[AudioMixer] BASS initialized with DEFAULT+3D flags at {freqDesc}");
                         initialized = true;
                         usedFrequency = freq;
                         usedDeviceDefault = isDeviceRate;
-                        initMethod = "DEFAULT";
+                        initMethod = "DEFAULT+3D";
                         break;
                     }
                     

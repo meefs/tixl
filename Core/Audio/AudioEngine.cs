@@ -22,26 +22,43 @@ public static class AudioEngine
 
     // --- Operator Audio ---
     private static readonly Dictionary<Guid, OperatorAudioState<StereoOperatorAudioStream>> _stereoOperatorStates = new();
-    private static readonly Dictionary<Guid, OperatorAudioState<SpatialOperatorAudioStream>> _spatialOperatorStates = new();
+    private static readonly Dictionary<Guid, SpatialOperatorState> _spatialOperatorStates = new();
     private static readonly HashSet<Guid> _operatorsUpdatedThisFrame = new();
     private static int _lastStaleCheckFrame = -1;
 
     // 3D Listener
     private static Vector3 _listenerPosition = Vector3.Zero;
+    private static Vector3 _listenerVelocity = Vector3.Zero;
     private static Vector3 _listenerForward = new(0, 0, 1);
     private static Vector3 _listenerUp = new(0, 1, 0);
     private static bool _3dInitialized;
+    private static bool _3dListenerDirty;
+    private static bool _3dApplyNeeded;
 
     private static double _lastPlaybackSpeed = 1;
     private static bool _bassInitialized;
     private static bool _bassInitFailed;
 
     /// <summary>
-    /// Common state for operator audio streams.
+    /// Common state for operator audio streams using mixer (stereo).
     /// </summary>
     private sealed class OperatorAudioState<T> where T : OperatorAudioStreamBase
     {
         public T? Stream;
+        public string CurrentFilePath = string.Empty;
+        public bool IsPaused;
+        public float PreviousSeek;
+        public bool PreviousPlay;
+        public bool PreviousStop;
+        public bool IsStale;
+    }
+
+    /// <summary>
+    /// State for spatial operator audio streams (native 3D, not using mixer).
+    /// </summary>
+    private sealed class SpatialOperatorState
+    {
+        public SpatialOperatorAudioStream? Stream;
         public string CurrentFilePath = string.Empty;
         public bool IsPaused;
         public float PreviousSeek;
@@ -93,6 +110,9 @@ public static class AudioEngine
             AudioAnalysis.ProcessUpdate(playback.Settings.AudioGainFactor, playback.Settings.AudioDecayFactor);
 
         CheckAndMuteStaleOperators();
+        
+        // Apply all 3D audio changes once per frame (batched for performance)
+        Apply3DChanges();
 
         _obsoleteSoundtrackHandles.Clear();
         _updatedSoundtrackClipTimes.Clear();
@@ -272,6 +292,11 @@ public static class AudioEngine
     #region 3D Listener
 
     /// <summary>
+    /// Converts a System.Numerics.Vector3 to a ManagedBass.Vector3D.
+    /// </summary>
+    private static Vector3D ToBassVector(Vector3 v) => new(v.X, v.Y, v.Z);
+
+    /// <summary>
     /// Sets the 3D listener position and orientation for spatial audio.
     /// </summary>
     /// <param name="position">The world position of the listener.</param>
@@ -279,14 +304,72 @@ public static class AudioEngine
     /// <param name="up">The up direction vector of the listener.</param>
     public static void Set3DListenerPosition(Vector3 position, Vector3 forward, Vector3 up)
     {
+        // Compute velocity from position delta (assumes ~60fps, will be refined by actual frame time)
+        var deltaPos = position - _listenerPosition;
+        _listenerVelocity = deltaPos * 60.0f;
+        
         _listenerPosition = position;
         _listenerForward = forward;
         _listenerUp = up;
+        _3dListenerDirty = true;
 
         if (!_3dInitialized)
         {
+            Initialize3DAudio();
             _3dInitialized = true;
-            AudioConfig.LogAudioInfo($"[AudioEngine] 3D listener initialized | Pos: {position}");
+            AudioConfig.LogAudioInfo($"[AudioEngine] 3D audio initialized | Pos: {position}");
+        }
+    }
+
+    /// <summary>
+    /// Initializes BASS 3D audio with configured factors.
+    /// </summary>
+    private static void Initialize3DAudio()
+    {
+        // Set 3D factors for proper world scaling
+        Bass.Set3DFactors(
+            AudioConfig.DistanceFactor,
+            AudioConfig.RolloffFactor,
+            AudioConfig.DopplerFactor);
+        
+        // Apply initial listener position
+        ApplyListenerPosition();
+    }
+
+    /// <summary>
+    /// Applies the current listener position to BASS.
+    /// </summary>
+    private static void ApplyListenerPosition()
+    {
+        var pos = ToBassVector(_listenerPosition);
+        var vel = ToBassVector(_listenerVelocity);
+        var front = ToBassVector(_listenerForward);
+        var top = ToBassVector(_listenerUp);
+        
+        Bass.Set3DPosition(pos, vel, front, top);
+        _3dListenerDirty = false;
+    }
+
+    /// <summary>
+    /// Marks that a 3D apply is needed at the end of the frame.
+    /// Called by spatial streams when their positions are updated.
+    /// </summary>
+    internal static void Mark3DApplyNeeded() => _3dApplyNeeded = true;
+
+    /// <summary>
+    /// Applies all pending 3D changes (called once per frame in CompleteFrame).
+    /// </summary>
+    private static void Apply3DChanges()
+    {
+        if (_3dListenerDirty)
+        {
+            ApplyListenerPosition();
+        }
+        
+        if (_3dApplyNeeded || _3dListenerDirty)
+        {
+            Bass.Apply3D();
+            _3dApplyNeeded = false;
         }
     }
 
@@ -399,6 +482,7 @@ public static class AudioEngine
 
     /// <summary>
     /// Updates the playback state of a spatial (3D) audio stream for an operator.
+    /// Spatial streams play directly to BASS output for hardware-accelerated 3D audio.
     /// </summary>
     /// <param name="operatorId">The unique identifier of the operator.</param>
     /// <param name="filePath">The file path of the audio file to play.</param>
@@ -429,11 +513,10 @@ public static class AudioEngine
         if (!_3dInitialized)
             Set3DListenerPosition(Vector3.Zero, new Vector3(0, 0, 1), new Vector3(0, 1, 0));
 
-        var state = GetOrCreateState(_spatialOperatorStates, operatorId);
+        var state = GetOrCreateSpatialState(operatorId);
         var resolvedPath = ResolveFilePath(filePath);
 
-        if (!HandleFileChange(state, resolvedPath, operatorId,
-            path => SpatialOperatorAudioStream.TryLoadStream(path, AudioMixerManager.OperatorMixerHandle, out var s) ? s : null))
+        if (!HandleSpatialFileChange(state, resolvedPath, operatorId))
             return;
 
         if (state.Stream == null) return;
@@ -441,7 +524,7 @@ public static class AudioEngine
         // Always update 3D position
         state.Stream.Update3DPosition(position, minDistance, maxDistance);
 
-        if (HandlePlaybackTriggers(state, shouldPlay, shouldStop, operatorId))
+        if (HandleSpatialPlaybackTriggers(state, shouldPlay, shouldStop, operatorId))
             return;
 
         if (state.Stream.IsPlaying)
@@ -458,32 +541,62 @@ public static class AudioEngine
             if (mode3D != 0)
                 state.Stream.Set3DMode((Mode3D)mode3D);
 
-            HandleSeek(state, seek, operatorId);
+            HandleSpatialSeek(state, seek, operatorId);
         }
     }
 
     /// <summary>Pauses the audio stream for the specified spatial operator.</summary>
     /// <param name="operatorId">The unique identifier of the operator.</param>
-    public static void PauseSpatialOperator(Guid operatorId) => PauseOperatorInternal(_spatialOperatorStates, operatorId);
+    public static void PauseSpatialOperator(Guid operatorId)
+    {
+        if (_spatialOperatorStates.TryGetValue(operatorId, out var state) && state.Stream != null)
+        {
+            state.Stream.Pause();
+            state.IsPaused = true;
+        }
+    }
     
     /// <summary>Resumes the audio stream for the specified spatial operator.</summary>
     /// <param name="operatorId">The unique identifier of the operator.</param>
-    public static void ResumeSpatialOperator(Guid operatorId) => ResumeOperatorInternal(_spatialOperatorStates, operatorId);
+    public static void ResumeSpatialOperator(Guid operatorId)
+    {
+        if (_spatialOperatorStates.TryGetValue(operatorId, out var state) && state.Stream != null)
+        {
+            state.Stream.Resume();
+            state.IsPaused = false;
+        }
+    }
     
     /// <summary>Checks if the audio stream is currently playing for the specified spatial operator.</summary>
     /// <param name="operatorId">The unique identifier of the operator.</param>
     /// <returns>True if the stream is playing and not paused; otherwise, false.</returns>
-    public static bool IsSpatialOperatorStreamPlaying(Guid operatorId) => IsOperatorPlaying(_spatialOperatorStates, operatorId);
+    public static bool IsSpatialOperatorStreamPlaying(Guid operatorId)
+    {
+        return _spatialOperatorStates.TryGetValue(operatorId, out var state)
+               && state.Stream != null
+               && state.Stream.IsPlaying
+               && !state.Stream.IsPaused;
+    }
     
     /// <summary>Checks if the audio stream is currently paused for the specified spatial operator.</summary>
     /// <param name="operatorId">The unique identifier of the operator.</param>
     /// <returns>True if the stream is paused; otherwise, false.</returns>
-    public static bool IsSpatialOperatorPaused(Guid operatorId) => IsOperatorPausedInternal(_spatialOperatorStates, operatorId);
+    public static bool IsSpatialOperatorPaused(Guid operatorId)
+    {
+        return _spatialOperatorStates.TryGetValue(operatorId, out var state)
+               && state.Stream != null
+               && state.IsPaused;
+    }
     
     /// <summary>Gets the current audio level for the specified spatial operator.</summary>
     /// <param name="operatorId">The unique identifier of the operator.</param>
     /// <returns>The current audio level, or 0 if the stream is not found.</returns>
-    public static float GetSpatialOperatorLevel(Guid operatorId) => GetOperatorLevelInternal(_spatialOperatorStates, operatorId);
+    public static float GetSpatialOperatorLevel(Guid operatorId)
+    {
+        return _spatialOperatorStates.TryGetValue(operatorId, out var state) && state.Stream != null
+            ? state.Stream.GetLevel()
+            : 0f;
+    }
 
     /// <summary>
     /// Attempts to retrieve the spatial audio stream for the specified operator.
@@ -668,6 +781,97 @@ public static class AudioEngine
             : 0f;
     }
 
+    #endregion
+
+    #region Spatial Operator Helpers (Non-Generic)
+
+    private static SpatialOperatorState GetOrCreateSpatialState(Guid operatorId)
+    {
+        if (!_spatialOperatorStates.TryGetValue(operatorId, out var state))
+        {
+            state = new SpatialOperatorState();
+            _spatialOperatorStates[operatorId] = state;
+            AudioConfig.LogAudioDebug($"[AudioEngine] Created spatial audio state for operator: {operatorId}");
+        }
+        return state;
+    }
+
+    private static bool HandleSpatialFileChange(SpatialOperatorState state, string? resolvedPath, Guid operatorId)
+    {
+        if (state.CurrentFilePath == resolvedPath) return true;
+
+        AudioConfig.LogAudioDebug($"[AudioEngine] File changed for spatial {operatorId}: '{state.CurrentFilePath}' → '{resolvedPath}'");
+
+        state.Stream?.Dispose();
+        state.Stream = null;
+        state.CurrentFilePath = resolvedPath ?? string.Empty;
+        state.PreviousPlay = false;
+        state.PreviousStop = false;
+
+        if (!string.IsNullOrEmpty(resolvedPath))
+        {
+            // Note: mixerHandle parameter is ignored for spatial streams - they play directly to BASS
+            if (!SpatialOperatorAudioStream.TryLoadStream(resolvedPath, 0, out var stream))
+            {
+                Log.Error($"[AudioEngine] Failed to load spatial stream for {operatorId}: {resolvedPath}");
+            }
+            else
+            {
+                state.Stream = stream;
+            }
+        }
+
+        // During export, mark new streams as stale
+        if (state.Stream == null || !Playback.Current.IsRenderingToFile) 
+            return true;
+        
+        state.IsStale = true;
+        state.Stream.SetStaleMuted(true);
+        AudioConfig.LogAudioDebug($"[AudioEngine] New spatial stream during export - marking stale: {resolvedPath}");
+        return false;
+    }
+
+    private static bool HandleSpatialPlaybackTriggers(SpatialOperatorState state, bool shouldPlay, bool shouldStop, Guid operatorId)
+    {
+        var playTrigger = shouldPlay && !state.PreviousPlay;
+        var stopTrigger = shouldStop && !state.PreviousStop;
+        state.PreviousPlay = shouldPlay;
+        state.PreviousStop = shouldStop;
+
+        if (stopTrigger)
+        {
+            AudioConfig.LogAudioDebug($"[AudioEngine] ■ Stop TRIGGER for spatial {operatorId}");
+            state.Stream!.Stop();
+            state.IsPaused = false;
+            state.PreviousSeek = 0f;
+            return true;
+        }
+
+        if (playTrigger)
+        {
+            AudioConfig.LogAudioDebug($"[AudioEngine] ▶ Play TRIGGER for spatial {operatorId}");
+            state.Stream!.Stop();
+            state.Stream.Play();
+            state.IsPaused = false;
+            state.IsStale = false;
+        }
+
+        return false;
+    }
+
+    private static void HandleSpatialSeek(SpatialOperatorState state, float seek, Guid operatorId)
+    {
+        if (Math.Abs(seek - state.PreviousSeek) > 0.001f && seek >= 0f && seek <= 1f)
+        {
+            var seekTime = (float)(seek * state.Stream!.Duration);
+            state.Stream.Seek(seekTime);
+            state.PreviousSeek = seek;
+            AudioConfig.LogAudioDebug($"[AudioEngine] Seek to {seek:F3} ({seekTime:F3}s) for spatial {operatorId}");
+        }
+    }
+
+    #endregion
+
 
     /// <summary>
     /// Unregisters an operator from audio playback and disposes its associated streams.
@@ -688,8 +892,6 @@ public static class AudioEngine
         }
     }
 
-    #endregion
-
     #region Stale Detection & Export
 
     private static void CheckAndMuteStaleOperators()
@@ -701,7 +903,7 @@ public static class AudioEngine
         _lastStaleCheckFrame = currentFrame;
 
         UpdateStaleStates(_stereoOperatorStates);
-        UpdateStaleStates(_spatialOperatorStates);
+        UpdateSpatialStaleStates();
 
         _operatorsUpdatedThisFrame.Clear();
     }
@@ -722,13 +924,28 @@ public static class AudioEngine
         }
     }
 
+    private static void UpdateSpatialStaleStates()
+    {
+        foreach (var (operatorId, state) in _spatialOperatorStates)
+        {
+            if (state.Stream == null) continue;
+
+            bool isStale = !_operatorsUpdatedThisFrame.Contains(operatorId);
+            if (state.IsStale != isStale)
+            {
+                state.Stream.SetStaleMuted(isStale);
+                state.IsStale = isStale;
+            }
+        }
+    }
+
     /// <summary>
     /// Resets all operator audio streams in preparation for audio export.
     /// </summary>
     internal static void ResetAllOperatorStreamsForExport()
     {
         ResetOperatorStreamsForExport(_stereoOperatorStates);
-        ResetOperatorStreamsForExport(_spatialOperatorStates);
+        ResetSpatialOperatorStreamsForExport();
         _operatorsUpdatedThisFrame.Clear();
         AudioConfig.LogAudioDebug("[AudioEngine] Reset all operator streams for export");
     }
@@ -743,13 +960,22 @@ public static class AudioEngine
         }
     }
 
+    private static void ResetSpatialOperatorStreamsForExport()
+    {
+        foreach (var (_, state) in _spatialOperatorStates)
+        {
+            state.Stream?.PrepareForExport();
+            state.IsStale = true;
+        }
+    }
+
     /// <summary>
     /// Updates the stale states for all operator streams during export.
     /// </summary>
     internal static void UpdateStaleStatesForExport()
     {
         UpdateStaleStates(_stereoOperatorStates);
-        UpdateStaleStates(_spatialOperatorStates);
+        UpdateSpatialStaleStates();
         _operatorsUpdatedThisFrame.Clear();
     }
 
@@ -766,7 +992,7 @@ public static class AudioEngine
         }
 
         RestoreOperatorStreams(_stereoOperatorStates);
-        RestoreOperatorStreams(_spatialOperatorStates);
+        RestoreSpatialOperatorStreams();
         _operatorsUpdatedThisFrame.Clear();
 
         if (AudioMixerManager.GlobalMixerHandle != 0)
@@ -788,6 +1014,20 @@ public static class AudioEngine
         }
     }
 
+    private static void RestoreSpatialOperatorStreams()
+    {
+        foreach (var state in _spatialOperatorStates.Values)
+        {
+            if (state.Stream != null)
+            {
+                state.Stream.ClearExportMetering();
+                state.Stream.RestartAfterExport();
+                state.Stream.SetStaleMuted(false);
+                state.IsStale = false;
+            }
+        }
+    }
+
     #endregion
 
     #region Device & Volume Management
@@ -798,7 +1038,7 @@ public static class AudioEngine
     public static void OnAudioDeviceChanged()
     {
         DisposeAllOperatorStreams(_stereoOperatorStates);
-        DisposeAllOperatorStreams(_spatialOperatorStates);
+        DisposeSpatialOperatorStreams();
 
         AudioMixerManager.Shutdown();
         _bassInitialized = false; // Reset flag to allow proper reinitialization
@@ -814,6 +1054,13 @@ public static class AudioEngine
         foreach (var state in states.Values)
             state.Stream?.Dispose();
         states.Clear();
+    }
+
+    private static void DisposeSpatialOperatorStreams()
+    {
+        foreach (var state in _spatialOperatorStates.Values)
+            state.Stream?.Dispose();
+        _spatialOperatorStates.Clear();
     }
 
     /// <summary>
