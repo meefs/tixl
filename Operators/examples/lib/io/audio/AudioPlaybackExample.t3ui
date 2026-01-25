@@ -347,6 +347,13 @@
       }
     },
     {
+      "ChildId": "9cad4e11-0f62-433e-b3c0-9fc2bc80a663"/*AnimValue*/,
+      "Position": {
+        "X": 2093.3008,
+        "Y": 1160.8345
+      }
+    },
+    {
       "ChildId": "a00705e6-8fdf-4303-bba5-fed0f22de37f"/*DrawMesh*/,
       "Position": {
         "X": 2658.3162,
@@ -356,8 +363,8 @@
     {
       "ChildId": "a47f5336-7e30-45f8-aff4-48d71f3319ff"/*CamPosition*/,
       "Position": {
-        "X": 2123.8887,
-        "Y": 1169.7274
+        "X": 2126.7131,
+        "Y": 1216.3331
       }
     },
     {
@@ -456,6 +463,13 @@
       "Position": {
         "X": 1273.4781,
         "Y": 2151.2085
+      }
+    },
+    {
+      "ChildId": "d129b9b4-36c9-4c42-968e-e4aba990601c"/*AnimValue*/,
+      "Position": {
+        "X": 1712.5776,
+        "Y": 1441.2839
       }
     },
     {

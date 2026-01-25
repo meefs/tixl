@@ -31,37 +31,29 @@ namespace Lib.io.audio
         [Input(Guid = "6c2e9f4a-7d3b-4e8f-9a1c-5f2e7b8d4a6c")]
         public readonly InputSlot<bool> Mute = new();
 
-        [Input(Guid = "8f4a2e7c-3d9b-4c1f-8e5a-7b2d6f9c3a4e")]
-        public readonly InputSlot<Vector3> SourcePosition = new();
-
-        [Input(Guid = "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d")]
-        public readonly InputSlot<Vector3> ListenerPosition = new();
-
-        [Input(Guid = "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e")]
-        public readonly InputSlot<Vector3> ListenerForward = new();
-
-        [Input(Guid = "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f")]
-        public readonly InputSlot<Vector3> ListenerUp = new();
-
-        [Input(Guid = "4e9c2f7a-8d3b-4a6f-9c1e-2b7f5a8d6c3e")]
-        public readonly InputSlot<float> MinDistance = new();
-
-        [Input(Guid = "7a3e9f2c-4d8b-4f1a-8c5e-9b2d7a6f1c4e")]
-        public readonly InputSlot<float> MaxDistance = new();
-
         [Input(Guid = "2c8f4e9a-7d3b-4a1f-8e5c-6b2d9a7f3c5e")]
         public readonly InputSlot<float> Speed = new();
 
         [Input(Guid = "9a4e2f7c-3d8b-4c1f-8e5a-7b2d6f9c4a3e")]
         public readonly InputSlot<float> Seek = new();
-
-        // 3D Audio Advanced Parameters
-
-        /// <summary>
-        /// The orientation direction of the audio source for directional sound.
-        /// </summary>
+        
+        [Input(Guid = "8f4a2e7c-3d9b-4c1f-8e5a-7b2d6f9c3a4e")]
+        public readonly InputSlot<Vector3> SourcePosition = new();
+        
         [Input(Guid = "1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e")]
-        public readonly InputSlot<Vector3> SourceOrientation = new();
+        public readonly InputSlot<Vector3> SourceRotation = new();
+        
+        [Input(Guid = "4e9c2f7a-8d3b-4a6f-9c1e-2b7f5a8d6c3e")]
+        public readonly InputSlot<float> MinDistance = new();
+
+        [Input(Guid = "7a3e9f2c-4d8b-4f1a-8c5e-9b2d7a6f1c4e")]
+        public readonly InputSlot<float> MaxDistance = new();
+        
+        [Input(Guid = "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d")]
+        public readonly InputSlot<Vector3> ListenerPosition = new();
+
+        [Input(Guid = "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e")]
+        public readonly InputSlot<Vector3> ListenerRotation = new();
 
         /// <summary>
         /// The inner cone angle in degrees (0-360). Within this angle, the sound is at full volume.
@@ -86,6 +78,8 @@ namespace Lib.io.audio
         /// </summary>
         [Input(Guid = "5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c", MappedType = typeof(Audio3DModes))]
         public readonly InputSlot<int> Audio3DMode = new();
+        
+        // Outputs
 
         /// <summary>
         /// Command output for chaining with other operators.
@@ -153,12 +147,15 @@ namespace Lib.io.audio
             var mute = Mute.GetValue(context);
             var sourcePosition = SourcePosition.GetValue(context);
             var listenerPosition = ListenerPosition.GetValue(context);
-            var listenerForward = ListenerForward.GetValue(context);
-            var listenerUp = ListenerUp.GetValue(context);
+            var listenerRotation = ListenerRotation.GetValue(context);
 
-            // Normalize listener orientation
-            listenerForward = listenerForward.Length() < 0.001f ? new Vector3(0, 0, 1) : Vector3.Normalize(listenerForward);
-            listenerUp = listenerUp.Length() < 0.001f ? new Vector3(0, 1, 0) : Vector3.Normalize(listenerUp);
+            // Convert Euler angles (in degrees) to forward and up vectors
+            var rotationMatrix = Matrix4x4.CreateFromYawPitchRoll(
+                listenerRotation.Y * (MathF.PI / 180f),
+                listenerRotation.X * (MathF.PI / 180f),
+                listenerRotation.Z * (MathF.PI / 180f));
+            var listenerForward = Vector3.Transform(new Vector3(0, 0, 1), rotationMatrix);
+            var listenerUp = Vector3.Transform(new Vector3(0, 1, 0), rotationMatrix);
 
             var minDistance = MinDistance.GetValue(context);
             if (minDistance <= 0) minDistance = 1.0f;
@@ -167,7 +164,15 @@ namespace Lib.io.audio
 
             var speed = Speed.GetValue(context);
             var seek = Seek.GetValue(context);
-            var sourceOrientation = SourceOrientation.GetValue(context);
+            var sourceRotation = SourceRotation.GetValue(context);
+            
+            // Convert source rotation (Euler angles in degrees) to orientation vector
+            var sourceRotationMatrix = Matrix4x4.CreateFromYawPitchRoll(
+                sourceRotation.Y * (MathF.PI / 180f),
+                sourceRotation.X * (MathF.PI / 180f),
+                sourceRotation.Z * (MathF.PI / 180f));
+            var sourceOrientation = Vector3.Transform(new Vector3(0, 0, 1), sourceRotationMatrix);
+            
             var innerConeAngle = Math.Clamp(InnerConeAngle.GetValue(context), 0f, 360f);
             var outerConeAngle = Math.Clamp(OuterConeAngle.GetValue(context), 0f, 360f);
             var outerConeVolume = Math.Clamp(OuterConeVolume.GetValue(context), 0f, 1f);
