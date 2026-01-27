@@ -1,7 +1,7 @@
 # Audio System Architecture
 
-**Version:** 2.0  
-**Last Updated:** 2026-01-24
+**Version:** 2.1  
+**Last Updated:** 2026-01-26
 **Status:** Production Ready
 
 ---
@@ -26,19 +26,20 @@
 The TiXL audio system is a high-performance, low-latency audio engine built on ManagedBass, supporting stereo and 3D spatial audio playback within operator graphs.
 
 ### Key Features
-- **Dual-mode playback**: Stereo and 3D spatial audio operators
+- **Dual-mode playback**: Stereo (via mixer) and 3D spatial audio (direct to BASS) operators
 - **Device-native sample rate**: Automatically matches output device sample rate via WASAPI query
 - **Low-latency configuration**: Configurable update periods and buffer sizes
-- **Native 3D audio**: BASS 3D engine with directional cones, Doppler effects, velocity-based positioning
+- **Native 3D audio**: BASS 3D engine with directional cones, Doppler effects, velocity-based positioning (hardware-accelerated via direct BASS output)
 - **Real-time analysis**: FFT spectrum, waveform, and level metering for both live and export
 - **Centralized configuration**: Single source of truth via `AudioConfig`
 - **Debug control**: Suppressible logging for cleaner development experience
 - **Isolated offline analysis**: Waveform image generation without interfering with playback
 - **Stale detection**: Automatic muting of inactive operator streams per-frame
 - **Export support**: Direct stream reading for video export with audio (soundtrack + operator mixing)
-- **Unified codebase**: Common base class (`OperatorAudioStreamBase`) eliminates code duplication
+- **Unified codebase**: Common base class (`OperatorAudioStreamBase`) for stereo streams; standalone class for spatial
 - **FLAC support**: Native BASS FLAC plugin for high-quality audio files
 - **External audio mode support**: Handles external device audio sources during export (operators only)
+- **Batched 3D updates**: `Apply3D()` called once per frame for optimal performance
 
 ---
 
@@ -89,17 +90,18 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
                       │
           ┌───────────┴───────────┐
           ▼                       ▼
-    ┌─────────────────┐    ┌─────────────────┐
-    │  STEREO STREAM  │    │  SPATIAL STREAM │
-    ├─────────────────┤    ├─────────────────┤
-    │  • SetPanning() │    │  • 3D Position  │
-    │  • TryLoadStream│    │  • Orientation  │
-    │                 │    │  • Velocity     │
-    │                 │    │  • Cone/Doppler │
-    │                 │    │  • Apply3D()    │
-    │                 │    │  • Set3DMode()  │
-    │                 │    │  • Initialize3D │
-    └─────────────────┘    └─────────────────┘
+    ┌─────────────────┐    ┌─────────────────────────┐
+    │  STEREO STREAM  │    │     SPATIAL STREAM      │
+    ├─────────────────┤    ├─────────────────────────┤
+    │  • SetPanning() │    │  • 3D Position          │
+    │  • TryLoadStream│    │  • Orientation/Velocity │
+    │  • Uses Mixer   │    │  • Cone/Doppler         │
+    │                 │    │  • Apply3D()            │
+    │                 │    │  • Set3DMode()          │
+    │                 │    │  • Initialize3D         │
+    │                 │    │  • DIRECT to BASS (no   │
+    │                 │    │    mixer for HW 3D)     │
+    └─────────────────┘    └─────────────────────────┘
                        │
                        ▼
     ┌─────────────────────────────────────────────────────────────────┐
@@ -150,17 +152,22 @@ OperatorAudioStreamBase (abstract)
 ├── Metering: GetLevel, UpdateFromBuffer, ClearExportMetering
 ├── Export: PrepareForExport, RestartAfterExport, RenderAudio, GetCurrentPosition
 │
-├── StereoOperatorAudioStream
-│   ├── TryLoadStream(filePath, mixerHandle) - Factory method
-│   └── SetPanning(float) - Pan audio left (-1) to right (+1)
-│
-└── SpatialOperatorAudioStream
-    ├── TryLoadStream(filePath, mixerHandle) - Factory method (loads as mono)
-    ├── Initialize3DAudio() - Setup 3D attributes
-    ├── Update3DPosition(Vector3, float, float) - Position + min/max distance
-    ├── Set3DOrientation(Vector3) - Directional facing
-    ├── Set3DCone(float, float, float) - Inner/outer angle + volume
-    └── Set3DMode(Mode3D) - Normal/Relative/Off
+└── StereoOperatorAudioStream (extends base, uses mixer)
+    ├── TryLoadStream(filePath, mixerHandle) - Factory method
+    └── SetPanning(float) - Pan audio left (-1) to right (+1)
+
+SpatialOperatorAudioStream (standalone class - does NOT inherit from base)
+├── Properties: Duration, StreamHandle, FilePath, IsPaused, IsPlaying, IsStaleMuted
+├── Methods: Play, Pause, Resume, Stop, SetVolume, SetSpeed, Seek
+├── 3D Methods:
+│   ├── Initialize3DAudio() - Setup initial 3D attributes
+│   ├── Update3DPosition(Vector3, float, float) - Position + min/max distance
+│   ├── Set3DOrientation(Vector3) - Directional facing
+│   ├── Set3DCone(float, float, float) - Inner/outer angle + volume
+│   └── Set3DMode(Mode3D) - Normal/Relative/Off
+├── TryLoadStream(filePath, mixerHandle) - Factory (mixerHandle ignored, plays direct)
+├── Metering: GetLevel, UpdateFromBuffer (export)
+└── Note: Plays DIRECTLY to BASS output for hardware 3D processing
 
 AudioPlayerUtils (static utility)
 └── ComputeInstanceGuid(IEnumerable<Guid>) - Stable operator identification via FNV-1a hash
@@ -173,6 +180,7 @@ AudioEngine (static)
 ├── Soundtrack: SoundtrackClipStreams, UseSoundtrackClip, ReloadSoundtrackClip
 ├── Operators: _stereoOperatorStates, _spatialOperatorStates, Update*OperatorPlayback
 ├── 3D Listener: _listenerPosition, _listenerForward, _listenerUp, Set3DListenerPosition
+├── 3D Batching: Mark3DApplyNeeded(), Apply3DChanges() (called once per frame)
 ├── Stale Detection: _operatorsUpdatedThisFrame, CheckAndMuteStaleOperators
 └── Device: OnAudioDeviceChanged, SetGlobalVolume, SetGlobalMute, SetOperatorMute
 ```
@@ -194,12 +202,18 @@ The mixer architecture uses a hierarchical structure with separate paths for dif
 
 ### Live Playback Path
 ```
-Operator Clips ──► OperatorMixer (Decode) ──────┐
-                   [MixerChanBuffer]            │
-                                                ├──► GlobalMixer ──► Soundcard
-Soundtrack Clips ──► SoundtrackMixer (Decode) ──┘
+Stereo Operator Clips ──► OperatorMixer (Decode) ──────┐
+                          [MixerChanBuffer]            │
+                                                       ├──► GlobalMixer ──► Soundcard
+Soundtrack Clips ──► SoundtrackMixer (Decode) ─────────┘
                      [MixerChanBuffer]
+
+Spatial Operator Clips ──► BASS Direct (3D Flags) ──────► Soundcard (hardware 3D)
+                           [Mono + Bass3D + Float]
 ```
+
+> **Note:** Spatial streams bypass the mixer hierarchy entirely to enable hardware-accelerated 3D audio 
+> processing with native BASS 3D engine support. They play directly to the BASS output device.
 
 ### Export Path (GlobalMixer Paused)
 ```
@@ -216,11 +230,27 @@ AudioFile ──► CreateOfflineAnalysisStream() ──► FFT/Waveform ──�
               (Decode + Prescan flags)          (no soundcard)
 ```
 
+### Stereo vs Spatial Output Flow
+
+| Aspect | Stereo Streams | Spatial Streams |
+|--------|----------------|-----------------|
+| **Output Path** | Through OperatorMixer → GlobalMixer → Soundcard | Direct to BASS → Soundcard |
+| **Stream Flags** | `Decode \| Float \| AsyncFile` | `Float \| Mono \| Bass3D \| AsyncFile` |
+| **Mixer Channel** | Added via `BassMix.MixerAddChannel` | Not added to any mixer |
+| **Playback Method** | `BassMix.ChannelPlay` | `Bass.ChannelPlay` |
+| **3D Processing** | None (2D stereo) | Hardware-accelerated via BASS 3D engine |
+| **Level Metering** | `BassMix.ChannelGetLevel` | `Bass.ChannelGetLevel` |
+| **Why?** | Mixer provides flexible routing, volume control | 3D requires native BASS for HW acceleration |
+
+> **Design Decision:** Spatial audio bypasses the mixer to leverage BASS's hardware-accelerated 3D 
+> positioning. Routing through the mixer would break the native 3D audio chain, as the mixer outputs 
+> standard stereo which cannot be repositioned in 3D space afterwards.
+
 ---
 
 ## Signal Flow
 
-### Stereo Audio
+### Stereo Audio (Uses Mixer)
 ```
 AudioFile ──► Bass.CreateStream (Decode|Float|AsyncFile)
           │
@@ -231,15 +261,20 @@ AudioFile ──► Bass.CreateStream (Decode|Float|AsyncFile)
           └──► SetVolume/SetPanning/SetSpeed ──► BassMix.ChannelGetLevel ──► Metering
 ```
 
-### Spatial Audio
+### Spatial Audio (Direct to BASS - Hardware 3D)
 ```
-AudioFile ──► Bass.CreateStream (Decode|Float|AsyncFile|Mono)
+AudioFile ──► Bass.CreateStream (Float|Mono|Bass3D|AsyncFile)
           │
-          ├──► BassMix.MixerAddChannel (MixerChanBuffer|MixerChanPause)
-          │                │
-          │                └──► OperatorMixer ──► GlobalMixer ──► Soundcard
+          │   [NO MIXER - Direct to BASS Output]
           │
-          └──► 3D Position ──► Distance/Cone/Velocity ──► Bass.Apply3D()
+          ├──► Bass.ChannelPlay() ──────────────────────────────► Soundcard (HW 3D)
+          │
+          ├──► 3D Position ──► Bass.ChannelSet3DPosition() ──────┐
+          │                                                       │
+          ├──► 3D Attributes ──► Bass.ChannelSet3DAttributes() ──┼──► Bass.Apply3D()
+          │    (Mode, Distance, Cone)                             │
+          │                                                       │
+          └──► Velocity ──► Doppler Effect ──────────────────────┘
 ```
 
 ### FFT and Waveform Analysis (Live)
@@ -295,11 +330,15 @@ GlobalMixer ──► Bass.ChannelGetData(FFT2048) ──► FftGainBuffer ─�
 - Advanced: Audio3DMode (Normal/Relative/Off)
 
 **Implementation Details:**
-- Loads audio as mono for optimal 3D positioning
+- **Loads audio as mono** with `BassFlags.Bass3D | BassFlags.Mono | BassFlags.Float` for optimal 3D positioning
+- **Plays directly to BASS output** (NOT through OperatorMixer) for hardware-accelerated 3D processing
+- Does not use `BassMix.MixerAddChannel` - the `mixerHandle` parameter is ignored in `TryLoadStream`
 - Listener orientation auto-normalized if invalid
 - 3D position updated every frame via `AudioEngine.Set3DListenerPosition()`
-- Velocity computed from position delta (assumes ~60fps)
-- Supports `RenderAudio()` for export functionality
+- Velocity computed from position delta (assumes ~60fps) for Doppler effects
+- Uses `AudioEngine.Mark3DApplyNeeded()` to batch 3D changes per frame
+- `Bass.Apply3D()` called once per frame in `CompleteFrame()` for performance
+- Supports `RenderAudio()` for export functionality (uses separate decode stream)
 
 **Use Cases:**
 - 3D environments and games
@@ -369,16 +408,17 @@ PrepareRecording()
         ├──► Pause GlobalMixer
         ├──► Clear AudioExportSourceRegistry
         ├──► Reset WaveFormProcessing export buffer
-        ├──► ResetAllOperatorStreamsForExport()
+        ├──► ResetAllOperatorStreamsForExport() (both stereo + spatial)
         └──► Remove Soundtrack streams from SoundtrackMixer (for direct reading)
         │
         ▼
 GetFullMixDownBuffer() [per frame]
         │
-        ├──► UpdateStaleStatesForExport()
+        ├──► UpdateStaleStatesForExport() (both stereo + spatial)
         ├──► MixSoundtrackClip() ──► Seek + Read + ResampleAndMix()
-        ├──► MixOperatorAudio() ──► Read from OperatorMixer
-        ├──► UpdateOperatorMetering()
+        ├──► MixOperatorAudio() ──► Read from OperatorMixer (stereo only)
+        ├──► MixSpatialOperatorAudio() ──► Read from decode streams (spatial)
+        ├──► UpdateOperatorMetering() (both stereo + spatial)
         ├──► PopulateFromExportBuffer() ──► WaveForm buffers
         └──► ComputeFftFromBuffer() ──► FFT buffers
         │
@@ -397,6 +437,16 @@ When `AudioSource` is set to `ExternalDevice` during export:
 - Warning is logged to inform user
 - Waveform buffers are cleared (external audio can't be monitored)
 
+### Spatial Audio Export Notes
+During export, spatial audio streams require special handling:
+- Spatial streams use a **separate decode stream** (`_exportDecodeStreamHandle`) for reading audio data
+- The hardware 3D processing is **not applied** during export (raw mono audio is exported)
+- 3D positioning effects are only present during live playback
+- Exported spatial audio is mixed as mono, then converted to stereo for the final mixdown
+
+> **Important:** Spatial audio in exported videos will NOT include 3D positioning effects. 
+> The exported audio is the raw source audio mixed to stereo without spatial processing.
+
 ---
 
 ## Documentation Index
@@ -407,8 +457,8 @@ When `AudioSource` is set to `ExternalDevice` during export:
 |-----------------------------------|--------------------------------------------------|
 | `AudioEngine.cs`                  | Central API for operator and soundtrack playback |
 | `OperatorAudioStreamBase.cs`      | Common stream functionality (abstract base)      |
-| `StereoOperatorAudioStream.cs`    | Stereo-specific stream with panning              |
-| `SpatialOperatorAudioStream.cs`   | 3D spatial stream with positioning               |
+| `StereoOperatorAudioStream.cs`    | Stereo-specific stream with panning (uses mixer) |
+| `SpatialOperatorAudioStream.cs`   | 3D spatial stream (standalone, direct to BASS)   |
 | `AudioRendering.cs`               | Export/recording functionality                   |
 | `AudioMixerManager.cs`            | BASS mixer setup and level metering              |
 | `AudioConfig.cs`                  | Centralized configuration                        |
@@ -454,16 +504,17 @@ When `AudioSource` is set to `ExternalDevice` during export:
 - Geometry-based occlusion (maybe)
 
 ### Performance Optimizations
-- Centralized `Apply3D()` batching
+- ✅ **Centralized `Apply3D()` batching** - Implemented via `Mark3DApplyNeeded()` and single call in `CompleteFrame()`
 - Stream pooling and recycling
-- Async file loading
+- Async file loading (partially via `BassFlags.AsyncFile`)
 - Multithreaded FFT processing
 
 ### Current Limitations
 1. No EAX environmental effects (BASS supports, not yet exposed)
-2. Single Doppler factor (not yet adjustable)
+2. Single Doppler factor (not yet adjustable per-stream)
 3. No custom distance rolloff curves
-4. `Apply3D()` called per stream (could be centralized)
+4. Spatial audio not included in mixer-level metering (plays directly to BASS)
+5. Export of spatial audio uses separate decode stream (not hardware 3D processed)
 
 ---
 
