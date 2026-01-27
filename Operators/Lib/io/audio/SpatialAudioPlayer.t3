@@ -2,47 +2,23 @@
   "Id": "8a3c9f2e-4b7d-4e1a-9c5f-7d2e8b1a6c3f"/*SpatialAudioPlayer*/,
   "Inputs": [
     {
-      "Id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"/*ListenerPosition*/,
+      "Id": "159c7342-a8c8-4ffb-8a69-da3ffa0d3b71"/*ListenerPosition*/,
       "DefaultValue": {
         "X": 0.0,
         "Y": 0.0,
-        "Z": 0.0
+        "Z": -5.0
       }
     },
     {
-      "Id": "1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e"/*SourceOrientation*/,
-      "DefaultValue": {
-        "X": 0.0,
-        "Y": 0.0,
-        "Z": 0.0
-      }
+      "Id": "1800cdcb-8863-423e-a2ec-901cf54e014c"/*StopAudio*/,
+      "DefaultValue": false
     },
     {
-      "Id": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e"/*ListenerForward*/,
-      "DefaultValue": {
-        "X": 0.0,
-        "Y": 0.0,
-        "Z": 0.0
-      }
-    },
-    {
-      "Id": "2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f"/*InnerConeAngle*/,
-      "DefaultValue": 0.0
-    },
-    {
-      "Id": "2c8f4e9a-7d3b-4a1f-8e5c-6b2d9a7f3c5e"/*Speed*/,
-      "DefaultValue": 0.0
-    },
-    {
-      "Id": "2f8a4c9e-3d7b-4a1f-8e5c-9b2d7a6e1c4f"/*AudioFile*/,
+      "Id": "2aa976e3-a63c-4c7e-80a5-a459b3240388"/*AudioFile*/,
       "DefaultValue": ""
     },
     {
-      "Id": "3a7f4e2c-9d8b-4f1a-8c5e-2b7d6a9f3c1e"/*Volume*/,
-      "DefaultValue": 0.0
-    },
-    {
-      "Id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f"/*ListenerUp*/,
+      "Id": "3cf1b579-a1f2-4e9f-a54a-0e9e3580a6bf"/*SourceRotation*/,
       "DefaultValue": {
         "X": 0.0,
         "Y": 0.0,
@@ -50,48 +26,59 @@
       }
     },
     {
-      "Id": "3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a"/*OuterConeAngle*/,
-      "DefaultValue": 0.0
-    },
-    {
-      "Id": "4d5b95c9-677a-4c69-8bf0-35d5b5b002d6"/*Envelope*/,
-      "DefaultValue": {
-        "X": 1.0,
-        "Y": 1.0,
-        "Z": 1.0,
-        "W": 1.0
-      }
-    },
-    {
-      "Id": "4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b"/*OuterConeVolume*/,
-      "DefaultValue": 0.0
-    },
-    {
-      "Id": "4e9c2f7a-8d3b-4a6f-9c1e-2b7f5a8d6c3e"/*MinDistance*/,
-      "DefaultValue": 0.0
-    },
-    {
-      "Id": "5c9e2d7a-4b8f-4e3c-9a1d-6f2e8b7c3a5f"/*PlayAudio*/,
-      "DefaultValue": false
-    },
-    {
-      "Id": "5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c"/*Audio3DMode*/,
+      "Id": "42d8337a-d419-4038-a132-0e3934d25a2a"/*Audio3DMode*/,
       "DefaultValue": 0
     },
     {
-      "Id": "6c2e9f4a-7d3b-4e8f-9a1c-5f2e7b8d4a6c"/*Mute*/,
+      "Id": "454a65fa-c0a3-4055-85ec-ac3771b2524c"/*PlayAudio*/,
       "DefaultValue": false
     },
     {
-      "Id": "7a3e9f2c-4d8b-4f1a-8c5e-9b2d7a6f1c4e"/*MaxDistance*/,
+      "Id": "7110399e-fd85-4053-9a49-cc09760dceb6"/*Volume*/,
+      "DefaultValue": 1.0
+    },
+    {
+      "Id": "732be517-a58e-4f21-8395-7761a95905ea"/*MinDistance*/,
+      "DefaultValue": 1.0
+    },
+    {
+      "Id": "73971807-98d8-4b8b-b90f-41d673398b2b"/*OuterConeAngle*/,
+      "DefaultValue": 180.0
+    },
+    {
+      "Id": "77d9309e-0c9d-407f-b9b1-dd4b734fa51e"/*Visibility*/,
+      "DefaultValue": "Off"
+    },
+    {
+      "Id": "785bb240-2020-4937-b132-b46f542e8986"/*InnerConeAngle*/,
+      "DefaultValue": 90.0
+    },
+    {
+      "Id": "7eb612cb-1dbf-4336-b91d-1042573bd7ff"/*MaxDistance*/,
+      "DefaultValue": 10.0
+    },
+    {
+      "Id": "9c0b519b-45b1-4b28-8c0e-2eba7035a999"/*Speed*/,
+      "DefaultValue": 1.0
+    },
+    {
+      "Id": "ad8822bc-939b-4152-b253-bf01c5aa4d73"/*Mute*/,
+      "DefaultValue": false
+    },
+    {
+      "Id": "b4d639d4-d96b-42e1-a250-efe57d7e9c5e"/*OuterConeVolume*/,
       "DefaultValue": 0.0
     },
     {
-      "Id": "7d3f9b2e-4c8a-4f1a-9d5c-8a2b7e1f6c3d"/*StopAudio*/,
+      "Id": "b921cbd4-4803-48e8-9eb9-f05901cc5802"/*Seek*/,
+      "DefaultValue": 0.0
+    },
+    {
+      "Id": "d0c660d7-f90b-4e61-95ff-0ce7c76d9d67"/*PauseAudio*/,
       "DefaultValue": false
     },
     {
-      "Id": "8f4a2e7c-3d9b-4c1f-8e5a-7b2d6f9c3a4e"/*SourcePosition*/,
+      "Id": "db9a0aa1-95db-4da4-99fc-31c385773ca8"/*ListenerRotation*/,
       "DefaultValue": {
         "X": 0.0,
         "Y": 0.0,
@@ -99,26 +86,94 @@
       }
     },
     {
-      "Id": "9a4e2f7c-3d8b-4c1f-8e5a-7b2d6f9c4a3e"/*Seek*/,
-      "DefaultValue": 0.0
-    },
-    {
-      "Id": "9e4c2f7a-5d8b-4a3f-8e1c-7b2d9a6f4c5e"/*PauseAudio*/,
-      "DefaultValue": false
-    },
-    {
-      "Id": "c79d2af5-48e5-45b7-a0eb-4ccd3e10c544"/*TriggerMode*/,
-      "DefaultValue": 0
-    },
-    {
-      "Id": "d1fe6a8d-f14a-4755-8b8c-2fad5780e9b7"/*Duration*/,
-      "DefaultValue": 0.0
-    },
-    {
-      "Id": "f148f43b-3754-4967-899e-23f49b46b8f6"/*UseEnvelope*/,
-      "DefaultValue": false
+      "Id": "f3730e3b-a335-4a13-9b2a-87b8e75cddeb"/*SourcePosition*/,
+      "DefaultValue": {
+        "X": 0.0,
+        "Y": 0.0,
+        "Z": 0.0
+      }
     }
   ],
-  "Children": [],
-  "Connections": []
+  "Children": [
+    {
+      "Id": "0b459c75-9edc-4f8c-8748-26a701380436"/*SpatialAudioPlayerGizmo*/,
+      "SymbolId": "b26e6624-4017-46b5-970d-1525d90fafad",
+      "InputValues": [],
+      "Outputs": []
+    },
+    {
+      "Id": "66e4e93c-4731-4d1a-8930-31ef127de8ee"/*VisibleGizmos*/,
+      "SymbolId": "d61d7192-9ca3-494e-91e2-10a530ee9375",
+      "InputValues": [],
+      "Outputs": []
+    }
+  ],
+  "Connections": [
+    {
+      "SourceParentOrChildId": "66e4e93c-4731-4d1a-8930-31ef127de8ee",
+      "SourceSlotId": "6c29ce06-0512-4815-bc83-ab2e095c0455",
+      "TargetParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "TargetSlotId": "df5bd9eb-a922-44c1-98e1-ed580fa70d00"
+    },
+    {
+      "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "SourceSlotId": "159c7342-a8c8-4ffb-8a69-da3ffa0d3b71",
+      "TargetParentOrChildId": "0b459c75-9edc-4f8c-8748-26a701380436",
+      "TargetSlotId": "1c7f4f37-e109-42f5-bf22-7149a946120d"
+    },
+    {
+      "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "SourceSlotId": "7eb612cb-1dbf-4336-b91d-1042573bd7ff",
+      "TargetParentOrChildId": "0b459c75-9edc-4f8c-8748-26a701380436",
+      "TargetSlotId": "708c414d-1017-4bc7-b650-265e8ed09613"
+    },
+    {
+      "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "SourceSlotId": "db9a0aa1-95db-4da4-99fc-31c385773ca8",
+      "TargetParentOrChildId": "0b459c75-9edc-4f8c-8748-26a701380436",
+      "TargetSlotId": "8ec0be50-c509-432d-b2e1-d8822b90000b"
+    },
+    {
+      "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "SourceSlotId": "3cf1b579-a1f2-4e9f-a54a-0e9e3580a6bf",
+      "TargetParentOrChildId": "0b459c75-9edc-4f8c-8748-26a701380436",
+      "TargetSlotId": "a7c899ee-28f4-444e-b111-4ea98a9ee5f8"
+    },
+    {
+      "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "SourceSlotId": "73971807-98d8-4b8b-b90f-41d673398b2b",
+      "TargetParentOrChildId": "0b459c75-9edc-4f8c-8748-26a701380436",
+      "TargetSlotId": "cafd2a8d-ffa1-4441-b66a-001e383343ad"
+    },
+    {
+      "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "SourceSlotId": "785bb240-2020-4937-b132-b46f542e8986",
+      "TargetParentOrChildId": "0b459c75-9edc-4f8c-8748-26a701380436",
+      "TargetSlotId": "d1b4973a-a717-49da-af49-b3359bd6b609"
+    },
+    {
+      "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "SourceSlotId": "732be517-a58e-4f21-8395-7761a95905ea",
+      "TargetParentOrChildId": "0b459c75-9edc-4f8c-8748-26a701380436",
+      "TargetSlotId": "d24e8381-df53-4afb-9573-e83c4ded337d"
+    },
+    {
+      "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "SourceSlotId": "f3730e3b-a335-4a13-9b2a-87b8e75cddeb",
+      "TargetParentOrChildId": "0b459c75-9edc-4f8c-8748-26a701380436",
+      "TargetSlotId": "d68cfc97-8bf8-4b03-8b2d-9dba9175f36a"
+    },
+    {
+      "SourceParentOrChildId": "0b459c75-9edc-4f8c-8748-26a701380436",
+      "SourceSlotId": "4075a57f-ed26-46e0-baff-88809ac8f07d",
+      "TargetParentOrChildId": "66e4e93c-4731-4d1a-8930-31ef127de8ee",
+      "TargetSlotId": "4d663aa5-e2d4-40e0-8901-abe09cb832c3"
+    },
+    {
+      "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "SourceSlotId": "77d9309e-0c9d-407f-b9b1-dd4b734fa51e",
+      "TargetParentOrChildId": "66e4e93c-4731-4d1a-8930-31ef127de8ee",
+      "TargetSlotId": "4f52683c-f2aa-4d3f-a964-f5232fa98872"
+    }
+  ]
 }

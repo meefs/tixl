@@ -1,5 +1,7 @@
 using ManagedBass;
 using T3.Core.Audio;
+using T3.Core.Operator.Interfaces;
+using T3.Core.Operator.Slots;
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Local
 
@@ -10,100 +12,110 @@ namespace Lib.io.audio
     /// Supports sound positioning, listener orientation, distance-based attenuation, and directional sound cones.
     /// </summary>
     [Guid("8a3c9f2e-4b7d-4e1a-9c5f-7d2e8b1a6c3f")]
-    internal sealed class SpatialAudioPlayer : Instance<SpatialAudioPlayer>
+    internal sealed class SpatialAudioPlayer : Instance<SpatialAudioPlayer>, ITransformable
     {
+        #region ITransformable Implementation
+        
+        IInputSlot ITransformable.TranslationInput => SourcePosition;
+        IInputSlot ITransformable.RotationInput => SourceRotation;
+        IInputSlot ITransformable.ScaleInput => null;
+        
+        public Action<Instance, EvaluationContext>? TransformCallback { get; set; }
+        
+        #endregion
 
-        [Input(Guid = "2f8a4c9e-3d7b-4a1f-8e5c-9b2d7a6e1c4f")]
+        [Input(Guid = "2aa976e3-a63c-4c7e-80a5-a459b3240388")]
         public readonly InputSlot<string> AudioFile = new();
 
-        [Input(Guid = "5c9e2d7a-4b8f-4e3c-9a1d-6f2e8b7c3a5f")]
+        [Input(Guid = "454a65fa-c0a3-4055-85ec-ac3771b2524c")]
         public readonly InputSlot<bool> PlayAudio = new();
 
-        [Input(Guid = "7d3f9b2e-4c8a-4f1a-9d5c-8a2b7e1f6c3d")]
+        [Input(Guid = "1800cdcb-8863-423e-a2ec-901cf54e014c")]
         public readonly InputSlot<bool> StopAudio = new();
 
-        [Input(Guid = "9e4c2f7a-5d8b-4a3f-8e1c-7b2d9a6f4c5e")]
+        [Input(Guid = "d0c660d7-f90b-4e61-95ff-0ce7c76d9d67")]
         public readonly InputSlot<bool> PauseAudio = new();
 
-        [Input(Guid = "3a7f4e2c-9d8b-4f1a-8c5e-2b7d6a9f3c1e")]
+        [Input(Guid = "7110399e-fd85-4053-9a49-cc09760dceb6")]
         public readonly InputSlot<float> Volume = new();
 
-        [Input(Guid = "6c2e9f4a-7d3b-4e8f-9a1c-5f2e7b8d4a6c")]
+        [Input(Guid = "ad8822bc-939b-4152-b253-bf01c5aa4d73")]
         public readonly InputSlot<bool> Mute = new();
 
-        [Input(Guid = "2c8f4e9a-7d3b-4a1f-8e5c-6b2d9a7f3c5e")]
+        [Input(Guid = "9c0b519b-45b1-4b28-8c0e-2eba7035a999")]
         public readonly InputSlot<float> Speed = new();
 
-        [Input(Guid = "9a4e2f7c-3d8b-4c1f-8e5a-7b2d6f9c4a3e")]
+        [Input(Guid = "b921cbd4-4803-48e8-9eb9-f05901cc5802")]
         public readonly InputSlot<float> Seek = new();
         
-        [Input(Guid = "8f4a2e7c-3d9b-4c1f-8e5a-7b2d6f9c3a4e")]
+        [Input(Guid = "f3730e3b-a335-4a13-9b2a-87b8e75cddeb")]
         public readonly InputSlot<Vector3> SourcePosition = new();
         
-        [Input(Guid = "1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e")]
+        [Input(Guid = "3cf1b579-a1f2-4e9f-a54a-0e9e3580a6bf")]
         public readonly InputSlot<Vector3> SourceRotation = new();
         
-        [Input(Guid = "4e9c2f7a-8d3b-4a6f-9c1e-2b7f5a8d6c3e")]
+        [Input(Guid = "732be517-a58e-4f21-8395-7761a95905ea")]
         public readonly InputSlot<float> MinDistance = new();
 
-        [Input(Guid = "7a3e9f2c-4d8b-4f1a-8c5e-9b2d7a6f1c4e")]
+        [Input(Guid = "7eb612cb-1dbf-4336-b91d-1042573bd7ff")]
         public readonly InputSlot<float> MaxDistance = new();
         
-        [Input(Guid = "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d")]
+        [Input(Guid = "159c7342-a8c8-4ffb-8a69-da3ffa0d3b71")]
         public readonly InputSlot<Vector3> ListenerPosition = new();
 
-        [Input(Guid = "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e")]
+        [Input(Guid = "db9a0aa1-95db-4da4-99fc-31c385773ca8")]
         public readonly InputSlot<Vector3> ListenerRotation = new();
-
-        /// <summary>
-        /// The inner cone angle in degrees (0-360). Within this angle, the sound is at full volume.
-        /// </summary>
-        [Input(Guid = "2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f")]
+        
+        [Input(Guid = "785bb240-2020-4937-b132-b46f542e8986")]
         public readonly InputSlot<float> InnerConeAngle = new();
-
-        /// <summary>
-        /// The outer cone angle in degrees (0-360). Outside this angle, the sound is at OuterConeVolume.
-        /// </summary>
-        [Input(Guid = "3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a")]
+        
+        [Input(Guid = "73971807-98d8-4b8b-b90f-41d673398b2b")]
         public readonly InputSlot<float> OuterConeAngle = new();
-
-        /// <summary>
-        /// The volume level outside the outer cone (0.0 to 1.0).
-        /// </summary>
-        [Input(Guid = "4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b")]
+        
+        [Input(Guid = "b4d639d4-d96b-42e1-a250-efe57d7e9c5e")]
         public readonly InputSlot<float> OuterConeVolume = new();
+        
+        [Input(Guid = "42d8337a-d419-4038-a132-0e3934d25a2a", MappedType = typeof(Audio3DModes))]
+        public readonly InputSlot<int> Audio3DMode = new();
 
         /// <summary>
-        /// The 3D audio processing mode: Normal (0), Relative (1), or Off (2).
+        /// Controls the visibility of the transform gizmo.
         /// </summary>
-        [Input(Guid = "5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c", MappedType = typeof(Audio3DModes))]
-        public readonly InputSlot<int> Audio3DMode = new();
+        [Input(Guid = "77d9309e-0c9d-407f-b9b1-dd4b734fa51e")]
+        public readonly InputSlot<GizmoVisibility> Visibility = new();
         
         // Outputs
 
         /// <summary>
         /// Command output for chaining with other operators.
         /// </summary>
-        [Output(Guid = "4a8e2f7c-9d3b-4c1f-8e5a-7b2d6f9c3a4e")]
-        public readonly Slot<Command> Result = new();
+        [Output(Guid = "117c0d2e-c14b-471a-8a6d-a9f983e48908")]
+        public readonly TransformCallbackSlot<Command> Result = new();
 
         /// <summary>
         /// Indicates whether the audio is currently playing.
         /// </summary>
-        [Output(Guid = "9c2f7a4e-3d8b-4a1f-8e5c-6b2d9a7f4c3e")]
+        [Output(Guid = "022b0246-73d7-4a99-9c89-3e199171fd6c")]
         public readonly Slot<bool> IsPlaying = new();
 
         /// <summary>
         /// Indicates whether the audio is currently paused.
         /// </summary>
-        [Output(Guid = "6e4a2f9c-7d3b-4c8f-9a1e-2b7d5f8c6a3e")]
+        [Output(Guid = "52e624ca-508c-44c1-8583-946260e9f660")]
         public readonly Slot<bool> IsPaused = new();
 
         /// <summary>
         /// Returns the current audio level/amplitude.
         /// </summary>
-        [Output(Guid = "3f9a2e7c-4d8b-4c1f-8a5e-7b2d6f9c3a4e")]
+        [Output(Guid = "ccbff254-1090-4ba2-8341-08fa3cb1540c")]
         public readonly Slot<float> GetLevel = new();
+
+        /// <summary>
+        /// Command output for the embedded gizmo visualization.
+        /// Connect this to your render graph to display spatial audio gizmos.
+        /// </summary>
+        [Output(Guid = "df5bd9eb-a922-44c1-98e1-ed580fa70d00")]
+        public readonly Slot<Command> GizmoOutput = new();
 
         private Guid _operatorId;
         private bool _wasPausedLastFrame;
@@ -118,6 +130,7 @@ namespace Lib.io.audio
         /// </summary>
         public SpatialAudioPlayer()
         {
+            Result.TransformableOp = this;
             Result.UpdateAction += Update;
             IsPlaying.UpdateAction += Update;
             IsPaused.UpdateAction += Update;
@@ -211,7 +224,22 @@ namespace Lib.io.audio
             IsPlaying.Value = AudioEngine.IsSpatialOperatorStreamPlaying(_operatorId);
             IsPaused.Value = AudioEngine.IsSpatialOperatorPaused(_operatorId);
             GetLevel.Value = AudioEngine.GetSpatialOperatorLevel(_operatorId);
+            
+            // Evaluate the VisibleGizmos child to render gizmo visualization through GizmoOutput
+            foreach (var child in Children.Values)
+            {
+                // Find VisibleGizmos by its symbol ID
+                if (child.Symbol.Id == VisibleGizmosSymbolId && child.Outputs.Count > 0)
+                {
+                    child.Outputs[0].DirtyFlag.Invalidate();
+                    child.Outputs[0].Update(context);
+                    break;
+                }
+            }
         }
+        
+        // VisibleGizmos symbol ID for finding the gizmo child
+        private static readonly Guid VisibleGizmosSymbolId = new("d61d7192-9ca3-494e-91e2-10a530ee9375");
 
         /// <summary>
         /// Render audio for export. This is called by AudioRendering during export.
@@ -268,5 +296,6 @@ namespace Lib.io.audio
             /// </summary>
             Off = 2
         }
+
     }
 }

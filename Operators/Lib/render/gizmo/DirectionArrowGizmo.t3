@@ -1,0 +1,27 @@
+{
+  "Id": "6cfb3330-ebcc-4ddc-861b-ad379ad55f4b"/*DirectionArrowGizmo*/,
+  "Inputs": [
+    {
+      "Id": "c3960c08-1449-4376-a26a-cd4d5bea7e5c"/*Length*/,
+      "DefaultValue": 1.0
+    },
+    {
+      "Id": "6b30f270-e473-41b1-ba5b-ee6006a640e0"/*HeadLength*/,
+      "DefaultValue": 0.3
+    },
+    {
+      "Id": "58f50fa0-5b76-4db2-bc11-0bfd380284f2"/*HeadSpread*/,
+      "DefaultValue": 1.0
+    },
+    {
+      "Id": "685652ca-db7f-4bd9-bed5-6601e6c1ad4d"/*HeadLineCount*/,
+      "DefaultValue": 4
+    },
+    {
+      "Id": "2553df61-b57c-4de9-948d-0d1eab572098"/*HeadAngle*/,
+      "DefaultValue": 45.0
+    }
+  ],
+  "Children": [],
+  "Connections": []
+}
