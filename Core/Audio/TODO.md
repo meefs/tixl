@@ -312,21 +312,26 @@ High priority
 
 - **Status**: Implemented on 2026-01-29
 - **Changes made**:
-  - Added static reusable buffers: `_mixBuffer`, `_operatorBuffer`, `_soundtrackSourceBuffer`, `_spatialStreamBuffer`
+  - Added static reusable buffers: `_mixBuffer`, `_operatorBuffer`, `_spatialStreamBuffer`
   - Added `EnsureBuffer` helper method that reallocates only when needed and clears the buffer
-  - Updated `GetFullMixDownBuffer`, `MixSoundtrackClip`, `MixOperatorAudio`, and `MixSpatialOperatorAudio` to use reusable buffers
+  - Updated `GetFullMixDownBuffer`, `MixOperatorAudio`, and `MixSpatialOperatorAudio` to use reusable buffers
 
-2. Consider leveraging BASS/Mixer for export resampling instead of manual `ResampleAndMix`
+2. ~~Consider leveraging BASS/Mixer for export resampling instead of manual `ResampleAndMix`~~ ✅ **COMPLETED**
 
-- **Goals**: better performance and audio quality; unify live and export mixing behaviour.
-
-- **Concept**:
-  - Create a dedicated export mixer stream at `AudioConfig.MixerFrequency`, add soundtrack/operator decode channels to it, and read using `BassMix.ChannelGetData` so BASS handles resampling and mixing.
-
-- **Benefits**:
-  - Uses BASS’s optimized resampler and channel mixer.
-  - Removes custom `ResampleAndMix`, reducing code complexity.
-  - Ensures export sound is consistent with live playback (same core mixing path).
+- **Status**: Implemented on 2026-01-29
+- **Changes made**:
+  - Created dedicated export mixer (`_exportMixerHandle`) in `PrepareRecording` at `AudioConfig.MixerFrequency`
+  - Added `MixSoundtracksFromExportMixer` method that positions clips and reads from the BASS mixer
+  - Soundtrack streams are added to export mixer with `MixerChanNoRamping` for sample-accurate seeking
+  - BASS now handles all resampling from native clip frequencies to mixer frequency
+  - Removed manual `ResampleAndMix` method (was using simple linear interpolation)
+  - Export mixer is properly cleaned up in `EndRecording`
+  - Legacy `MixSoundtrackClip` kept as fallback if export mixer fails to initialize
+- **Benefits achieved**:
+  - Better audio quality (BASS's optimized resampler vs simple linear interpolation)
+  - Improved performance (BASS's potentially vectorized implementation)
+  - Export audio now uses same mixing path as live playback
+  - Reduced code complexity
 
 
 Medium priority
@@ -420,3 +425,4 @@ Low priority
 
 - **Benefits**:
   - Clearer understanding of the analysis path.
+
