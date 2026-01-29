@@ -308,45 +308,13 @@ Below are the remaining prioritized recommendations grouped and ordered by prior
 
 High priority
 
-1. Reduce per-frame allocations in `AudioRendering.GetFullMixDownBuffer` by using reusable buffers
+1. ~~Reduce per-frame allocations in `AudioRendering.GetFullMixDownBuffer` by using reusable buffers~~ ✅ **COMPLETED**
 
-- **Goals**: reduce GC pressure / CPU usage during export.
-
-- **Steps**:
-  1. Add private static reusable buffers in `AudioRendering`:
-     ```csharp
-     private static float[] _mixBuffer = Array.Empty<float>();
-     private static float[] _operatorBuffer = Array.Empty<float>();
-     private static float[] _soundtrackSourceBuffer = Array.Empty<float>();
-     ```
-
-  2. Add a helper to ensure capacity:
-     ```csharp
-     private static float[] EnsureBuffer(ref float[] buffer, int requiredLength)
-     {
-         if (buffer.Length < requiredLength)
-             buffer = new float[requiredLength];
-         Array.Clear(buffer, 0, requiredLength);
-         return buffer;
-     }
-     ```
-
-  3. In `GetFullMixDownBuffer`, use:
-     ```csharp
-     var mixBuffer = EnsureBuffer(ref _mixBuffer, floatCount);
-     var operatorBuffer = EnsureBuffer(ref _operatorBuffer, floatCount);
-     ```
-
-  4. In `MixSoundtrackClip`, use the shared source buffer:
-     ```csharp
-     float[] sourceBuffer = EnsureBuffer(ref _soundtrackSourceBuffer, sourceFloatCount);
-     ```
-
-  5. Ensure that buffer lengths are sufficient for worst-case `frameDurationInSeconds` used in exports.
-
-- **Benefits**:
-  - Fewer allocations, lower GC activity.
-  - More predictable export performance.
+- **Status**: Implemented on 2026-01-29
+- **Changes made**:
+  - Added static reusable buffers: `_mixBuffer`, `_operatorBuffer`, `_soundtrackSourceBuffer`, `_spatialStreamBuffer`
+  - Added `EnsureBuffer` helper method that reallocates only when needed and clears the buffer
+  - Updated `GetFullMixDownBuffer`, `MixSoundtrackClip`, `MixOperatorAudio`, and `MixSpatialOperatorAudio` to use reusable buffers
 
 2. Consider leveraging BASS/Mixer for export resampling instead of manual `ResampleAndMix`
 

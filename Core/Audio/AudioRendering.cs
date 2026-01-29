@@ -20,6 +20,24 @@ public static class AudioRendering
     private static readonly ExportState _exportState = new();
     private static int _frameCount;
 
+    // Reusable buffers to reduce per-frame allocations during export
+    private static float[] _mixBuffer = Array.Empty<float>();
+    private static float[] _operatorBuffer = Array.Empty<float>();
+    private static float[] _soundtrackSourceBuffer = Array.Empty<float>();
+    private static float[] _spatialStreamBuffer = Array.Empty<float>();
+
+    /// <summary>
+    /// Ensures the buffer has at least the required capacity, reallocating if necessary.
+    /// Clears the buffer up to the required length before returning.
+    /// </summary>
+    private static float[] EnsureBuffer(ref float[] buffer, int requiredLength)
+    {
+        if (buffer.Length < requiredLength)
+            buffer = new float[requiredLength];
+        Array.Clear(buffer, 0, requiredLength);
+        return buffer;
+    }
+
     public static void PrepareRecording(Playback playback, double fps)
     {
         if (_isRecording) return;
@@ -101,7 +119,7 @@ public static class AudioRendering
 
         int sampleCount = (int)Math.Max(Math.Round(frameDurationInSeconds * AudioConfig.MixerFrequency), 1);
         int floatCount = sampleCount * 2; // stereo
-        float[] mixBuffer = new float[floatCount];
+        var mixBuffer = EnsureBuffer(ref _mixBuffer, floatCount);
         double currentTime = Playback.Current.TimeInSecs;
 
         // Check audio source mode - skip soundtrack mixing in external audio mode
@@ -147,7 +165,7 @@ public static class AudioRendering
 
         int sourceSampleCount = (int)Math.Ceiling(frameDuration * nativeFreq);
         int sourceFloatCount = sourceSampleCount * streamInfo.Channels;
-        float[] sourceBuffer = new float[sourceFloatCount];
+        var sourceBuffer = EnsureBuffer(ref _soundtrackSourceBuffer, sourceFloatCount);
 
         int bytesRead = Bass.ChannelGetData(clipStream.StreamHandle, sourceBuffer, sourceFloatCount * sizeof(float));
         if (bytesRead > 0)
@@ -166,7 +184,7 @@ public static class AudioRendering
     private static void MixOperatorAudio(float[] mixBuffer, int floatCount, double currentTime, double frameDuration)
     {
         // Mix stereo operator audio from the operator mixer
-        float[] operatorBuffer = new float[floatCount];
+        var operatorBuffer = EnsureBuffer(ref _operatorBuffer, floatCount);
         int bytesRead = Bass.ChannelGetData(AudioMixerManager.OperatorMixerHandle, operatorBuffer, floatCount * sizeof(float));
 
         if (bytesRead > 0)
@@ -192,8 +210,8 @@ public static class AudioRendering
             if (stream == null || !stream.IsPlaying || stream.IsPaused || kvp.Value.IsStale)
                 continue;
 
-            // Allocate a buffer for this stream's contribution
-            float[] streamBuffer = new float[mixBuffer.Length];
+            // Use reusable buffer for this stream's contribution
+            var streamBuffer = EnsureBuffer(ref _spatialStreamBuffer, mixBuffer.Length);
             
             // RenderAudio handles 3D attenuation and panning for export
             stream.RenderAudio(currentTime, frameDuration, streamBuffer, AudioConfig.MixerFrequency, 2);
