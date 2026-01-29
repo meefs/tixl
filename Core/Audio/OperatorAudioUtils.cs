@@ -58,11 +58,32 @@ namespace T3.Core.Audio
             float[] input, int inputSamples, int inputChannels,
             float[] output, int outputSamples, int outputChannels)
         {
+            // Special case: mono to stereo - duplicate mono signal to both channels
+            if (inputChannels == 1 && outputChannels == 2)
+            {
+                for (int i = 0; i < outputSamples; i++)
+                {
+                    float t = (float)i / Math.Max(outputSamples - 1, 1);
+                    float srcPos = t * (inputSamples - 1);
+                    int srcIndex = (int)srcPos;
+                    float frac = srcPos - srcIndex;
+                    int srcNext = Math.Min(srcIndex + 1, inputSamples - 1);
+                    float sampleA = input[srcIndex];
+                    float sampleB = input[srcNext];
+                    float sample = sampleA + (sampleB - sampleA) * frac;
+                    // Duplicate mono to both left and right channels
+                    output[i * 2] = sample;
+                    output[i * 2 + 1] = sample;
+                }
+                return;
+            }
+
+            // General case: resample each channel
             for (int ch = 0; ch < Math.Min(inputChannels, outputChannels); ch++)
             {
                 for (int i = 0; i < outputSamples; i++)
                 {
-                    float t = (float)i / (outputSamples - 1);
+                    float t = (float)i / Math.Max(outputSamples - 1, 1);
                     float srcPos = t * (inputSamples - 1);
                     int srcIndex = (int)srcPos;
                     float frac = srcPos - srcIndex;
@@ -73,9 +94,22 @@ namespace T3.Core.Audio
                     output[i * outputChannels + ch] = sampleA + (sampleB - sampleA) * frac;
                 }
             }
-            // Upmix: fill extra channels with 0
-            if (outputChannels > inputChannels)
+            // Upmix: fill extra channels with copy of last valid channel (or zeros if no input)
+            if (outputChannels > inputChannels && inputChannels > 0)
             {
+                // Copy the last input channel to fill remaining output channels
+                for (int ch = inputChannels; ch < outputChannels; ch++)
+                {
+                    int srcCh = inputChannels - 1; // Use last input channel
+                    for (int i = 0; i < outputSamples; i++)
+                    {
+                        output[i * outputChannels + ch] = output[i * outputChannels + srcCh];
+                    }
+                }
+            }
+            else if (outputChannels > inputChannels)
+            {
+                // No input channels, fill with zeros
                 for (int ch = inputChannels; ch < outputChannels; ch++)
                     for (int i = 0; i < outputSamples; i++)
                         output[i * outputChannels + ch] = 0f;

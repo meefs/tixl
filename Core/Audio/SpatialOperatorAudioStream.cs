@@ -142,6 +142,17 @@ public sealed class SpatialOperatorAudioStream
     private int _exportDecodeStreamHandle;
 
     /// <summary>
+    /// Indicates whether the stream is in export mode (should not play to speakers).
+    /// </summary>
+    private bool _isExportMode;
+
+    /// <summary>
+    /// Tracks the current playback position in seconds during export.
+    /// This advances based on frame duration and playback speed.
+    /// </summary>
+    private double _exportPlaybackPosition;
+
+    /// <summary>
     /// Private constructor to enforce factory method usage.
     /// </summary>
     private SpatialOperatorAudioStream() { }
@@ -325,13 +336,24 @@ public sealed class SpatialOperatorAudioStream
     internal void Play()
     {
         IsStaleMuted = false;
-        
-        // For 3D streams, play directly to BASS (not through mixer)
-        Bass.ChannelPlay(StreamHandle, true);
-        
         IsPlaying = true;
         IsPaused = false;
-        
+
+        // During export mode, don't actually play to speakers - just track state for rendering
+        if (_isExportMode)
+        {
+            // Reset export playback position and seek decode stream to beginning
+            _exportPlaybackPosition = 0.0;
+            if (_exportDecodeStreamHandle != 0)
+            {
+                Bass.ChannelSetPosition(_exportDecodeStreamHandle, 0, PositionFlags.Bytes);
+            }
+            return;
+        }
+
+        // For 3D streams, play directly to BASS (not through mixer)
+        Bass.ChannelPlay(StreamHandle, true);
+
         // Apply volume after starting playback (respects user mute and max distance cutoff)
         ApplyEffectiveVolume();
         AudioEngine.Mark3DApplyNeeded();
@@ -353,8 +375,15 @@ public sealed class SpatialOperatorAudioStream
     internal void Resume()
     {
         if (!IsPaused) return;
-        Bass.ChannelPlay(StreamHandle, false);
         IsPaused = false;
+
+        // During export mode, don't actually play to speakers or apply 3D
+        if (_isExportMode)
+        {
+            return;
+        }
+
+        Bass.ChannelPlay(StreamHandle, false);
         AudioEngine.Mark3DApplyNeeded();
     }
 
@@ -404,6 +433,13 @@ public sealed class SpatialOperatorAudioStream
     {
         if (!IsPlaying) return;
         
+        // During export mode, always keep volume at 0 to prevent audio going to speakers
+        if (_isExportMode)
+        {
+            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
+            return;
+        }
+        
         // Mute if: user muted, stale muted, or beyond max distance
         if (_isUserMuted || IsStaleMuted || _isBeyondMaxDistance)
         {
@@ -423,13 +459,20 @@ public sealed class SpatialOperatorAudioStream
     /// <param name="speed">The playback speed multiplier (clamped between 0.1 and 4.0).</param>
     internal void SetSpeed(float speed)
     {
-        if (Math.Abs(speed - _currentSpeed) < 0.001f) return;
-
         var clampedSpeed = Math.Clamp(speed, 0.1f, 4f);
-        Bass.ChannelGetAttribute(StreamHandle, ChannelAttribute.Frequency, out var currentFreq);
-        var newFreq = (currentFreq / _currentSpeed) * clampedSpeed;
-        Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Frequency, newFreq);
+        if (Math.Abs(clampedSpeed - _currentSpeed) < 0.001f) return;
+
         _currentSpeed = clampedSpeed;
+        
+        // During export mode, we don't modify BASS - speed is handled in RenderAudio
+        if (_isExportMode)
+        {
+            return;
+        }
+
+        // For live playback, adjust BASS frequency for speed change
+        var newFreq = _defaultPlaybackFrequency * clampedSpeed;
+        Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Frequency, newFreq);
     }
 
     /// <summary>
@@ -438,8 +481,20 @@ public sealed class SpatialOperatorAudioStream
     /// <param name="timeInSeconds">The position to seek to, in seconds.</param>
     internal void Seek(float timeInSeconds)
     {
-        var position = Bass.ChannelSeconds2Bytes(StreamHandle, timeInSeconds);
-        Bass.ChannelSetPosition(StreamHandle, position, PositionFlags.Bytes);
+        // Update export playback position if in export mode
+        if (_isExportMode)
+        {
+            _exportPlaybackPosition = timeInSeconds;
+            if (_exportDecodeStreamHandle != 0)
+            {
+                var position = Bass.ChannelSeconds2Bytes(_exportDecodeStreamHandle, timeInSeconds);
+                Bass.ChannelSetPosition(_exportDecodeStreamHandle, position, PositionFlags.Bytes);
+            }
+            return;
+        }
+        
+        var position2 = Bass.ChannelSeconds2Bytes(StreamHandle, timeInSeconds);
+        Bass.ChannelSetPosition(StreamHandle, position2, PositionFlags.Bytes);
     }
 
     /// <summary>
@@ -477,11 +532,13 @@ public sealed class SpatialOperatorAudioStream
     /// </summary>
     internal void PrepareForExport()
     {
+        _isExportMode = true;
+        _exportPlaybackPosition = 0.0;
         IsPlaying = false;
         IsPaused = false;
         IsStaleMuted = true;
 
-        // Mute and pause the playback stream
+        // Mute and pause the playback stream - prevent any audio going to speakers
         Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
         Bass.ChannelPause(StreamHandle);
         Bass.ChannelSetPosition(StreamHandle, 0, PositionFlags.Bytes);
@@ -504,6 +561,7 @@ public sealed class SpatialOperatorAudioStream
     /// </summary>
     internal void RestartAfterExport()
     {
+        _isExportMode = false;
         IsStaleMuted = false;
 
         // Free the export decode stream
@@ -550,7 +608,7 @@ public sealed class SpatialOperatorAudioStream
     /// During export, this computes 3D attenuation and panning manually since hardware 3D
     /// is not available for decode streams.
     /// </summary>
-    /// <param name="startTime">The start time in seconds.</param>
+    /// <param name="startTime">The start time in seconds (unused - we track position internally).</param>
     /// <param name="duration">The duration to render in seconds.</param>
     /// <param name="outputBuffer">The buffer to write the rendered audio data to.</param>
     /// <param name="targetSampleRate">The target sample rate for the output.</param>
@@ -558,6 +616,13 @@ public sealed class SpatialOperatorAudioStream
     /// <returns>The number of samples written to the output buffer.</returns>
     public int RenderAudio(double startTime, double duration, float[] outputBuffer, int targetSampleRate, int targetChannels)
     {
+        // If muted, output silence
+        if (_isUserMuted)
+        {
+            Array.Clear(outputBuffer, 0, outputBuffer.Length);
+            return outputBuffer.Length;
+        }
+        
         int nativeSampleRate = _cachedFrequency > 0 ? _cachedFrequency : 44100;
         int nativeChannels = 1; // Always mono for 3D audio
 
@@ -568,16 +633,45 @@ public sealed class SpatialOperatorAudioStream
         var listenerPos = AudioEngine.Get3DListenerPosition();
         var listenerForward = AudioEngine.Get3DListenerForward();
         
-        float attenuation = Compute3DAttenuation(listenerPos);
+        float distanceAttenuation = Compute3DAttenuation(listenerPos);
+        float coneAttenuation = Compute3DConeAttenuation(listenerPos);
         float pan = Compute3DPanning(listenerPos, listenerForward);
 
+        // Apply playback speed to the duration of audio we need to read from the source
+        // e.g., at 2x speed, we need 2x the source audio for the same output duration
+        double sourceDuration = duration * _currentSpeed;
+        
+        // Check if we've reached the end of the audio
+        if (_exportPlaybackPosition >= Duration)
+        {
+            // Past end of stream, output silence
+            Array.Clear(outputBuffer, 0, outputBuffer.Length);
+            return outputBuffer.Length;
+        }
+
+        // Seek the decode stream to the current export playback position
+        if (streamToUse != 0)
+        {
+            long positionBytes = Bass.ChannelSeconds2Bytes(streamToUse, _exportPlaybackPosition);
+            Bass.ChannelSetPosition(streamToUse, positionBytes, PositionFlags.Bytes);
+        }
+
+        // Use modified sample rate to achieve speed change during resampling
+        // Reading at (nativeSampleRate / speed) and outputting at targetSampleRate achieves speed change
+        int effectiveSampleRate = (int)(nativeSampleRate / _currentSpeed);
+        
         OperatorAudioUtils.FillAndResample(
-            (start, dur, buffer) => RenderNativeAudio(streamToUse, start, dur, buffer),
-            startTime, duration, outputBuffer,
+            (start, dur, buffer) => RenderNativeAudio(streamToUse, buffer),
+            startTime, sourceDuration, outputBuffer,
             nativeSampleRate, nativeChannels, targetSampleRate, targetChannels);
 
-        // Apply 3D attenuation and panning to the output buffer
-        Apply3DToBuffer(outputBuffer, targetChannels, attenuation, pan);
+        // Advance the export playback position by the source duration consumed
+        _exportPlaybackPosition += sourceDuration;
+
+        // Apply user volume, distance attenuation, cone attenuation, and panning to the output buffer
+        // Combined volume = user volume * distance attenuation * cone attenuation
+        float combinedAttenuation = _currentVolume * distanceAttenuation * coneAttenuation;
+        Apply3DToBuffer(outputBuffer, targetChannels, combinedAttenuation, pan);
 
         return outputBuffer.Length;
     }
@@ -596,7 +690,6 @@ public sealed class SpatialOperatorAudioStream
             return 0.0f;
         
         // Linear rolloff between min and max distance
-        // For more realistic sound, could use inverse distance or inverse square
         float range = _maxDistance - _minDistance;
         float normalizedDistance = (distance - _minDistance) / range;
         
@@ -629,17 +722,70 @@ public sealed class SpatialOperatorAudioStream
     }
 
     /// <summary>
+    /// Computes the cone attenuation factor based on the angle between the source orientation
+    /// and the direction to the listener.
+    /// </summary>
+    private float Compute3DConeAttenuation(Vector3 listenerPos)
+    {
+        // If cone angles are 360 degrees, no cone attenuation (omnidirectional)
+        if (_innerAngleDegrees >= 360.0f && _outerAngleDegrees >= 360.0f)
+            return 1.0f;
+
+        // Calculate direction from source to listener
+        var toListener = listenerPos - _position;
+        if (toListener.Length() < 0.001f)
+            return 1.0f; // Listener at source position, full volume
+
+        toListener = Vector3.Normalize(toListener);
+
+        // Calculate angle between source orientation and direction to listener
+        // _orientation points in the direction the source is "facing"
+        float dotProduct = Vector3.Dot(_orientation, toListener);
+        float angleRadians = MathF.Acos(Math.Clamp(dotProduct, -1.0f, 1.0f));
+        float angleDegrees = angleRadians * (180.0f / MathF.PI);
+
+        // Convert half-angles (BASS uses full cone angles, but we compare against half)
+        float innerHalfAngle = _innerAngleDegrees / 2.0f;
+        float outerHalfAngle = _outerAngleDegrees / 2.0f;
+
+        if (angleDegrees <= innerHalfAngle)
+        {
+            // Inside inner cone - full volume
+            return 1.0f;
+        }
+        else if (angleDegrees >= outerHalfAngle)
+        {
+            // Outside outer cone - outer volume
+            return _outerVolume;
+        }
+        else
+        {
+            // Between inner and outer cone - interpolate
+            float range = outerHalfAngle - innerHalfAngle;
+            float t = (angleDegrees - innerHalfAngle) / range;
+            return 1.0f + t * (_outerVolume - 1.0f);
+        }
+    }
+
+    /// <summary>
     /// Applies 3D attenuation and panning to an output buffer.
+    /// Uses equal-power panning for perceptually accurate stereo positioning.
     /// </summary>
     private static void Apply3DToBuffer(float[] buffer, int channels, float attenuation, float pan)
     {
-        float volumeScale = attenuation;
-        
         if (channels == 2)
         {
-            // Stereo: apply panning
-            float leftGain = volumeScale * Math.Clamp(1.0f - pan, 0.0f, 1.0f);
-            float rightGain = volumeScale * Math.Clamp(1.0f + pan, 0.0f, 1.0f);
+            // Equal-power (constant-power) panning for perceptually accurate stereo
+            // pan: -1 = full left, 0 = center, 1 = full right
+            // Convert pan range [-1, 1] to angle [0, PI/2]
+            float angle = (pan + 1.0f) * 0.25f * MathF.PI; // 0 to PI/2
+            
+            // Equal power: left = cos(angle), right = sin(angle)
+            // At center (pan=0, angle=PI/4): left = right = 0.707 (equal)
+            // At full left (pan=-1, angle=0): left = 1, right = 0
+            // At full right (pan=1, angle=PI/2): left = 0, right = 1
+            float leftGain = attenuation * MathF.Cos(angle);
+            float rightGain = attenuation * MathF.Sin(angle);
             
             for (int i = 0; i < buffer.Length; i += 2)
             {
@@ -653,15 +799,16 @@ public sealed class SpatialOperatorAudioStream
             // Mono or multi-channel: just apply attenuation
             for (int i = 0; i < buffer.Length; i++)
             {
-                buffer[i] *= volumeScale;
+                buffer[i] *= attenuation;
             }
         }
     }
 
     /// <summary>
     /// Renders audio data in the native format of the stream.
+    /// The stream should already be seeked to the correct position before calling.
     /// </summary>
-    private static int RenderNativeAudio(int streamHandle, double startTime, double duration, float[] buffer)
+    private static int RenderNativeAudio(int streamHandle, float[] buffer)
     {
         int bytesToRead = buffer.Length * sizeof(float);
         int bytesRead = Bass.ChannelGetData(streamHandle, buffer, bytesToRead);
