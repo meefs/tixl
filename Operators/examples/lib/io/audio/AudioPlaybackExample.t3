@@ -498,6 +498,12 @@
       "Outputs": []
     },
     {
+      "Id": "479c3b75-c5da-49e6-b7ad-6ebad39f50d8"/*SpatialAudioPlayerGizmo*/,
+      "SymbolId": "b26e6624-4017-46b5-970d-1525d90fafad",
+      "InputValues": [],
+      "Outputs": []
+    },
+    {
       "Id": "47df1ca4-012e-4866-8cdd-18660bfed7e7"/*PickFloatFromList*/,
       "SymbolId": "0841cdd4-0106-4f4e-826b-8de23bb5b5f0",
       "InputValues": [
@@ -766,6 +772,12 @@
           "Value": 0.042
         }
       ],
+      "Outputs": []
+    },
+    {
+      "Id": "6f2d5ad4-80ed-43ef-a5db-b41513d8f044"/*ConeGizmo*/,
+      "SymbolId": "f7e3c9a4-2b8d-4e6f-a1c5-9d7b3e8f6a2c",
+      "InputValues": [],
       "Outputs": []
     },
     {
@@ -1049,6 +1061,12 @@
       "Outputs": []
     },
     {
+      "Id": "b0a07edf-9aec-4cca-924f-6c52a4d08012"/*DirectionArrowGizmo*/,
+      "SymbolId": "6cfb3330-ebcc-4ddc-861b-ad379ad55f4b",
+      "InputValues": [],
+      "Outputs": []
+    },
+    {
       "Id": "b64f0a0b-6d75-4ccc-8c77-ec5d0f17b913"/*SequenceAnim*/,
       "SymbolId": "94a392e6-3e03-4ccf-a114-e6fafa263b4f",
       "InputValues": [
@@ -1313,6 +1331,12 @@
           }
         }
       ],
+      "Outputs": []
+    },
+    {
+      "Id": "fc835ac8-23ae-43d6-a710-bc87cba8f186"/*AudioToneGenerator*/,
+      "SymbolId": "7c8f3a2e-9d4b-4e1f-8a5c-6b2d9f7e4c3a",
+      "InputValues": [],
       "Outputs": []
     }
   ],
