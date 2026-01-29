@@ -815,8 +815,8 @@
           "Type": "System.Numerics.Vector4",
           "Value": {
             "X": 0.0,
-            "Y": 0.2390871,
-            "Z": 1.0,
+            "Y": 1.0,
+            "Z": 0.2652371,
             "W": 1.0
           }
         },
@@ -901,12 +901,12 @@
         {
           "Id": "7110399e-fd85-4053-9a49-cc09760dceb6"/*Volume*/,
           "Type": "System.Single",
-          "Value": 1.43
+          "Value": 2.3
         },
         {
           "Id": "732be517-a58e-4f21-8395-7761a95905ea"/*MinDistance*/,
           "Type": "System.Single",
-          "Value": 4.0
+          "Value": 1.0
         },
         {
           "Id": "73971807-98d8-4b8b-b90f-41d673398b2b"/*OuterConeAngle*/,
@@ -921,12 +921,12 @@
         {
           "Id": "785bb240-2020-4937-b132-b46f542e8986"/*InnerConeAngle*/,
           "Type": "System.Single",
-          "Value": 0.0
+          "Value": 360.0
         },
         {
           "Id": "7eb612cb-1dbf-4336-b91d-1042573bd7ff"/*MaxDistance*/,
           "Type": "System.Single",
-          "Value": 3.0
+          "Value": 5.0
         },
         {
           "Id": "9c0b519b-45b1-4b28-8c0e-2eba7035a999"/*Speed*/,
@@ -936,7 +936,7 @@
         {
           "Id": "b4d639d4-d96b-42e1-a250-efe57d7e9c5e"/*OuterConeVolume*/,
           "Type": "System.Single",
-          "Value": 0.0
+          "Value": 1.0
         },
         {
           "Id": "db9a0aa1-95db-4da4-99fc-31c385773ca8"/*ListenerRotation*/,
@@ -1146,6 +1146,16 @@
       "Id": "c3e5df07-2842-43d4-904d-0d9275ede83d"/*PlotValueCurve*/,
       "SymbolId": "92f3193e-a7dd-4417-b569-129823607fbe",
       "InputValues": [
+        {
+          "Id": "04c1a4d9-66f0-4d64-aed0-9b960c2bcbb7"/*Color*/,
+          "Type": "System.Numerics.Vector4",
+          "Value": {
+            "X": 1.0,
+            "Y": 1.0,
+            "Z": 1.0,
+            "W": 2.0
+          }
+        },
         {
           "Id": "05ea7714-a4c5-4845-9fed-957f5fa1b95e"/*RangeMax*/,
           "Type": "System.Single",

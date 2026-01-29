@@ -71,6 +71,17 @@ public sealed class SpatialOperatorAudioStream
     private float _maxDistance = 100.0f;
 
     /// <summary>
+    /// Whether the audio source is currently beyond max distance (should be silent).
+    /// </summary>
+    private bool _isBeyondMaxDistance;
+
+    /// <summary>
+    /// Linear distance attenuation factor (0.0 at maxDistance, 1.0 at minDistance or closer).
+    /// Applied on top of BASS's 3D processing to ensure proper linear falloff.
+    /// </summary>
+    private float _distanceAttenuation = 1.0f;
+
+    /// <summary>
     /// The 3D processing mode for the audio source.
     /// </summary>
     private Mode3D _3dMode = Mode3D.Normal;
@@ -230,6 +241,38 @@ public sealed class SpatialOperatorAudioStream
         _minDistance = Math.Max(0.1f, minDistance);
         _maxDistance = Math.Max(_minDistance + 0.1f, maxDistance);
 
+        // Calculate distance to listener for linear attenuation
+        // (BASS's built-in rolloff is inverse distance, not linear - we apply our own linear falloff)
+        var listenerPos = AudioEngine.Get3DListenerPosition();
+        var distanceToListener = Vector3.Distance(_position, listenerPos);
+        
+        // Calculate linear attenuation: 1.0 at minDistance, 0.0 at maxDistance
+        float newAttenuation;
+        if (distanceToListener <= _minDistance)
+        {
+            newAttenuation = 1.0f;
+        }
+        else if (distanceToListener >= _maxDistance)
+        {
+            newAttenuation = 0.0f;
+        }
+        else
+        {
+            // Linear interpolation between min and max distance
+            float range = _maxDistance - _minDistance;
+            newAttenuation = 1.0f - ((distanceToListener - _minDistance) / range);
+        }
+        
+        var wasBeyondMaxDistance = _isBeyondMaxDistance;
+        _isBeyondMaxDistance = distanceToListener > _maxDistance;
+        
+        // Update volume if attenuation changed significantly or beyond-max state changed
+        if (Math.Abs(newAttenuation - _distanceAttenuation) > 0.001f || _isBeyondMaxDistance != wasBeyondMaxDistance)
+        {
+            _distanceAttenuation = newAttenuation;
+            ApplyEffectiveVolume();
+        }
+
         Bass.ChannelSet3DAttributes(StreamHandle, _3dMode, _minDistance, _maxDistance,
             (int)_innerAngleDegrees, (int)_outerAngleDegrees, _outerVolume);
         Bass.ChannelSet3DPosition(StreamHandle, ToBassVector(_position), ToBassVector(_orientation), ToBassVector(_velocity));
@@ -286,12 +329,11 @@ public sealed class SpatialOperatorAudioStream
         // For 3D streams, play directly to BASS (not through mixer)
         Bass.ChannelPlay(StreamHandle, true);
         
-        // Apply volume after starting playback
-        if (!_isUserMuted)
-            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, _currentVolume);
-        
         IsPlaying = true;
         IsPaused = false;
+        
+        // Apply volume after starting playback (respects user mute and max distance cutoff)
+        ApplyEffectiveVolume();
         AudioEngine.Mark3DApplyNeeded();
     }
 
@@ -337,15 +379,7 @@ public sealed class SpatialOperatorAudioStream
     {
         if (IsStaleMuted == muted) return;
         IsStaleMuted = muted;
-
-        if (muted)
-        {
-            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
-        }
-        else if (IsPlaying && !IsPaused && !_isUserMuted)
-        {
-            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, _currentVolume);
-        }
+        ApplyEffectiveVolume();
     }
 
     /// <summary>
@@ -360,7 +394,26 @@ public sealed class SpatialOperatorAudioStream
 
         if (!IsPlaying) return;
 
-        float finalVolume = (!mute && !IsStaleMuted) ? volume : 0.0f;
+        ApplyEffectiveVolume();
+    }
+
+    /// <summary>
+    /// Applies the effective volume considering all mute states and distance attenuation.
+    /// </summary>
+    private void ApplyEffectiveVolume()
+    {
+        if (!IsPlaying) return;
+        
+        // Mute if: user muted, stale muted, or beyond max distance
+        if (_isUserMuted || IsStaleMuted || _isBeyondMaxDistance)
+        {
+            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
+            return;
+        }
+        
+        // Apply linear distance attenuation on top of user volume
+        // This provides proper linear falloff between minDistance and maxDistance
+        float finalVolume = _currentVolume * _distanceAttenuation;
         Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, finalVolume);
     }
 

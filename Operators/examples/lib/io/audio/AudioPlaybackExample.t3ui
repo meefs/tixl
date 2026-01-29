@@ -48,15 +48,15 @@
     {
       "ChildId": "1732c27d-296c-4653-aa4c-36330437fd16"/*SpatialAudioPlayer*/,
       "Position": {
-        "X": 1730.279,
-        "Y": 937.8489
+        "X": 1798.3292,
+        "Y": 943.3562
       }
     },
     {
       "ChildId": "178a62d3-f119-4310-ba61-e27c21d5e09d"/*AudioPlayer*/,
       "Position": {
-        "X": 1379.5403,
-        "Y": 651.19495
+        "X": 889.0314,
+        "Y": 671.5388
       }
     },
     {
@@ -76,8 +76,8 @@
     {
       "ChildId": "2e0136cb-9711-4396-a981-0ead0dd34c95"/*AnimVec3*/,
       "Position": {
-        "X": 1590.2795,
-        "Y": 1157.0543
+        "X": 1658.3297,
+        "Y": 1162.561
       }
     },
     {
@@ -118,8 +118,8 @@
     {
       "ChildId": "419ae44b-ca9e-44d9-9248-2d1ccc5061ce"/*SequenceAnim*/,
       "Position": {
-        "X": 1578.5054,
-        "Y": 1079.5956
+        "X": 1646.5555,
+        "Y": 1085.1025
       }
     },
     {
@@ -160,8 +160,8 @@
     {
       "ChildId": "59bb6354-ea28-4f23-b53c-d7d52f640181"/*AnimVec3*/,
       "Position": {
-        "X": 1590.2788,
-        "Y": 1007.84875
+        "X": 1658.329,
+        "Y": 1013.3561
       }
     },
     {
@@ -181,8 +181,8 @@
     {
       "ChildId": "63957b0f-6b8a-4b88-bcb5-4248c8b2361e"/*Execute*/,
       "Position": {
-        "X": 1904.8253,
-        "Y": 1017.8722
+        "X": 1972.8755,
+        "Y": 1023.37933
       }
     },
     {
@@ -251,8 +251,8 @@
     {
       "ChildId": "9a384a77-89fc-4dfd-b097-e110f35a00ea"/*SpatialAudioPlayer*/,
       "Position": {
-        "X": 1730.2789,
-        "Y": 1087.0543
+        "X": 1798.3291,
+        "Y": 1092.5613
       }
     },
     {
@@ -307,8 +307,8 @@
     {
       "ChildId": "bc88cea6-066e-4086-80ba-ec90a2cb642f"/*SequenceAnim*/,
       "Position": {
-        "X": 1578.5055,
-        "Y": 925.823
+        "X": 1646.5557,
+        "Y": 931.3303
       }
     },
     {
@@ -377,8 +377,8 @@
     {
       "ChildId": "f482ad87-a53c-4bbd-b6d3-c30886bca68f"/*SpatialAudioPlayer*/,
       "Position": {
-        "X": 1379.5403,
-        "Y": 772.70276
+        "X": 889.0314,
+        "Y": 793.04663
       }
     },
     {
@@ -429,8 +429,8 @@
         "W": 1.0
       },
       "Position": {
-        "X": 1280.6038,
-        "Y": 563.5205
+        "X": 790.0948,
+        "Y": 583.8644
       },
       "Size": {
         "X": 378.66833,
@@ -458,6 +458,7 @@
     },
     {
       "Id": "bd18fc69-48d9-41bb-8cf1-1e4250d89800",
+      "Title": "Spatial audio is a hardware accelered 3d audio source\n\nThis does not go through the operator mixer, so it can not\nbe monitored by the mixers",
       "Label": "Spatial Audio Example",
       "Color": {
         "X": 0.6,
@@ -466,12 +467,12 @@
         "W": 1.0
       },
       "Position": {
-        "X": 1563.6061,
-        "Y": 872.60803
+        "X": 1633.3003,
+        "Y": 792.57935
       },
       "Size": {
-        "X": 501.8219,
-        "Y": 386.34802
+        "X": 489.66833,
+        "Y": 459.1582
       }
     },
     {
