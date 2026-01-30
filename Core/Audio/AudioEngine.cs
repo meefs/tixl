@@ -25,6 +25,10 @@ public static class AudioEngine
     private static readonly Dictionary<Guid, SpatialOperatorState> _spatialOperatorStates = new();
     private static readonly HashSet<Guid> _operatorsUpdatedThisFrame = new();
     private static int _lastStaleCheckFrame = -1;
+    
+    // Export state - track which operators have already fired their first export trigger
+    private static bool _isExporting;
+    private static readonly HashSet<Guid> _operatorsTriggeredDuringExport = new();
 
     // 3D Listener
     private static Vector3 _listenerPosition = Vector3.Zero;
@@ -51,6 +55,7 @@ public static class AudioEngine
         public bool PreviousPlay;
         public bool PreviousStop;
         public bool IsStale;
+        public bool WasPlayingBeforeExport;  // Tracks if stream was playing when export started
     }
 
     /// <summary>
@@ -65,6 +70,7 @@ public static class AudioEngine
         public bool PreviousPlay;
         public bool PreviousStop;
         public bool IsStale;
+        public bool WasPlayingBeforeExport;  // Tracks if stream was playing when export started
     }
 
     #region Soundtrack Management
@@ -698,14 +704,28 @@ public static class AudioEngine
     private static bool HandlePlaybackTriggers<T>(OperatorAudioState<T> state, bool shouldPlay, bool shouldStop, Guid operatorId)
         where T : OperatorAudioStreamBase
     {
-        var playTrigger = shouldPlay && !state.PreviousPlay;
+        // At export start, force-trigger operators that should be playing from frame 0
+        var shouldBePlayingAtExportStart = shouldPlay || state.WasPlayingBeforeExport;
+        var needsExportTrigger = _isExporting 
+            && shouldBePlayingAtExportStart
+            && !_operatorsTriggeredDuringExport.Contains(operatorId);
+        
+        if (needsExportTrigger)
+        {
+            _operatorsTriggeredDuringExport.Add(operatorId);
+            state.Stream!.Play();  // Position already reset to 0 by PrepareForExport
+            state.IsPaused = false;
+            state.IsStale = false;
+        }
+        
+        // Normal rising-edge trigger detection
+        var playTrigger = shouldPlay && !state.PreviousPlay && !needsExportTrigger;
         var stopTrigger = shouldStop && !state.PreviousStop;
         state.PreviousPlay = shouldPlay;
         state.PreviousStop = shouldStop;
 
         if (stopTrigger)
         {
-            AudioConfig.LogAudioDebug($"[AudioEngine] ■ Stop TRIGGER for {operatorId}");
             state.Stream!.Stop();
             state.IsPaused = false;
             state.PreviousSeek = 0f;
@@ -714,7 +734,6 @@ public static class AudioEngine
 
         if (playTrigger)
         {
-            AudioConfig.LogAudioDebug($"[AudioEngine] ▶ Play TRIGGER for {operatorId}");
             state.Stream!.Stop();
             state.Stream.Play();
             state.IsPaused = false;
@@ -833,14 +852,28 @@ public static class AudioEngine
 
     private static bool HandleSpatialPlaybackTriggers(SpatialOperatorState state, bool shouldPlay, bool shouldStop, Guid operatorId)
     {
-        var playTrigger = shouldPlay && !state.PreviousPlay;
+        // At export start, force-trigger operators that should be playing from frame 0
+        var shouldBePlayingAtExportStart = shouldPlay || state.WasPlayingBeforeExport;
+        var needsExportTrigger = _isExporting 
+            && shouldBePlayingAtExportStart
+            && !_operatorsTriggeredDuringExport.Contains(operatorId);
+        
+        if (needsExportTrigger)
+        {
+            _operatorsTriggeredDuringExport.Add(operatorId);
+            state.Stream!.Play();  // Position already reset to 0 by PrepareForExport
+            state.IsPaused = false;
+            state.IsStale = false;
+        }
+        
+        // Normal rising-edge trigger detection
+        var playTrigger = shouldPlay && !state.PreviousPlay && !needsExportTrigger;
         var stopTrigger = shouldStop && !state.PreviousStop;
         state.PreviousPlay = shouldPlay;
         state.PreviousStop = shouldStop;
 
         if (stopTrigger)
         {
-            AudioConfig.LogAudioDebug($"[AudioEngine] ■ Stop TRIGGER for spatial {operatorId}");
             state.Stream!.Stop();
             state.IsPaused = false;
             state.PreviousSeek = 0f;
@@ -849,7 +882,6 @@ public static class AudioEngine
 
         if (playTrigger)
         {
-            AudioConfig.LogAudioDebug($"[AudioEngine] ▶ Play TRIGGER for spatial {operatorId}");
             state.Stream!.Stop();
             state.Stream.Play();
             state.IsPaused = false;
@@ -944,10 +976,11 @@ public static class AudioEngine
     /// </summary>
     internal static void ResetAllOperatorStreamsForExport()
     {
+        _isExporting = true;
+        _operatorsTriggeredDuringExport.Clear();
         ResetOperatorStreamsForExport(_stereoOperatorStates);
         ResetSpatialOperatorStreamsForExport();
         _operatorsUpdatedThisFrame.Clear();
-        AudioConfig.LogAudioDebug("[AudioEngine] Reset all operator streams for export");
     }
 
     private static void ResetOperatorStreamsForExport<T>(Dictionary<Guid, OperatorAudioState<T>> states)
@@ -955,6 +988,7 @@ public static class AudioEngine
     {
         foreach (var (_, state) in states)
         {
+            state.WasPlayingBeforeExport = state.Stream?.IsPlaying == true || state.PreviousPlay;
             state.Stream?.PrepareForExport();
             state.IsStale = true;
         }
@@ -964,6 +998,7 @@ public static class AudioEngine
     {
         foreach (var (_, state) in _spatialOperatorStates)
         {
+            state.WasPlayingBeforeExport = state.Stream?.IsPlaying == true || state.PreviousPlay;
             state.Stream?.PrepareForExport();
             state.IsStale = true;
         }
@@ -984,6 +1019,9 @@ public static class AudioEngine
     /// </summary>
     internal static void RestoreOperatorAudioStreams()
     {
+        _isExporting = false;
+        _operatorsTriggeredDuringExport.Clear();
+        
         if (AudioMixerManager.GlobalMixerHandle != 0)
         {
             if (Bass.ChannelIsActive(AudioMixerManager.GlobalMixerHandle) != PlaybackState.Playing)
@@ -1004,6 +1042,7 @@ public static class AudioEngine
     {
         foreach (var state in states.Values)
         {
+            state.WasPlayingBeforeExport = false;
             if (state.Stream != null)
             {
                 state.Stream.ClearExportMetering();
@@ -1018,6 +1057,7 @@ public static class AudioEngine
     {
         foreach (var state in _spatialOperatorStates.Values)
         {
+            state.WasPlayingBeforeExport = false;
             if (state.Stream != null)
             {
                 state.Stream.ClearExportMetering();

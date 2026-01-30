@@ -166,6 +166,13 @@ public abstract class OperatorAudioStreamBase
         BassMix.ChannelFlags(StreamHandle, 0, BassFlags.MixerChanPause);
         IsPlaying = true;
         IsPaused = false;
+        
+        // Restore volume (PrepareForExport sets it to 0, and SetStaleMuted needs IsPlaying=true)
+        if (!IsUserMuted)
+        {
+            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, CurrentVolume);
+        }
+        
         Bass.ChannelUpdate(MixerStreamHandle, 0);
     }
 
