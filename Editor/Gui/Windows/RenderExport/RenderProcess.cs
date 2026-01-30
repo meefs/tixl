@@ -90,6 +90,35 @@ internal static class RenderProcess
         
         State = States.Exporting;
 
+        // Handle waiting for first frame at correct resolution
+        if (_activeSession.WaitingForFirstFrame)
+        {
+            var currentDesc = MainOutputTexture.Description;
+            if (currentDesc.Width == MainOutputRenderedSize.Width && currentDesc.Height == MainOutputRenderedSize.Height)
+            {
+                // Resolution is now correct - set playback time for frame 0
+                // The OutputWindow will render frame 0 at the correct resolution in this frame's Draw()
+                // We'll process it on the next Update() cycle
+                RenderTiming.SetPlaybackTimeForFrame(ref _activeSession.Settings, _activeSession.FrameIndex, _activeSession.FrameCount, ref _activeSession.Runtime);
+                _activeSession.WaitingForFirstFrame = false;
+                _activeSession.WaitingForFirstFrameCount = 0;
+            }
+            else
+            {
+                // Increment wait count and timeout if necessary
+                _activeSession.WaitingForFirstFrameCount++;
+                if (_activeSession.WaitingForFirstFrameCount > MaxResolutionMismatchRetries)
+                {
+                    Log.Warning($"First frame resolution wait timed out ({currentDesc.Width}x{currentDesc.Height} vs {MainOutputRenderedSize.Width}x{MainOutputRenderedSize.Height}). Proceeding anyway.");
+                    RenderTiming.SetPlaybackTimeForFrame(ref _activeSession.Settings, _activeSession.FrameIndex, _activeSession.FrameCount, ref _activeSession.Runtime);
+                    _activeSession.WaitingForFirstFrame = false;
+                    _activeSession.WaitingForFirstFrameCount = 0;
+                }
+            }
+            // Don't process frames yet - return and let the OutputWindow render
+            return;
+        }
+
         // Process frame
         bool success;
         if (_activeSession.Settings.RenderMode == RenderSettings.RenderModes.Video)
@@ -305,8 +334,10 @@ internal static class RenderProcess
 
         ScreenshotWriter.ClearQueue();
 
-        // set playback to the first frame
-        RenderTiming.SetPlaybackTimeForFrame(ref _activeSession.Settings, _activeSession.FrameIndex, _activeSession.FrameCount, ref _activeSession.Runtime);
+        // Don't set playback time yet - wait for the first frame to be rendered at the correct resolution.
+        // This ensures triggers fire on the correctly-sized first frame.
+        // Playback time will be set in Update() when resolution matches.
+        _activeSession.WaitingForFirstFrame = true;
         IsExporting = true;
         LastHelpString = "Rendering...";
     }
@@ -483,6 +514,15 @@ internal static class RenderProcess
         public RenderTiming.Runtime Runtime;
         public int ResolutionMismatchCount;
         public double ExportStartTimeLocal;
+        /// <summary>
+        /// When true, we're waiting for the first frame to be rendered at the correct resolution
+        /// before setting playback time.
+        /// </summary>
+        public bool WaitingForFirstFrame;
+        /// <summary>
+        /// Counter for how many frames we've been waiting for first frame resolution match.
+        /// </summary>
+        public int WaitingForFirstFrameCount;
     }
 
     public static double Progress => _activeSession == null || _activeSession.FrameCount <= 1 ? 0.0 : (_activeSession.FrameIndex / (double)(_activeSession.FrameCount - 1));
