@@ -185,7 +185,7 @@ public abstract partial class SymbolPackage : IResourcePackage
     /// <param name="allNewSymbols">All new symbols, including those for which a json file was not found</param>
     public void LoadSymbols(bool parallel, out List<SymbolJson.SymbolReadResult> newlyRead, out List<Symbol> allNewSymbols)
     {
-        Log.Info($"Loading symbols for {AssemblyInformation.Name}...");
+        Log.Debug($" Loading {AssemblyInformation.Name}...");
 
         if (!AssemblyInformation.TryLoadTypes())
         {

@@ -117,6 +117,7 @@ internal static class ConformAssetPaths
     internal static void ConformAllPaths()
     {
         //BuildAssetIndex();
+        Log.Debug("Conforming Asset paths...");
 
         foreach (var package in SymbolPackage.AllPackages)
         {
