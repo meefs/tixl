@@ -1,7 +1,7 @@
 # Audio System Architecture
 
-**Version:** 2.1  
-**Last Updated:** 2026-01-26
+**Version:** 2.2  
+**Last Updated:** 2026-01-30
 **Status:** Production Ready
 
 ---
@@ -30,16 +30,18 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
 - **Device-native sample rate**: Automatically matches output device sample rate via WASAPI query
 - **Low-latency configuration**: Configurable update periods and buffer sizes
 - **Native 3D audio**: BASS 3D engine with directional cones, Doppler effects, velocity-based positioning (hardware-accelerated via direct BASS output)
+- **Configurable 3D factors**: Distance, rolloff, and Doppler factors via `AudioConfig`
 - **Real-time analysis**: FFT spectrum, waveform, and level metering for both live and export
 - **Centralized configuration**: Single source of truth via `AudioConfig`
 - **Debug control**: Suppressible logging for cleaner development experience
 - **Isolated offline analysis**: Waveform image generation without interfering with playback
 - **Stale detection**: Automatic muting of inactive operator streams per-frame
-- **Export support**: Direct stream reading for video export with audio (soundtrack + operator mixing)
+- **Export support**: BASS-native export mixer with automatic resampling for video export (soundtrack + operator mixing)
 - **Unified codebase**: Common base class (`OperatorAudioStreamBase`) for stereo streams; standalone class for spatial
 - **FLAC support**: Native BASS FLAC plugin for high-quality audio files
 - **External audio mode support**: Handles external device audio sources during export (operators only)
 - **Batched 3D updates**: `Apply3D()` called once per frame for optimal performance
+- **ADSR envelope support**: Built-in envelope generator for amplitude modulation on `AudioPlayer`
 
 ---
 
@@ -52,10 +54,14 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
     │  UpdateSpatialOperatorPlayback()   CompleteFrame()            │
     │  UseSoundtrackClip()               ReloadSoundtrackClip()     │
     │  PauseOperator/ResumeOperator      GetOperatorLevel           │
+    │  PauseSpatialOperator/Resume       GetSpatialOperatorLevel    │
+    │  IsSpatialOperatorStreamPlaying()  IsSpatialOperatorPaused()  │
     │  UnregisterOperator()              SetGlobalVolume/Mute       │
     │  OnAudioDeviceChanged()            SetSoundtrackMute()        │
     │  TryGetStereoOperatorStream()      TryGetSpatialOperatorStream│
     │  GetClipChannelCount()             GetClipSampleRate()        │
+    │  GetAllStereoOperatorStates()      GetAllSpatialOperatorStates│
+    │  Get3DListenerPosition/Forward/Up                             │
     └───────────────────────────────────────────────────────────────┘
                        │                              │
                        ▼                              ▼
@@ -70,9 +76,12 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
     │  CreateOfflineAnalysisStream│    │  FftBufferSize = 1024       │
     │  GetGlobalMixerLevel()      │    │  FrequencyBandCount = 32    │
     │  GetOperatorMixerLevel()    │    │  WaveformSampleCount = 1024 │
-    │  GetSoundtrackMixerLevel()  │    │  LogAudioDebug/Info/Render  │
-    │  SetGlobalVolume/Mute()     │    │  ShowAudioLogs toggle       │
-    │  SetOperatorMute()          │    │  ShowAudioRenderLogs toggle │
+    │  GetSoundtrackMixerLevel()  │    │  DistanceFactor = 1.0       │
+    │  SetGlobalVolume/Mute()     │    │  RolloffFactor = 1.0        │
+    │  SetOperatorMute()          │    │  DopplerFactor = 1.0        │
+    │                             │    │  LogAudioDebug/Info/Render  │
+    │                             │    │  ShowAudioLogs toggle       │
+    │                             │    │  ShowAudioRenderLogs toggle │
     └─────────────────────────────┘    └─────────────────────────────┘
                        │
                        ▼
@@ -122,8 +131,10 @@ The central API for all audio operations. Key responsibilities:
 - **Operator Playback**: `UpdateStereoOperatorPlayback()`, `UpdateSpatialOperatorPlayback()`
 - **3D Listener**: `Set3DListenerPosition()`, `Get3DListenerPosition/Forward/Up()`
 - **State Queries**: `IsOperatorStreamPlaying()`, `IsOperatorPaused()`, `GetOperatorLevel()`
+- **Spatial State Queries**: `IsSpatialOperatorStreamPlaying()`, `IsSpatialOperatorPaused()`, `GetSpatialOperatorLevel()`
 - **Device Management**: `OnAudioDeviceChanged()`, `SetGlobalVolume()`, `SetGlobalMute()`
-- **Export Support**: `ResetAllOperatorStreamsForExport()`, `RestoreOperatorAudioStreams()`
+- **Export Support**: `ResetAllOperatorStreamsForExport()`, `RestoreOperatorAudioStreams()`, `UpdateStaleStatesForExport()`
+- **Export Metering**: `GetAllStereoOperatorStates()`, `GetAllSpatialOperatorStates()`
 
 ### AudioMixerManager
 Manages the BASS mixer hierarchy. Key features:
@@ -137,6 +148,7 @@ Manages the BASS mixer hierarchy. Key features:
 ### AudioConfig
 Centralized configuration with compile-time and runtime settings:
 - **Runtime**: `MixerFrequency` (set from device), `ShowAudioLogs`, `ShowAudioRenderLogs`
+- **3D Audio**: `DistanceFactor`, `RolloffFactor`, `DopplerFactor` (configurable at runtime)
 - **Compile-time**: Buffer sizes, FFT configuration, frequency band counts
 - **Logging helpers**: `LogAudioDebug()`, `LogAudioInfo()`, `LogAudioRenderDebug()`, `LogAudioRenderInfo()`
 
@@ -167,6 +179,8 @@ SpatialOperatorAudioStream (standalone class - does NOT inherit from base)
 │   └── Set3DMode(Mode3D) - Normal/Relative/Off
 ├── TryLoadStream(filePath, mixerHandle) - Factory (mixerHandle ignored, plays direct)
 ├── Metering: GetLevel, UpdateFromBuffer (export)
+├── Export State: _exportDecodeStreamHandle, _isExportMode, _exportPlaybackPosition
+├── Distance Attenuation: _distanceAttenuation, _isBeyondMaxDistance (linear rolloff)
 └── Note: Plays DIRECTLY to BASS output for hardware 3D processing
 
 AudioPlayerUtils (static utility)
@@ -179,9 +193,13 @@ OperatorAudioUtils (static utility)
 AudioEngine (static)
 ├── Soundtrack: SoundtrackClipStreams, UseSoundtrackClip, ReloadSoundtrackClip
 ├── Operators: _stereoOperatorStates, _spatialOperatorStates, Update*OperatorPlayback
+├── Internal State Classes:
+│   ├── OperatorAudioState<T> - Stream, CurrentFilePath, IsPaused, PreviousSeek/Play/Stop, IsStale
+│   └── SpatialOperatorState - Same structure but non-generic for spatial streams
 ├── 3D Listener: _listenerPosition, _listenerForward, _listenerUp, Set3DListenerPosition
 ├── 3D Batching: Mark3DApplyNeeded(), Apply3DChanges() (called once per frame)
 ├── Stale Detection: _operatorsUpdatedThisFrame, CheckAndMuteStaleOperators
+├── Export: ResetAllOperatorStreamsForExport, RestoreOperatorAudioStreams, UpdateStaleStatesForExport
 └── Device: OnAudioDeviceChanged, SetGlobalVolume, SetGlobalMute, SetOperatorMute
 ```
 
@@ -217,11 +235,15 @@ Spatial Operator Clips ──► BASS Direct (3D Flags) ──────► So
 
 ### Export Path (GlobalMixer Paused)
 ```
-Soundtrack Clips ──► Direct ChannelGetData() ──┐
-                     (removed from mixer)      │
-                                               ├──► ResampleAndMix() ──► Video Encoder
-OperatorMixer ──► ChannelGetData() ────────────┘
-                  (stays in mixer)
+Soundtrack Clips ──► Export Mixer ────────────────┐
+                     (BassMix resampling)         │
+                     (removed from SoundtrackMixer│
+                                                  ├──► MixBuffer ──► Video Encoder
+OperatorMixer ──► ChannelGetData() ───────────────┤
+                  (stereo decode)                 │
+                                                  │
+Spatial Streams ──► RenderAudio() ────────────────┘
+                    (decode stream + manual 3D)
 ```
 
 ### Isolated Analysis (No Output)
@@ -300,22 +322,25 @@ GlobalMixer ──► Bass.ChannelGetData(FFT2048) ──► FftGainBuffer ─�
 ## Audio Operators
 
 ### AudioPlayer
-**Purpose:** High-quality stereo audio playback with real-time control and analysis.
+**Purpose:** High-quality stereo audio playback with real-time control, ADSR envelope, and analysis.
 
 **Key Parameters:**
-- Playback control: Play, Stop (trigger-based, rising edge detection)
+- Playback control: Play, Stop, Pause (trigger-based, rising edge detection)
 - Audio parameters: Volume (0-1), Mute, Panning (-1 to 1), Speed (0.1x to 4x), Seek (0-1 normalized)
-- Analysis outputs: IsPlaying, IsPaused, Level (0-1)
+- **ADSR Envelope**: TriggerMode (OneShot/Gate/Loop), Duration, UseEnvelope toggle
+- **Envelope Vector4**: X=Attack, Y=Decay, Z=Sustain (level), W=Release
+- Analysis outputs: IsPlaying, GetLevel (0-1)
 
 **Implementation Details:**
 - Uses `AudioPlayerUtils.ComputeInstanceGuid()` for stable operator identification
 - Delegates all audio logic to `AudioEngine.UpdateStereoOperatorPlayback()`
 - Supports `RenderAudio()` for export functionality
+- **ADSR via `AdsrCalculator`**: Envelope modulates volume in real-time when `UseEnvelope` is enabled
 - Finalizer unregisters operator from AudioEngine via `UnregisterOperator()`
 
 **Use Cases:**
 - Background music playback
-- Sound effect triggering
+- Sound effect triggering with ADSR envelope shaping
 - Audio-reactive visuals
 - Beat detection integration
 
@@ -323,19 +348,29 @@ GlobalMixer ──► Bass.ChannelGetData(FFT2048) ──► FftGainBuffer ─�
 **Purpose:** 3D spatial audio with native BASS 3D engine for immersive soundscapes.
 
 **Key Parameters:**
-- All StereoAudioPlayer features (except Panning) plus:
-- 3D Position: SourcePosition, ListenerPosition, ListenerForward, ListenerUp (Vector3)
-- Distance: MinDistance, MaxDistance for attenuation
-- Directionality: SourceOrientation, InnerConeAngle, OuterConeAngle (0-360°), OuterConeVolume
-- Advanced: Audio3DMode (Normal/Relative/Off)
+- Playback: Play, Stop, Pause (trigger-based, rising edge detection)
+- Audio: Volume (0-1), Mute, Speed (0.1x to 4x), Seek (0-1 normalized)
+- **3D Source**: SourcePosition (Vector3), SourceRotation (Vector3 Euler degrees)
+- **3D Listener**: ListenerPosition (Vector3), ListenerRotation (Vector3 Euler degrees)
+- **Distance**: MinDistance, MaxDistance for attenuation
+- **Directionality**: InnerConeAngle (0-360°), OuterConeAngle (0-360°), OuterConeVolume (0-1)
+- **Advanced**: Audio3DMode (Normal/Relative/Off), GizmoVisibility
+
+**Outputs:**
+- `Result`: Command output for operator chaining
+- `GizmoOutput`: Internal gizmo rendering output
+- `IsPlaying`, `IsPaused`: Playback state queries
+- `GetLevel`: Current audio amplitude (0-1)
 
 **Implementation Details:**
+- **Implements `ITransformable`** for gizmo manipulation (TranslationInput → SourcePosition, RotationInput → SourceRotation)
 - **Loads audio as mono** with `BassFlags.Bass3D | BassFlags.Mono | BassFlags.Float` for optimal 3D positioning
 - **Plays directly to BASS output** (NOT through OperatorMixer) for hardware-accelerated 3D processing
 - Does not use `BassMix.MixerAddChannel` - the `mixerHandle` parameter is ignored in `TryLoadStream`
-- Listener orientation auto-normalized if invalid
+- Listener rotation converted from Euler angles to forward/up vectors via rotation matrix
 - 3D position updated every frame via `AudioEngine.Set3DListenerPosition()`
 - Velocity computed from position delta (assumes ~60fps) for Doppler effects
+- **Linear distance attenuation**: Custom rolloff from minDistance to maxDistance (BASS uses inverse distance)
 - Uses `AudioEngine.Mark3DApplyNeeded()` to batch 3D changes per frame
 - `Bass.Apply3D()` called once per frame in `CompleteFrame()` for performance
 - Supports `RenderAudio()` for export functionality (uses separate decode stream)
@@ -361,6 +396,13 @@ UpdatePeriodMs = 10              // Low-latency BASS updates
 UpdateThreads = 2                // BASS update thread count
 PlaybackBufferLengthMs = 100     // Balanced buffering
 DeviceBufferLengthMs = 20        // Minimal device latency
+```
+
+**3D Audio Configuration:**
+```csharp
+DistanceFactor = 1.0f            // Units per meter (1.0 = 1 unit = 1 meter)
+RolloffFactor = 1.0f             // Distance attenuation (0 = none, 1 = real-world)
+DopplerFactor = 1.0f             // Doppler effect strength (0 = none, 1 = real-world)
 ```
 
 **FFT and Analysis:**
@@ -409,13 +451,14 @@ PrepareRecording()
         ├──► Clear AudioExportSourceRegistry
         ├──► Reset WaveFormProcessing export buffer
         ├──► ResetAllOperatorStreamsForExport() (both stereo + spatial)
-        └──► Remove Soundtrack streams from SoundtrackMixer (for direct reading)
+        ├──► Create Export Mixer (BassMix, Decode + Float + MixerNonStop)
+        └──► Remove Soundtrack streams from SoundtrackMixer, add to Export Mixer
         │
         ▼
 GetFullMixDownBuffer() [per frame]
         │
         ├──► UpdateStaleStatesForExport() (both stereo + spatial)
-        ├──► MixSoundtrackClip() ──► Seek + Read + ResampleAndMix()
+        ├──► MixSoundtracksFromExportMixer() ──► Position + Volume + ChannelGetData
         ├──► MixOperatorAudio() ──► Read from OperatorMixer (stereo only)
         ├──► MixSpatialOperatorAudio() ──► Read from decode streams (spatial)
         ├──► UpdateOperatorMetering() (both stereo + spatial)
@@ -425,10 +468,18 @@ GetFullMixDownBuffer() [per frame]
         ▼
 EndRecording()
         │
+        ├──► Remove Soundtrack streams from Export Mixer
         ├──► Re-add Soundtrack streams to SoundtrackMixer
+        ├──► Free Export Mixer
         ├──► RestoreState() (export state)
         └──► RestoreOperatorAudioStreams()
 ```
+
+### Export Mixer Design
+The export system uses a dedicated BASS mixer (`_exportMixerHandle`) that handles resampling automatically:
+- Created with `BassFlags.Decode | BassFlags.Float | BassFlags.MixerNonStop`
+- Soundtrack streams are added with `BassFlags.MixerChanNoRampin | BassFlags.MixerChanPause`
+- BASS handles resampling from each clip's native frequency to the mixer frequency
 
 ### External Audio Mode
 When `AudioSource` is set to `ExternalDevice` during export:
@@ -485,8 +536,7 @@ During export, spatial audio streams require special handling:
 | `AudioToneGenerator.cs` | Tone generation operator        |
 
 ### Guides
-- **[STALE_DETECTION.md](STALE_DETECTION.md)** - Stale detection system
-- **[TODO.md](TODO.md)** - Technical review and next steps 
+- **[TODO.md](TODO.md)** - Technical review, stale detection details, and next steps 
 
 ---
 
@@ -519,12 +569,12 @@ During export, spatial audio streams require special handling:
 ---
 
 # Immediate TODO:
-- Finish implementing SpatialAudioPlayer
-- Re-think the seek logic / probably should only seek on play
-- Add the sample accurate adsr envelope to Stereo and Spatial Audio Players
-- Re-visit the Waveform/Spectrum outputs (may not work correctly at the moment)
+- ✅ Finish implementing SpatialAudioPlayer (ITransformable, gizmo, rotation inputs)
+- ✅ Add the sample accurate ADSR envelope to AudioPlayer via AdsrCalculator
+- Re-think the seek logic?
 - Add unit tests for AudioEngine methods
 - Implement remaining technical review items
+- Add ADSR envelope support to SpatialAudioPlayer
 
 # Diff Summary
 
