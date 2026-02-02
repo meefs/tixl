@@ -343,6 +343,14 @@ internal sealed partial class SettingsWindow : Window
                                                                      """,
                                                                      ProjectSettings.Config.EnableDirectXDebug);
 
+                    changed |= FormInputs.AddCheckBox("Load multi-threaded",
+                                                                     ref UserSettings.Config.LoadMultiThreaded,
+                                                                     """
+                                                                     Using multi-threading for loading projects can significantly increase startup time.
+                                                                     During development or if loading freezes during startup it might be useful for disable this settings.
+                                                                     """,
+                                                                     UserSettings.Config.LoadMultiThreaded);
+                    
                     FormInputs.AddSectionSubHeader("Audio Sync");
 
                     FormInputs.SetIndentToParameters();
