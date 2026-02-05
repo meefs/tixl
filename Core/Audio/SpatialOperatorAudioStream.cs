@@ -400,15 +400,27 @@ public sealed class SpatialOperatorAudioStream
     }
 
     /// <summary>
-    /// Sets the stale-muted state of the stream. Stale streams are muted to prevent audio artifacts.
+    /// Sets the stale state of the stream. Stale streams are stopped and reset to the beginning.
     /// </summary>
-    /// <param name="muted">Whether the stream should be muted due to being stale.</param>
-    /// <param name="reason">Optional reason for the mute state change (for debugging).</param>
-    internal void SetStaleMuted(bool muted, string reason = "")
+    /// <param name="stale">Whether the stream should be stopped due to being stale.</param>
+    /// <param name="reason">Optional reason for the stale state change (for debugging).</param>
+    internal void SetStale(bool stale, string reason = "")
     {
-        if (IsStaleMuted == muted) return;
-        IsStaleMuted = muted;
-        ApplyEffectiveVolume();
+        if (IsStaleMuted == stale) return;
+        IsStaleMuted = stale;
+
+        if (stale)
+        {
+            // Stop playback and seek to beginning when becoming stale
+            Bass.ChannelPause(StreamHandle);
+            Bass.ChannelSetPosition(StreamHandle, 0, PositionFlags.Bytes);
+            IsPlaying = false;
+            IsPaused = false;
+        }
+        else
+        {
+            ApplyEffectiveVolume();
+        }
     }
 
     /// <summary>

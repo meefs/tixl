@@ -154,7 +154,7 @@ Overall, the design is clear and reasonably modular: mixer management is central
 - **Issues**:
   1. Stale detection is implicit: it requires that operator instances call `UpdateStereoOperatorPlayback` / `UpdateSpatialOperatorPlayback` every frame in which they are “logically active.” If a caller misses a frame or changes update frequency, streams can be incorrectly muted.
   2. `_lastStaleCheckFrame` / `Playback.FrameCount` coupling ties the stale logic to the global `Playback` system, which may complicate reuse or testing.
-  3. A stream being stale is indicated by both `OperatorAudioState<T>.IsStale` and `stream.SetStaleMuted(bool)`; there is duplication of state.
+  3. A stream being stale is indicated by both `OperatorAudioState<T>.IsStale` and `stream.SetStale(bool)`; there is duplication of state.
 - **Impact / Risk**:
   - **Glitch resilience**: if an operator is updated a frame late due to performance hitches or scheduling, its audio might be muted for a frame.
   - **Maintainability**: reliance on global frame count and implicit update contracts makes the behaviour harder to reason about.

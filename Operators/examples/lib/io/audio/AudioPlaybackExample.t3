@@ -56,7 +56,7 @@
         {
           "Id": "f0ae47ae-5849-4d81-bae0-9b6ec44949ef"/*Rate*/,
           "Type": "System.Single",
-          "Value": 1.0
+          "Value": 2.0
         },
         {
           "Id": "f8afee64-627d-48e4-b4ea-a15601a01aa1"/*SequenceIndex*/,
@@ -228,7 +228,7 @@
         {
           "Id": "785bb240-2020-4937-b132-b46f542e8986"/*InnerConeAngle*/,
           "Type": "System.Single",
-          "Value": 69.73
+          "Value": 30.0
         },
         {
           "Id": "7eb612cb-1dbf-4336-b91d-1042573bd7ff"/*MaxDistance*/,
@@ -684,7 +684,7 @@
         {
           "Id": "c0645e37-db4e-4658-9d65-96478851f6f6"/*Volume*/,
           "Type": "System.Single",
-          "Value": 1.424
+          "Value": 1.054
         },
         {
           "Id": "d1a11c4c-9526-4f6b-873e-1798b9dd2b48"/*Speed*/,
@@ -919,7 +919,7 @@
         {
           "Id": "7110399e-fd85-4053-9a49-cc09760dceb6"/*Volume*/,
           "Type": "System.Single",
-          "Value": 2.3
+          "Value": 6.1
         },
         {
           "Id": "732be517-a58e-4f21-8395-7761a95905ea"/*MinDistance*/,

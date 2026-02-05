@@ -167,7 +167,7 @@ public abstract class OperatorAudioStreamBase
         IsPlaying = true;
         IsPaused = false;
         
-        // Restore volume (PrepareForExport sets it to 0, and SetStaleMuted needs IsPlaying=true)
+        // Restore volume (PrepareForExport sets it to 0, and SetStale needs IsPlaying=true)
         if (!IsUserMuted)
         {
             Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, CurrentVolume);
@@ -211,18 +211,23 @@ public abstract class OperatorAudioStreamBase
     }
 
     /// <summary>
-    /// Sets the stale-muted state of the stream. Stale streams are muted to prevent audio artifacts.
+    /// Sets the stale state of the stream. Stale streams are stopped and reset to the beginning.
     /// </summary>
-    /// <param name="muted">Whether the stream should be muted due to being stale.</param>
-    /// <param name="reason">Optional reason for the mute state change (for debugging).</param>
-    internal void SetStaleMuted(bool muted, string reason = "")
+    /// <param name="stale">Whether the stream should be stopped due to being stale.</param>
+    /// <param name="reason">Optional reason for the stale state change (for debugging).</param>
+    internal void SetStale(bool stale, string reason = "")
     {
-        if (IsStaleMuted == muted) return;
-        IsStaleMuted = muted;
+        if (IsStaleMuted == stale) return;
+        IsStaleMuted = stale;
 
-        if (muted)
+        if (stale)
         {
-            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
+            // Stop playback and seek to beginning when becoming stale
+            BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
+            var position = Bass.ChannelSeconds2Bytes(StreamHandle, 0);
+            BassMix.ChannelSetPosition(StreamHandle, position, PositionFlags.Bytes | PositionFlags.MixerReset);
+            IsPlaying = false;
+            IsPaused = false;
         }
         else if (IsPlaying && !IsPaused && !IsUserMuted)
         {

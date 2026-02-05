@@ -94,7 +94,7 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
     │  • PrepareForExport            • RestartAfterExport             │
     │  • UpdateFromBuffer            • ClearExportMetering            │
     │  • GetCurrentPosition          • Dispose                        │
-    │  • SetStaleMuted(muted)        • TryLoadStreamCore (static)     │
+    │  • SetStale(stale)             • TryLoadStreamCore (static)     │
     └─────────────────────────────────────────────────────────────────┘
                       │
           ┌───────────┴───────────┐

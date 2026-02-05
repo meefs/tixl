@@ -692,7 +692,7 @@ public static class AudioEngine
             return true;
         
         state.IsStale = true;
-        state.Stream.SetStaleMuted(true);
+        state.Stream.SetStale(true);
         Log.Gated.Audio($"[AudioEngine] New stream during export - marking stale: {resolvedPath}");
         return false;
 
@@ -828,7 +828,7 @@ public static class AudioEngine
             return true;
         
         state.IsStale = true;
-        state.Stream.SetStaleMuted(true);
+        state.Stream.SetStale(true);
         Log.Gated.Audio($"[AudioEngine] New spatial stream during export - marking stale: {resolvedPath}");
         return false;
     }
@@ -919,7 +919,7 @@ public static class AudioEngine
             bool isStale = !_operatorsUpdatedThisFrame.Contains(operatorId);
             if (state.IsStale != isStale)
             {
-                state.Stream.SetStaleMuted(isStale);
+                state.Stream.SetStale(isStale);
                 state.IsStale = isStale;
             }
         }
@@ -934,7 +934,7 @@ public static class AudioEngine
             bool isStale = !_operatorsUpdatedThisFrame.Contains(operatorId);
             if (state.IsStale != isStale)
             {
-                state.Stream.SetStaleMuted(isStale);
+                state.Stream.SetStale(isStale);
                 state.IsStale = isStale;
             }
         }
@@ -1011,7 +1011,7 @@ public static class AudioEngine
             {
                 state.Stream.ClearExportMetering();
                 state.Stream.RestartAfterExport();
-                state.Stream.SetStaleMuted(false);
+                state.Stream.SetStale(false);
                 state.IsStale = false;
             }
         }
@@ -1025,7 +1025,7 @@ public static class AudioEngine
             {
                 state.Stream.ClearExportMetering();
                 state.Stream.RestartAfterExport();
-                state.Stream.SetStaleMuted(false);
+                state.Stream.SetStale(false);
                 state.IsStale = false;
             }
         }
