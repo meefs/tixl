@@ -20,8 +20,8 @@
 11. [Export and Rendering](#export-and-rendering)
 12. [Audio Analysis and Buffer Ownership](#audio-analysis-and-buffer-ownership)
 13. [Technical Implementation Details](#technical-implementation-details)
-14. [Documentation Index](#documentation-index)
-15. [Future Enhancement Opportunities](#future-enhancement-opportunities)
+14. [Future Enhancement Opportunities](#future-enhancement-opportunities)
+15. [Diff Summary](#diff-summary)
 
 ---
 
@@ -569,6 +569,27 @@ LogAudioRenderInfo(message)      // Suppressible render info logging
 Initialize(showAudioLogs, showAudioRenderLogs)  // Editor initialization
 ```
 
+**Centralized Gated Logging (Log.Gated):**
+
+The audio system uses `Log.Gated` from `T3.Core.Logging` for category-based debug output. This provides a centralized, toggleable logging mechanism:
+
+```csharp
+// API Usage
+Log.Gated.Audio("message")           // Audio system debug messages
+Log.Gated.AudioRender("message")     // Audio rendering/export debug messages
+Log.Gated.VideoRender("message")     // Video rendering debug messages
+
+// Enable/Disable at runtime
+Log.Gated.AudioEnabled = true        // Toggle audio logging
+Log.Gated.AudioRenderEnabled = true  // Toggle audio render logging
+Log.Gated.VideoRenderEnabled = true  // Toggle video render logging
+
+// Initialize all categories at startup
+Log.Gated.Initialize(audio, audioRender, videoRender)
+```
+
+Messages are only logged when their respective category is enabled, reducing log noise during normal operation while allowing detailed debugging when needed.
+
 ### User Settings Integration
 
 Audio configuration is accessible through the Editor Settings window:
@@ -822,39 +843,96 @@ Per frame, operators call `UpdateStereoOperatorPlayback` / `UpdateSpatialOperato
 
 ---
 
-## Documentation Index
 
-### Core Files
+## Future Enhancement Opportunities
 
-| File                              | Purpose                                          |
-|-----------------------------------|--------------------------------------------------|
-| `AudioEngine.cs`                  | Central API for operator and soundtrack playback |
-| `OperatorAudioStreamBase.cs`      | Common stream functionality (abstract base)      |
-| `StereoOperatorAudioStream.cs`    | Stereo-specific stream with panning (uses mixer) |
-| `SpatialOperatorAudioStream.cs`   | 3D spatial stream (standalone, direct to BASS)   |
-| `AudioRendering.cs`               | Export/recording functionality                   |
-| `AudioMixerManager.cs`            | BASS mixer setup and level metering              |
-| `AudioConfig.cs`                  | Centralized configuration                        |
-| `AudioAnalysis.cs`                | FFT processing and frequency bands (delegates to context) |
-| `AudioAnalysisContext.cs`         | Owns all FFT/waveform buffers, enables multi-threading |
-| `AudioAnalysisResult.cs`          | Analysis result data structures                  |
-| `OperatorAudioUtils.cs`           | Buffer filling and resampling utilities          |
-| `WaveFormProcessing.cs`           | Waveform buffer management and filtering (delegates to context) |
-| `SoundtrackClipDefinition.cs`     | Soundtrack clip data structures                  |
-| `SoundtrackClipStream.cs`         | Soundtrack stream playback                       |
-| `AudioExportSourceRegistry.cs`    | Registry for export audio sources                |
-| `IAudioExportSource.cs`           | Interface for exportable audio sources           |
-| `WasapiAudioInput.cs`             | External WASAPI audio device input               |
-| `BeatSynchronizer.cs`             | Beat detection and timing                        |
-| `BeatTimingDetails.cs`            | Beat timing data structures                      |
-| `AdsrCalculator.cs`               | ADSR envelope calculation utility                |
+### Environmental Audio (Not Started)
+- EAX effects integration (reverb, echo, chorus) - BASS supports, not yet exposed
+- Room acoustics simulation
+- Environmental audio zones
+
+### Advanced 3D Audio (Partial)
+- ✓ **Doppler effects** - Implemented via velocity tracking
+- ✓ **Directional cones** - Inner/outer angle with volume falloff
+- ✓ **Distance attenuation** - Linear rolloff from min to max distance
+- Custom distance rolloff curves (not implemented)
+- Per-stream Doppler factor adjustment (not implemented)
+- HRTF for headphone spatialization (not implemented)
+- Geometry-based occlusion (not implemented)
+
+### Current Limitations
+1. No EAX environmental effects (BASS supports, not yet exposed)
+2. Spatial audio not included in mixer-level metering (plays directly to BASS)
+3. Export of spatial audio uses separate decode stream (no hardware 3D in export)
+4. No custom distance rolloff curves
+5. No per-stream Doppler factor adjustment
+
+---
+
+# Diff Summary
+
+Diff summary for branch `Bass-AudioImplementation` vs `origin/main`
+
+## Added
+
+### Core Audio Files
+- `Core/Audio/AUDIO_ARCHITECTURE.md` — new architecture/design doc for the audio subsystem.
+- `Core/Audio/AdsrCalculator.cs` — ADSR envelope calculation utility.
+- `Core/Audio/AudioAnalysisContext.cs` — owns all FFT/waveform buffers, enables multi-threaded analysis.
+- `Core/Audio/AudioConfig.cs` — centralized audio configuration and logging toggles.
+- `Core/Audio/AudioExportSourceRegistry.cs` — registry for export/record audio sources.
+- `Core/Audio/AudioMixerManager.cs` — BASS mixer initialization/management and helpers.
+- `Core/Audio/IAudioExportSource.cs` — interface for exportable audio sources.
+- `Core/Audio/ISpatialAudioPropertiesProvider.cs` — interface for spatial audio properties.
+- `Core/Audio/OperatorAudioStreamBase.cs` — abstract base for operator audio streams.
+- `Core/Audio/OperatorAudioUtils.cs` — helper utilities for operator streams.
+- `Core/Audio/SpatialOperatorAudioStream.cs` — spatial/3D operator stream implementation.
+- `Core/Audio/StereoOperatorAudioStream.cs` — stereo operator stream implementation.
+
+### Editor Files
+- `Editor/Gui/InputUi/CombinedInputs/AdsrEnvelopeInputUi.cs` — UI input for ADSR envelope.
+- `Editor/Gui/OpUis/UIs/AdsrEnvelopeUi.cs` — ADSR editor UI control.
+- `Editor/Gui/UiHelpers/AudioLevelMeter.cs` — audio level meter UI component.
+- `Editor/Gui/Windows/SettingsWindow.AudioPanel.cs` — audio panel for settings window.
 
 ### Operator Files
+- `Operators/Lib/io/audio/AudioPlayer.cs` (+ `.t3`/`.t3ui`) — stereo audio operator and UI metadata.
+- `Operators/Lib/io/audio/AudioPlayerUtils.cs` — shared operator audio utilities.
+- `Operators/Lib/io/audio/AudioToneGenerator.cs` (+ `.t3`/`.t3ui`) — tone generator operator and UI.
+- `Operators/Lib/io/audio/SpatialAudioPlayer.cs` (+ `.t3`/`.t3ui`) — spatial audio operator and UI metadata.
+- `Operators/Lib/io/audio/SpatialAudioPlayerGizmo.cs` (+ `.t3`/`.t3ui`) — spatial audio player gizmo visualization.
+- `Operators/Lib/io/audio/_/GetAllSpatialAudioPlayers.cs` (+ `.t3`/`.t3ui`) — query operator for spatial players.
 
-| File              | Purpose                         |
-|-------------------|---------------------------------|
-| `AudioPlayer.cs`  | Stereo playback operator        |
-| `SpatialAudioPlayer.cs` | 3D spatial playback operator    |
-| `AudioPlayerUtils.cs` | Shared utilities (instance GUID)|
-| `AudioToneGenerator.cs` | Tone generation operator        |
+## Modified
+
+### Core Audio Files
+- `Core/Audio/AudioAnalysis.cs` — now delegates to `AudioAnalysisContext.Default` for backwards compatibility.
+- `Core/Audio/AudioEngine.cs` — central audio API changes for playback/update/export integration.
+- `Core/Audio/AudioRendering.cs` — export/mixdown improvements and buffer reuse notes.
+- `Core/Audio/BeatSynchronizer.cs` — beat detection / timing adjustments.
+- `Core/Audio/WasapiAudioInput.cs` — Wasapi input adjustments.
+- `Core/Audio/WaveFormProcessing.cs` — now delegates to `AudioAnalysisContext.Default` for backwards compatibility.
+
+### Editor Files
+- `Editor/Gui/Audio/AudioImageFactory.cs` — audio image factory updates.
+- `Editor/Gui/Audio/AudioImageGenerator.cs` — audio image generation tweaks.
+- `Editor/Gui/InputUi/VectorInputs/Vector4InputUi.cs` — vector4 input UI changes.
+- `Editor/Gui/Interaction/Timing/PlaybackUtils.cs` — playback timing helpers updated.
+- `Editor/Gui/OpUis/OpUi.cs` — operator UI adjustments.
+- `Editor/Gui/UiHelpers/UserSettings.cs` — user settings persistence/UX changes.
+- `Editor/Gui/Windows/RenderExport/RenderAudioInfo.cs` — render audio info updates.
+- `Editor/Gui/Windows/RenderExport/RenderProcess.cs` — render/export process changes.
+- `Editor/Gui/Windows/RenderExport/RenderTiming.cs` — render timing adjustments.
+- `Editor/Gui/Windows/SettingsWindow.cs` — settings window updated to include audio panel.
+- `Editor/Gui/Windows/TimeLine/PlaybackSettingsPopup.cs` — timeline playback settings tweaks.
+- `Editor/Gui/Windows/TimeLine/TimeControls.cs` — timeline controls updated.
+- `Editor/Program.cs` — editor startup changes to include audio initialization.
+
+### Logging Files
+- `Logging/Log.cs` — added `Log.Gated` API for category-based debug logging.
+
+## Renamed
+
+- `Core/Audio/AudioClipDefinition.cs` → `Core/Audio/SoundtrackClipDefinition.cs` — renamed soundtrack clip definition.
+- `Core/Audio/AudioClipStream.cs` → `Core/Audio/SoundtrackClipStream.cs` — renamed soundtrack clip stream.
 
