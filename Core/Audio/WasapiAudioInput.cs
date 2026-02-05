@@ -227,6 +227,10 @@ public static class WasapiAudioInput
     /// </remarks>
     private static int ProcessDataCallback(IntPtr buffer, int length, IntPtr user)
     {
+        // Skip all WASAPI processing during export - AudioRendering handles FFT/waveform
+        if (Playback.Current.IsRenderingToFile)
+            return length;
+        
         var time = Playback.RunTimeInSecs;  // Keep because timer is still running 
         TimeSinceLastUpdate = time - LastUpdateTime;
         LastUpdateTime = time;

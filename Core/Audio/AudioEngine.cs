@@ -144,7 +144,10 @@ public static class AudioEngine
         ProcessSoundtrackClips(playback, frameDurationInSeconds);
 
         // Process FFT data after filling the buffer from soundtrack
-        if (playback.Settings is { Enabled: true, AudioSource: PlaybackSettings.AudioSources.ProjectSoundTrack })
+        // Skip during export - GetFullMixDownBuffer handles FFT processing during export
+        // to ensure consistent behavior between soundtrack and external audio modes
+        if (!playback.IsRenderingToFile && 
+            playback.Settings is { Enabled: true, AudioSource: PlaybackSettings.AudioSources.ProjectSoundTrack })
             AudioAnalysis.ProcessUpdate(playback.Settings.AudioGainFactor, playback.Settings.AudioDecayFactor);
 
         StopStaleOperators();
@@ -174,28 +177,9 @@ public static class AudioEngine
 
     private static void ProcessSoundtrackClips(Playback playback, double frameDurationInSeconds)
     {
-        // In external audio mode during export, skip soundtrack processing entirely
-        // Only operator audio is exported in external mode
-        bool isExternalAudioMode = playback.Settings?.AudioSource == PlaybackSettings.AudioSources.ExternalDevice;
-        if (playback.IsRenderingToFile && isExternalAudioMode)
-        {
-            // Still need to mark clips as obsolete if they should be discarded
-            foreach (var (handle, clipStream) in SoundtrackClipStreams)
-            {
-                clipStream.IsInUse = _updatedSoundtrackClipTimes.ContainsKey(clipStream.ResourceHandle);
-                if (!clipStream.IsInUse && clipStream.ResourceHandle.Clip.DiscardAfterUse)
-                {
-                    _obsoleteSoundtrackHandles.Add(handle);
-                }
-            }
-            
-            foreach (var handle in _obsoleteSoundtrackHandles)
-            {
-                SoundtrackClipStreams[handle].DisableSoundtrackStream();
-                SoundtrackClipStreams.Remove(handle);
-            }
-            return;
-        }
+        // Note: During export, both soundtrack and external audio modes follow the same code path here.
+        // The only difference is whether soundtrack audio is mixed in GetFullMixDownBuffer.
+        // This ensures consistent behavior for FFT/metering between modes.
 
         foreach (var (handle, time) in _updatedSoundtrackClipTimes)
         {

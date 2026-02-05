@@ -247,6 +247,7 @@ public static class WaveFormProcessing
     public static void ResetExportBuffer(AudioAnalysisContext context)
     {
         Array.Clear(context.ExportAccumulationBuffer, 0, context.ExportAccumulationBuffer.Length);
+        Array.Clear(context.InterleavedSampleBuffer, 0, context.InterleavedSampleBuffer.Length);
     }
 }
 

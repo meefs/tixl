@@ -48,16 +48,11 @@ public static class AudioRendering
         _isRecording = true;
         _frameCount = 0;
 
-        // Check if we're in external audio mode and warn the user
-        if (playback.Settings?.AudioSource == Operator.PlaybackSettings.AudioSources.ExternalDevice)
-        {
-            Log.Warning("[AudioRendering] External audio source detected - external audio cannot be monitored during export. Only operator audio will be included in the export.");
-        }
-
         _exportState.SaveState();
         AudioExportSourceRegistry.Clear();
 
-        // Reset export buffers for clean state
+        // Reset audio analysis state for clean export - ensures both modes start from same state
+        AudioAnalysisContext.Default.Reset();
         WaveFormProcessing.ResetExportBuffer();
 
         Bass.ChannelPause(AudioMixerManager.GlobalMixerHandle);
@@ -140,7 +135,9 @@ public static class AudioRendering
             _exportMixerHandle = 0;
             _exportMixerInitialized = false;
             Log.Gated.AudioRender("[AudioRendering] Export mixer freed");
-        }        _exportState.RestoreState();
+        }
+        
+        _exportState.RestoreState();
         AudioEngine.RestoreOperatorAudioStreams();
     }
 
@@ -170,11 +167,8 @@ public static class AudioRendering
         var mixBuffer = EnsureBuffer(ref _mixBuffer, floatCount);
         double currentTime = Playback.Current.TimeInSecs;
 
-        // Check audio source mode - skip soundtrack mixing in external audio mode
-        bool isExternalAudioMode = Playback.Current.Settings?.AudioSource == PlaybackSettings.AudioSources.ExternalDevice;
-
         // Mix soundtrack streams using BASS export mixer (handles resampling automatically)
-        if (!isExternalAudioMode && _exportMixerInitialized)
+        if (_exportMixerInitialized)
         {
             MixSoundtracksFromExportMixer(mixBuffer, floatCount, currentTime, frameDurationInSeconds);
         }
@@ -185,10 +179,13 @@ public static class AudioRendering
         LogMixStats(mixBuffer, floatCount, currentTime);
         UpdateOperatorMetering();
         
-        // Populate waveform and FFT buffers for audio analysis operators during export
+        // Populate waveform buffers from export mixdown (maintains rolling window like live playback)
         // This ensures AudioWaveform, PlaybackFFT, AudioReaction, etc. work correctly during rendering
         WaveFormProcessing.PopulateFromExportBuffer(mixBuffer);
-        AudioAnalysis.ComputeFftFromBuffer(mixBuffer);
+        
+        // Compute FFT from the accumulated waveform buffer (same as live playback uses)
+        var context = AudioAnalysisContext.Default;
+        AudioAnalysis.ComputeFftFromBuffer(context.InterleavedSampleBuffer, context);
         
         // Process FFT data to compute frequency bands, peaks, and attacks for AudioReaction
         // Use the same gain/decay factors from playback settings as used during normal playback
