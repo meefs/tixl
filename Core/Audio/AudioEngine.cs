@@ -1253,9 +1253,7 @@ public static class AudioEngine
     {
         // Dispose ALL streams before calling AudioMixerManager.Shutdown() / Bass.Free()
         // This prevents invalid handle errors when streams are accessed after device change
-        DisposeAllOperatorStreams(_stereoOperatorStates);
-        DisposeSpatialOperatorStreams();
-        DisposeAllSoundtrackStreams();
+        DisposeAllAudioStreams();
 
         AudioMixerManager.Shutdown();
         _bassInitialized = false; // Reset flag to allow proper reinitialization
@@ -1265,35 +1263,30 @@ public static class AudioEngine
         Log.Gated.Audio("[AudioEngine] Audio device changed: all streams disposed and reinitialized.");
     }
 
-    private static void DisposeAllOperatorStreams<T>(Dictionary<Guid, OperatorAudioState<T>> states)
-        where T : OperatorAudioStreamBase
+    /// <summary>
+    /// Disposes all audio streams (stereo operators, spatial operators, and soundtracks).
+    /// Called during device changes to prevent invalid BASS handle errors.
+    /// </summary>
+    private static void DisposeAllAudioStreams()
     {
-        foreach (var state in states.Values)
+        // Dispose stereo operator streams
+        foreach (var state in _stereoOperatorStates.Values)
             state.Stream?.Dispose();
-        states.Clear();
-    }
+        _stereoOperatorStates.Clear();
 
-    private static void DisposeSpatialOperatorStreams()
-    {
+        // Dispose spatial operator streams
         foreach (var state in _spatialOperatorStates.Values)
             state.Stream?.Dispose();
         _spatialOperatorStates.Clear();
-    }
 
-    /// <summary>
-    /// Disposes all soundtrack clip streams, clearing the dictionary.
-    /// Called during device changes to prevent invalid BASS handle errors.
-    /// </summary>
-    private static void DisposeAllSoundtrackStreams()
-    {
+        // Dispose soundtrack streams
         foreach (var (_, clipStream) in SoundtrackClipStreams)
-        {
             clipStream.DisableSoundtrackStream();
-        }
         SoundtrackClipStreams.Clear();
         _updatedSoundtrackClipTimes.Clear();
         _obsoleteSoundtrackHandles.Clear();
-        Log.Gated.Audio($"[AudioEngine] Disposed all soundtrack streams.");
+
+        Log.Gated.Audio("[AudioEngine] Disposed all audio streams (stereo, spatial, soundtrack).");
     }
 
     /// <summary>
