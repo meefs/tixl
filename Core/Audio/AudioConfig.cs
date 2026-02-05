@@ -95,4 +95,13 @@ public static class AudioConfig
     /// </summary>
     public const float HighPassCutoffFrequency = 2000f;
     #endregion
+
+    #region Metering Configuration
+    /// <summary>
+    /// Time window in seconds for level metering via Bass.ChannelGetLevel (level-ex variant).
+    /// Shorter values = more responsive but noisier, longer values = smoother but more latency.
+    /// 0.05s (50ms) provides a good balance for visual metering.
+    /// </summary>
+    public const float LevelMeteringWindowSeconds = 0.05f;
+    #endregion
 }

@@ -469,17 +469,22 @@ public static class AudioMixerManager
     /// <summary>
     /// Gets the current audio level from the global mixer (0.0 to 1.0 normalized).
     /// Returns the maximum of left and right channels.
-    /// Uses non-destructive level reading to avoid consuming audio data.
     /// </summary>
+    /// <remarks>
+    /// Uses the level-ex variant of Bass.ChannelGetLevel with a configurable time window
+    /// (see <see cref="AudioConfig.LevelMeteringWindowSeconds"/>). This provides windowed RMS-style
+    /// metering rather than instantaneous peak levels, which is better for visual meter displays.
+    /// This method does not consume audio data from the stream.
+    /// </remarks>
     public static float GetGlobalMixerLevel()
     {
         if (!_initialized || _globalMixerHandle == 0)
             return 0f;
 
-        // Use ChannelGetLevelEx with a short time window for responsive metering
-        // This doesn't consume audio data like ChannelGetLevel does
+        // Use ChannelGetLevel (level-ex variant) with configurable time window for responsive metering.
+        // The float[] overload returns RMS levels over the specified window, normalized to 0.0-1.0.
         float[] levels = new float[2];
-        if (!Bass.ChannelGetLevel(_globalMixerHandle, levels, 0.05f, LevelRetrievalFlags.Stereo))
+        if (!Bass.ChannelGetLevel(_globalMixerHandle, levels, AudioConfig.LevelMeteringWindowSeconds, LevelRetrievalFlags.Stereo))
             return 0f;
 
         return Math.Max(levels[0], levels[1]);
@@ -488,19 +493,24 @@ public static class AudioMixerManager
     /// <summary>
     /// Gets the current audio level from the operator mixer (0.0 to 1.0 normalized).
     /// Returns the maximum of left and right channels.
-    /// Uses BassMix.ChannelGetLevel for decode streams with MixerChanBuffer.
     /// </summary>
+    /// <remarks>
+    /// Uses BassMix.ChannelGetLevel for decode streams added to a mixer with MixerChanBuffer flag.
+    /// This reads from the mixer's internal buffer without consuming audio data.
+    /// Note: Decode streams require BassMix.ChannelGetLevel, not Bass.ChannelGetLevel.
+    /// </remarks>
     public static float GetOperatorMixerLevel()
     {
         if (!_initialized || _operatorMixerHandle == 0)
             return 0f;
 
-        // For decode streams with MixerChanBuffer, use BassMix.ChannelGetLevel
-        // This reads from the mixer's buffer without consuming data
+        // For decode streams with MixerChanBuffer, use BassMix.ChannelGetLevel (integer variant)
+        // The float[] level-ex variant doesn't work correctly for decode streams
         var level = BassMix.ChannelGetLevel(_operatorMixerHandle);
         if (level == -1)
             return 0f;
 
+        // Low 16 bits = left channel, high 16 bits = right channel (0-32768 range)
         var left = (level & 0xFFFF) / 32768f;
         var right = ((level >> 16) & 0xFFFF) / 32768f;
         return Math.Max(left, right);
@@ -509,19 +519,24 @@ public static class AudioMixerManager
     /// <summary>
     /// Gets the current audio level from the soundtrack mixer (0.0 to 1.0 normalized).
     /// Returns the maximum of left and right channels.
-    /// Uses BassMix.ChannelGetLevel for decode streams with MixerChanBuffer.
     /// </summary>
+    /// <remarks>
+    /// Uses BassMix.ChannelGetLevel for decode streams added to a mixer with MixerChanBuffer flag.
+    /// This reads from the mixer's internal buffer without consuming audio data.
+    /// Note: Decode streams require BassMix.ChannelGetLevel, not Bass.ChannelGetLevel.
+    /// </remarks>
     public static float GetSoundtrackMixerLevel()
     {
         if (!_initialized || _soundtrackMixerHandle == 0)
             return 0f;
 
-        // For decode streams with MixerChanBuffer, use BassMix.ChannelGetLevel
-        // This reads from the mixer's buffer without consuming data
+        // For decode streams with MixerChanBuffer, use BassMix.ChannelGetLevel (integer variant)
+        // The float[] level-ex variant doesn't work correctly for decode streams
         var level = BassMix.ChannelGetLevel(_soundtrackMixerHandle);
         if (level == -1)
             return 0f;
 
+        // Low 16 bits = left channel, high 16 bits = right channel (0-32768 range)
         var left = (level & 0xFFFF) / 32768f;
         var right = ((level >> 16) & 0xFFFF) / 32768f;
         return Math.Max(left, right);
