@@ -71,10 +71,15 @@ public static class AudioEngine
         public T? Stream;
         public string CurrentFilePath = string.Empty;
         public bool IsPaused;
-        public float PreviousSeek;
         public bool PreviousPlay;
         public bool PreviousStop;
         public bool IsStale;
+        
+        /// <summary>
+        /// The pending normalized seek position (0.0 to 1.0) to apply on the next play trigger.
+        /// Seek changes are stored here but not applied until playback is triggered.
+        /// </summary>
+        public float PendingSeek;
         
         /// <summary>
         /// The frame token when this operator was last updated.
@@ -104,10 +109,15 @@ public static class AudioEngine
         public SpatialOperatorAudioStream? Stream;
         public string CurrentFilePath = string.Empty;
         public bool IsPaused;
-        public float PreviousSeek;
         public bool PreviousPlay;
         public bool PreviousStop;
         public bool IsStale;
+        
+        /// <summary>
+        /// The pending normalized seek position (0.0 to 1.0) to apply on the next play trigger.
+        /// Seek changes are stored here but not applied until playback is triggered.
+        /// </summary>
+        public float PendingSeek;
         
         /// <summary>
         /// The frame token when this operator was last updated.
@@ -467,7 +477,12 @@ public static class AudioEngine
     /// <param name="mute">True to mute the stream.</param>
     /// <param name="panning">The stereo panning value (-1.0 left to 1.0 right).</param>
     /// <param name="speed">The playback speed multiplier (default 1.0).</param>
-    /// <param name="seek">The normalized seek position (0.0 to 1.0).</param>
+    /// <param name="seek">
+    /// The normalized seek position (0.0 to 1.0). This value is stored and only applied when 
+    /// playback is triggered via <paramref name="shouldPlay"/>. Changing the seek value during 
+    /// playback has no effect until the next play trigger. This allows setting the seek position 
+    /// and triggering play in the same frame for predictable behavior.
+    /// </param>
     public static void UpdateStereoOperatorPlayback(
         Guid operatorId, string filePath, bool shouldPlay, bool shouldStop,
         float volume, bool mute, float panning, float speed = 1.0f, float seek = 0f)
@@ -489,6 +504,10 @@ public static class AudioEngine
 
         if (state.Stream == null) return;
 
+        // Store the pending seek position - will be applied on next play trigger
+        if (seek >= 0f && seek <= 1f)
+            state.PendingSeek = seek;
+
         if (HandlePlaybackTriggers(state, shouldPlay, shouldStop, operatorId))
             return;
 
@@ -497,7 +516,6 @@ public static class AudioEngine
             state.Stream.SetVolume(volume, mute);
             state.Stream.SetPanning(panning);
             state.Stream.SetSpeed(speed);
-            HandleSeek(state, seek, operatorId);
         }
     }
 
@@ -559,7 +577,12 @@ public static class AudioEngine
     /// <param name="minDistance">The distance at which the volume starts to attenuate.</param>
     /// <param name="maxDistance">The distance at which the volume reaches minimum.</param>
     /// <param name="speed">The playback speed multiplier (default 1.0).</param>
-    /// <param name="seek">The normalized seek position (0.0 to 1.0).</param>
+    /// <param name="seek">
+    /// The normalized seek position (0.0 to 1.0). This value is stored and only applied when 
+    /// playback is triggered via <paramref name="shouldPlay"/>. Changing the seek value during 
+    /// playback has no effect until the next play trigger. This allows setting the seek position 
+    /// and triggering play in the same frame for predictable behavior.
+    /// </param>
     /// <param name="orientation">The orientation vector of the sound source for directional audio.</param>
     /// <param name="innerConeAngle">The inner cone angle in degrees for directional audio.</param>
     /// <param name="outerConeAngle">The outer cone angle in degrees for directional audio.</param>
@@ -593,6 +616,10 @@ public static class AudioEngine
         // Always update 3D position
         state.Stream.Update3DPosition(position, minDistance, maxDistance);
 
+        // Store the pending seek position - will be applied on next play trigger
+        if (seek >= 0f && seek <= 1f)
+            state.PendingSeek = seek;
+
         if (HandleSpatialPlaybackTriggers(state, shouldPlay, shouldStop, operatorId))
             return;
 
@@ -609,8 +636,6 @@ public static class AudioEngine
 
             if (mode3D != 0)
                 state.Stream.Set3DMode((Mode3D)mode3D);
-
-            HandleSpatialSeek(state, seek, operatorId);
         }
     }
 
@@ -803,31 +828,28 @@ public static class AudioEngine
         {
             state.Stream!.Stop();
             state.IsPaused = false;
-            state.PreviousSeek = 0f;
+            state.PendingSeek = 0f;
             return true;
         }
 
         if (playTrigger)
         {
             state.Stream!.Stop();
+            
+            // Apply pending seek position before starting playback
+            if (state.PendingSeek > 0f && state.PendingSeek <= 1f)
+            {
+                var seekTime = (float)(state.PendingSeek * state.Stream.Duration);
+                state.Stream.Seek(seekTime);
+                Log.Gated.Audio($"[AudioEngine] Applied pending seek {state.PendingSeek:F3} ({seekTime:F3}s) for {operatorId}");
+            }
+            
             state.Stream.Play();
             state.IsPaused = false;
             state.IsStale = false;
         }
 
         return false;
-    }
-
-    private static void HandleSeek<T>(OperatorAudioState<T> state, float seek, Guid operatorId)
-        where T : OperatorAudioStreamBase
-    {
-        if (Math.Abs(seek - state.PreviousSeek) > 0.001f && seek >= 0f && seek <= 1f)
-        {
-            var seekTime = (float)(seek * state.Stream!.Duration);
-            state.Stream.Seek(seekTime);
-            state.PreviousSeek = seek;
-            Log.Gated.Audio($"[AudioEngine] Seek to {seek:F3} ({seekTime:F3}s) for {operatorId}");
-        }
     }
 
     private static void PauseOperatorInternal<T>(Dictionary<Guid, OperatorAudioState<T>> states, Guid operatorId)
@@ -960,13 +982,22 @@ public static class AudioEngine
         {
             state.Stream!.Stop();
             state.IsPaused = false;
-            state.PreviousSeek = 0f;
+            state.PendingSeek = 0f;
             return true;
         }
 
         if (playTrigger)
         {
             state.Stream!.Stop();
+            
+            // Apply pending seek position before starting playback
+            if (state.PendingSeek > 0f && state.PendingSeek <= 1f)
+            {
+                var seekTime = (float)(state.PendingSeek * state.Stream.Duration);
+                state.Stream.Seek(seekTime);
+                Log.Gated.Audio($"[AudioEngine] Applied pending seek {state.PendingSeek:F3} ({seekTime:F3}s) for spatial {operatorId}");
+            }
+            
             state.Stream.Play();
             state.IsPaused = false;
             state.IsStale = false;
@@ -975,16 +1006,6 @@ public static class AudioEngine
         return false;
     }
 
-    private static void HandleSpatialSeek(SpatialOperatorState state, float seek, Guid operatorId)
-    {
-        if (Math.Abs(seek - state.PreviousSeek) > 0.001f && seek >= 0f && seek <= 1f)
-        {
-            var seekTime = (float)(seek * state.Stream!.Duration);
-            state.Stream.Seek(seekTime);
-            state.PreviousSeek = seek;
-            Log.Gated.Audio($"[AudioEngine] Seek to {seek:F3} ({seekTime:F3}s) for spatial {operatorId}");
-        }
-    }
 
     #endregion
 
