@@ -1,6 +1,6 @@
 # Audio System Architecture
 
-**Version:** 2.3  
+**Version:** 2.5  
 **Last Updated:** 2026-02-05
 **Status:** Production Ready
 
@@ -13,12 +13,15 @@
 4. [Class Hierarchy](#class-hierarchy)
 5. [Mixer Architecture](#mixer-architecture)
 6. [Signal Flow](#signal-flow)
-7. [Audio Operators](#audio-operators)
-8. [Configuration System](#configuration-system)
-9. [Export and Rendering](#export-and-rendering)
-10. [Audio Analysis and Buffer Ownership](#audio-analysis-and-buffer-ownership)
-11. [Documentation Index](#documentation-index)
-12. [Future Enhancement Opportunities](#future-enhancement-opportunities)
+7. [Playback Control Semantics](#playback-control-semantics)
+8. [Stale Detection](#stale-detection)
+9. [Audio Operators](#audio-operators)
+10. [Configuration System](#configuration-system)
+11. [Export and Rendering](#export-and-rendering)
+12. [Audio Analysis and Buffer Ownership](#audio-analysis-and-buffer-ownership)
+13. [Technical Implementation Details](#technical-implementation-details)
+14. [Documentation Index](#documentation-index)
+15. [Future Enhancement Opportunities](#future-enhancement-opportunities)
 
 ---
 
@@ -73,8 +76,8 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
     │  GlobalMixerHandle          │    │  MixerFrequency (from dev)  │
     │  OperatorMixerHandle        │    │  UpdatePeriodMs = 10        │
     │  SoundtrackMixerHandle      │    │  PlaybackBufferLengthMs=100 │
-    │  OfflineMixerHandle         │    │  DeviceBufferLengthMs = 20  │
-    │  CreateOfflineAnalysisStream│    │  FftBufferSize = 1024       │
+    │  CreateOfflineAnalysisStream│    │  DeviceBufferLengthMs = 20  │
+    │  FreeOfflineAnalysisStream  │    │  FftBufferSize = 1024       │
     │  GetGlobalMixerLevel()      │    │  FrequencyBandCount = 32    │
     │  GetOperatorMixerLevel()    │    │  WaveformSampleCount = 1024 │
     │  GetSoundtrackMixerLevel()  │    │  DistanceFactor = 1.0       │
@@ -121,6 +124,57 @@ The TiXL audio system is a high-performance, low-latency audio engine built on M
     │     (Uses AudioPlayerUtils)    │       (Uses AudioPlayerUtils)  │
     └────────────────────────────────┴────────────────────────────────┘
 ```
+
+### Implementation Overview
+
+The audio engine in TiXL is built around ManagedBass / BassMix and a mixer-centric architecture managed by `AudioMixerManager`:
+
+- **Mixing Architecture** (`AudioMixerManager.cs`)
+  - Initializes BASS with low-latency configuration (UpdatePeriod, buffer lengths, LATENCY flag).
+  - Creates:
+    - `GlobalMixerHandle` (stereo, float, non-stop) → connected to sound device.
+    - `OperatorMixerHandle` (decode, float, non-stop) → added to global mixer.
+    - `SoundtrackMixerHandle` (decode, float, non-stop) → added to global mixer.
+    - `OfflineMixerHandle` (decode, float) for analysis, not connected to output.
+  - Loads `bassflac.dll` plugin.
+  - Provides volume/mute and mixer level accessors.
+
+- **Soundtrack / Timeline Audio** (`AudioEngine.cs`, `SoundtrackClipStream`, `SoundtrackClipDefinition.cs`)
+  - `AudioEngine.SoundtrackClipStreams` maps `AudioClipResourceHandle` → `SoundtrackClipStream`.
+  - Per-frame: `UseSoundtrackClip` marks clips used; `CompleteFrame` calls `ProcessSoundtrackClips`.
+  - Soundtrack clips are played via `SoundtrackMixerHandle` for live playback.
+  - For export, `AudioRendering` temporarily removes soundtrack streams from mixer and reads directly.
+  - FFT and waveform analysis done via `UpdateFftBufferFromSoundtrack` into `AudioAnalysisContext` buffers.
+
+- **Operator Audio (Clip Operators)** (`AudioEngine.cs`, `StereoOperatorAudioStream.cs`, `SpatialOperatorAudioStream.cs`, `OperatorAudioStreamBase.cs`)
+  - Two dictionaries of operator state:
+    - `_stereoOperatorStates: Guid → OperatorAudioState<StereoOperatorAudioStream>`
+    - `_spatialOperatorStates: Guid → OperatorAudioState<SpatialOperatorAudioStream>`
+  - Per frame, operators call `UpdateStereoOperatorPlayback` / `UpdateSpatialOperatorPlayback` with parameters:
+    - file path, play/stop triggers, volume/mute, panning or 3D position, speed, normalized seek.
+  - `OperatorAudioState<T>` tracks stream instance, current file path, play/stop edges, seek, pause, stale flag.
+  - Streams feed into `OperatorMixerHandle` which mixes into the global mixer.
+
+- **Stale / Lifetime Management** (`AudioEngine.cs`, `STALE_DETECTION.md`)
+  - Uses internal monotonic frame token (`_audioFrameToken`) for stale detection.
+  - Each operator state tracks `LastUpdatedFrameId` to determine if it was updated this frame.
+  - `StopStaleOperators()` runs in `CompleteFrame()` before operators are evaluated, marking operators that weren't updated in the previous frame as stale.
+  - `EnsureFrameTokenCurrent()` is called in `CompleteFrame()` **after** stale checking to ensure the token increments even when no audio operators are updated.
+  - This guarantees stale detection works correctly when navigating away from audio operators.
+  - During export, special export/reset functions mark streams stale and restore after export.
+
+- **Audio Rendering / Export Path** (`AudioRendering.cs`)
+  - `PrepareRecording`: pauses global mixer, saves state, clears export registry, resets operator streams.
+  - Creates dedicated export mixer for sample-accurate seeking and BASS-handled resampling.
+  - Removes soundtrack streams from `SoundtrackMixerHandle`, adds them to export mixer.
+  - `GetFullMixDownBuffer` reads from export mixer (BASS handles resampling), mixes operator audio.
+  - Uses reusable static buffers to minimize per-frame allocations.
+  - Logs per-frame stats, updates meter levels for operator streams.
+  - `EndRecording`: re-adds soundtrack streams to mixer, restores saved state, resumes playback.
+
+- **Analysis / Metering / Input**
+  - `AudioAnalysis`, `WaveFormProcessing`, `AudioImageGenerator`, `WasapiAudioInput` provide FFT, waveform, input capture, and offline analysis.
+  - Export metering uses `AudioExportSourceRegistry` and `AudioRendering.EvaluateAllAudioMeteringOutputs` to evaluate operator graph outputs on offline buffers.
 
 ---
 
@@ -195,15 +249,13 @@ AudioEngine (static)
 ├── Soundtrack: SoundtrackClipStreams, UseSoundtrackClip, ReloadSoundtrackClip
 ├── Operators: _stereoOperatorStates, _spatialOperatorStates, Update*OperatorPlayback
 ├── Internal State Classes:
-│   ├── OperatorAudioState<T> - Stream, CurrentFilePath, IsPaused, PreviousSeek/Play/Stop, IsStale, LastUpdatedFrameId
+│   ├── OperatorAudioState<T> - Stream, CurrentFilePath, IsPaused, PendingSeek, PreviousPlay/Stop, IsStale, LastUpdatedFrameId
 │   └── SpatialOperatorState - Same structure but non-generic for spatial streams
 ├── 3D Listener: _listenerPosition, _listenerForward, _listenerUp, Set3DListenerPosition
 ├── 3D Batching: Mark3DApplyNeeded(), Apply3DChanges() (called once per frame)
 ├── Stale Detection: _audioFrameToken (monotonic), LastUpdatedFrameId per operator, StopStaleOperators
-│   ├── EnsureFrameTokenCurrent() called in CompleteFrame() after stale check
-│   └── See STALE_DETECTION.md for detailed documentation
 ├── Export: ResetAllOperatorStreamsForExport, RestoreOperatorAudioStreams, UpdateStaleStatesForExport
-└── Device: OnAudioDeviceChanged, SetGlobalVolume, SetGlobalMute, SetOperatorMute
+└── Device: OnAudioDeviceChanged, DisposeAllAudioStreams, SetGlobalVolume, SetGlobalMute
 ```
 
 ---
@@ -219,7 +271,9 @@ The mixer architecture uses a hierarchical structure with separate paths for dif
 | **GlobalMixerHandle** | `Float \| MixerNonStop` | Master output to soundcard |
 | **OperatorMixerHandle** | `MixerNonStop \| Decode \| Float` | Operator audio decode submixer |
 | **SoundtrackMixerHandle** | `MixerNonStop \| Decode \| Float` | Soundtrack decode submixer |
-| **OfflineMixerHandle** | `Decode \| Float` | Isolated decode for analysis (no output) |
+
+> **Offline Analysis:** Waveform and FFT analysis uses standalone decode streams created via 
+> `CreateOfflineAnalysisStream()`. These streams are independent and do not use a mixer.
 
 ### Live Playback Path
 ```
@@ -322,6 +376,83 @@ GlobalMixer ──► Bass.ChannelGetData(FFT2048) ──► FftGainBuffer ─�
 
 ---
 
+## Playback Control Semantics
+
+### Trigger-Based Controls
+Play, Stop, and Pause use **rising edge detection**:
+- `shouldPlay`: Starts playback when transitioning from `false` to `true`
+- `shouldStop`: Stops playback and resets position when transitioning from `false` to `true`
+- `shouldPause`: Pauses/resumes based on current value (not edge-triggered)
+
+### Seek Semantics (Pending Seek Model)
+
+The `seek` parameter (0.0 to 1.0 normalized position) uses a **pending seek model**:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Frame 1: seek = 0.5                                            │
+│           → PendingSeek stored as 0.5                           │
+│           → No immediate effect on playback                     │
+│                                                                 │
+│  Frame 2: seek = 0.5, shouldPlay = true (rising edge)           │
+│           → PendingSeek (0.5) applied via Stream.Seek()         │
+│           → Stream.Play() called                                │
+│           → Playback starts at 50% position                     │
+│                                                                 │
+│  Frame 3: seek = 0.7 (while playing)                            │
+│           → PendingSeek updated to 0.7                          │
+│           → Playback continues from current position            │
+│           → Seek will apply on next play trigger                │
+│                                                                 │
+│  Frame 4: shouldStop = true (rising edge)                       │
+│           → Playback stops                                      │
+│           → PendingSeek reset to 0                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Key Behaviors:**
+- Seek value is **stored** as `PendingSeek`, not immediately applied
+- Seek is **applied before playback** when play is triggered
+- Changing seek **during playback has no effect** until next play trigger
+- Stop trigger **resets** `PendingSeek` to 0
+- This allows setting seek + play in the **same frame** for predictable behavior
+
+**Why This Design:**
+- Avoids repeated BASS seek calls during playback (performance)
+- Eliminates ambiguity about 0 meaning "no seek" vs "seek to start"
+- Makes operator behavior predictable when upstream controls change rapidly
+- Matches user expectation: "set position, then press play"
+
+---
+
+## Stale Detection
+
+The audio engine automatically stops operator audio streams that are no longer being updated. This prevents "orphaned" audio from operators that have been disabled, deleted, or removed from the evaluation graph.
+
+### How It Works
+
+**Operator Contract:** Every audio operator must call its update method (`UpdateStereoOperatorPlayback` or `UpdateSpatialOperatorPlayback`) every frame to maintain active playback.
+
+**Frame Token System:** The engine uses an internal monotonic frame token (`_audioFrameToken`) to track which operators were updated each frame. Each operator state has a `LastUpdatedFrameId` that is set when updated.
+
+**Detection Flow:**
+1. `CompleteFrame()` is called at the start of each frame
+2. `StopStaleOperators()` marks operators where `LastUpdatedFrameId != _audioFrameToken` as stale
+3. Stale streams are paused via `SetStale(true)`
+4. When a stale operator is updated again, it's marked active and playback can resume
+
+**Export Behavior:** Stale detection is bypassed during export (`IsRenderingToFile`). Operator states are explicitly managed via `ResetAllOperatorStreamsForExport()` and `RestoreOperatorAudioStreams()`.
+
+### Troubleshooting
+
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Audio cuts out unexpectedly | Operator missed an update frame | Ensure update is called every frame unconditionally |
+| Audio doesn't restart after disable/enable | Stale detection stopped the audio | Send `shouldPlay = true` trigger when re-enabling |
+| Audio plays briefly then stops | Operator only updated conditionally | Update every frame, even when parameters don't change |
+
+---
+
 ## Audio Operators
 
 ### AudioPlayer
@@ -329,10 +460,18 @@ GlobalMixer ──► Bass.ChannelGetData(FFT2048) ──► FftGainBuffer ─�
 
 **Key Parameters:**
 - Playback control: Play, Stop, Pause (trigger-based, rising edge detection)
-- Audio parameters: Volume (0-1), Mute, Panning (-1 to 1), Speed (0.1x to 4x), Seek (0-1 normalized)
+- Audio parameters: Volume (0-1), Mute, Panning (-1 to 1), Speed (0.1x to 4x)
+- **Seek (0-1 normalized)**: Stored as pending position, applied only on play trigger
 - **ADSR Envelope**: TriggerMode (OneShot/Gate/Loop), Duration, UseEnvelope toggle
 - **Envelope Vector4**: X=Attack, Y=Decay, Z=Sustain (level), W=Release
 - Analysis outputs: IsPlaying, GetLevel (0-1)
+
+**Seek Behavior:**
+The seek parameter uses "pending seek" semantics:
+- Changing seek during playback has **no immediate effect**
+- Seek value is stored and applied when play is triggered
+- This allows setting seek + play in the same frame for predictable behavior
+- Stop trigger resets pending seek to 0
 
 **Implementation Details:**
 - Uses `AudioPlayerUtils.ComputeInstanceGuid()` for stable operator identification
@@ -352,7 +491,8 @@ GlobalMixer ──► Bass.ChannelGetData(FFT2048) ──► FftGainBuffer ─�
 
 **Key Parameters:**
 - Playback: Play, Stop, Pause (trigger-based, rising edge detection)
-- Audio: Volume (0-1), Mute, Speed (0.1x to 4x), Seek (0-1 normalized)
+- Audio: Volume (0-1), Mute, Speed (0.1x to 4x)
+- **Seek (0-1 normalized)**: Stored as pending position, applied only on play trigger
 - **3D Source**: SourcePosition (Vector3), SourceRotation (Vector3 Euler degrees)
 - **3D Listener**: ListenerPosition (Vector3), ListenerRotation (Vector3 Euler degrees)
 - **Distance**: MinDistance, MaxDistance for attenuation
@@ -605,6 +745,83 @@ Each `AudioAnalysisContext` contains:
 
 ---
 
+## Technical Implementation Details
+
+This section provides implementation-level details about the audio engine architecture built around ManagedBass / BassMix.
+
+### Mixing Architecture (`AudioMixerManager.cs`)
+
+The mixer manager initializes BASS with low-latency configuration (UpdatePeriod, buffer lengths, LATENCY flag) and creates:
+
+- **`GlobalMixerHandle`** (stereo, float, non-stop) → connected to sound device
+- **`OperatorMixerHandle`** (decode, float, non-stop) → added to global mixer
+- **`SoundtrackMixerHandle`** (decode, float, non-stop) → added to global mixer
+- **`OfflineMixerHandle`** (decode, float) for analysis, not connected to output
+
+Additionally loads `bassflac.dll` plugin and provides volume/mute and mixer level accessors.
+
+### Soundtrack / Timeline Audio
+
+**Files:** `AudioEngine.cs`, `SoundtrackClipStream.cs`, `SoundtrackClipDefinition.cs`
+
+- `AudioEngine.SoundtrackClipStreams` maps `AudioClipResourceHandle` → `SoundtrackClipStream`
+- Per-frame: `UseSoundtrackClip` marks clips used; `CompleteFrame` calls `ProcessSoundtrackClips`
+- Soundtrack clips are played via `SoundtrackMixerHandle` for live playback
+- For export, `AudioRendering` temporarily removes soundtrack streams from mixer and reads directly
+- FFT and waveform analysis done via `UpdateFftBufferFromSoundtrack` into `AudioAnalysisContext` buffers
+
+### Operator Audio (Clip Operators)
+
+**Files:** `AudioEngine.cs`, `StereoOperatorAudioStream.cs`, `SpatialOperatorAudioStream.cs`, `OperatorAudioStreamBase.cs`
+
+Two dictionaries of operator state:
+- `_stereoOperatorStates: Guid → OperatorAudioState<StereoOperatorAudioStream>`
+- `_spatialOperatorStates: Guid → OperatorAudioState<SpatialOperatorAudioStream>`
+
+Per frame, operators call `UpdateStereoOperatorPlayback` / `UpdateSpatialOperatorPlayback` with parameters:
+- file path, play/stop triggers, volume/mute, panning or 3D position, speed, normalized seek
+
+`OperatorAudioState<T>` tracks stream instance, current file path, play/stop edges, seek, pause, stale flag. Streams feed into `OperatorMixerHandle` which mixes into the global mixer.
+
+### Stale / Lifetime Management
+
+**Files:** `AudioEngine.cs`
+
+- Uses internal monotonic frame token (`_audioFrameToken`) for stale detection
+- Each operator state tracks `LastUpdatedFrameId` to determine if it was updated this frame
+- `StopStaleOperators()` runs in `CompleteFrame()` before operators are evaluated, marking operators that weren't updated in the previous frame as stale
+- `EnsureFrameTokenCurrent()` is called in `CompleteFrame()` **after** stale checking to ensure the token increments even when no audio operators are updated
+- This guarantees stale detection works correctly when navigating away from audio operators
+- During export, special export/reset functions mark streams stale and restore after export
+
+### Audio Rendering / Export Path
+
+**File:** `AudioRendering.cs`
+
+- `PrepareRecording`: pauses global mixer, saves state, clears export registry, resets operator streams
+- Creates dedicated export mixer for sample-accurate seeking and BASS-handled resampling
+- Removes soundtrack streams from `SoundtrackMixerHandle`, adds them to export mixer
+- `GetFullMixDownBuffer` reads from export mixer (BASS handles resampling), mixes operator audio
+- Uses reusable static buffers to minimize per-frame allocations
+- Logs per-frame stats, updates meter levels for operator streams
+- `EndRecording`: re-adds soundtrack streams to mixer, restores saved state, resumes playback
+
+### Analysis / Metering / Input
+
+`AudioAnalysis`, `WaveFormProcessing`, `AudioImageGenerator`, `WasapiAudioInput` provide FFT, waveform, input capture, and offline analysis. Export metering uses `AudioExportSourceRegistry` and `AudioRendering.EvaluateAllAudioMeteringOutputs` to evaluate operator graph outputs on offline buffers.
+
+### Known Technical Notes
+
+1. **Level Metering**: `GetGlobalMixerLevel()` uses `Bass.ChannelGetLevel` with a 50ms window for metering. Ensure BASS version supports this overload.
+
+2. **Offline Analysis Streams**: `CreateOfflineAnalysisStream` creates standalone decode streams, not added to the offline mixer. The `_offlineMixerHandle` exists for potential future multi-stream analysis but is currently unused.
+
+3. **Seek Semantics**: Uses "pending seek" model where seek value is stored and applied only on play trigger. This avoids ambiguity between "no seek" and "seek to start" when using 0 as the value.
+
+4. **Device Changes**: `AudioMixerManager.Shutdown()` frees all streams and calls `Bass.Free()`. Higher-level components should handle device change events appropriately to avoid invalid handle access.
+
+---
+
 ## Documentation Index
 
 ### Core Files
@@ -641,141 +858,3 @@ Each `AudioAnalysisContext` contains:
 | `AudioPlayerUtils.cs` | Shared utilities (instance GUID)|
 | `AudioToneGenerator.cs` | Tone generation operator        |
 
-### Guides
-- **[TODO.md](TODO.md)** - Technical review, stale detection details, and next steps 
-
----
-
-## Future Enhancement Opportunities
-
-### Completed Features ✅
-- ✅ **Centralized `Apply3D()` batching** - `Mark3DApplyNeeded()` and single call in `CompleteFrame()`
-- ✅ **Multi-threaded FFT infrastructure** - `AudioAnalysisContext` enables per-thread analysis
-- ✅ **ADSR envelope support** - `AdsrCalculator` for `AudioPlayer` amplitude modulation
-- ✅ **SpatialAudioPlayer with ITransformable** - Full gizmo support, rotation inputs
-- ✅ **Stale detection refactoring** - Frame token system with `LastUpdatedFrameId`
-- ✅ **Device-native sample rate** - Automatic WASAPI query before BASS init
-- ✅ **FLAC support** - Native BASS FLAC plugin integration
-- ✅ **Export with operator audio** - Both stereo and spatial streams included in export
-- ✅ **Hardened export state transitions** - `ExportState` class, `_isRecording` guard, proper mixer management
-
-### Environmental Audio (Not Started)
-- EAX effects integration (reverb, echo, chorus) - BASS supports, not yet exposed
-- Room acoustics simulation
-- Environmental audio zones
-
-### Advanced 3D Audio (Partial)
-- ✅ **Doppler effects** - Implemented via velocity tracking
-- ✅ **Directional cones** - Inner/outer angle with volume falloff
-- ✅ **Distance attenuation** - Linear rolloff from min to max distance
-- Custom distance rolloff curves (not implemented)
-- Per-stream Doppler factor adjustment (not implemented)
-- HRTF for headphone spatialization (not implemented)
-- Geometry-based occlusion (not implemented)
-
-### Performance Optimizations (Partial)
-- ✅ **Async file loading** - Via `BassFlags.AsyncFile`
-- ✅ **Reusable export buffers** - Static buffers minimize per-frame allocations
-- Stream pooling and recycling (not implemented)
-
-### Robustness Improvements (From TODO.md)
-- Improve error handling and logging detail
-- Cache failed operator file loads
-- Handle device changes more gracefully
-
-### Current Limitations
-1. No EAX environmental effects (BASS supports, not yet exposed)
-2. Spatial audio not included in mixer-level metering (plays directly to BASS)
-3. Export of spatial audio uses separate decode stream (no hardware 3D in export)
-4. No custom distance rolloff curves
-5. No per-stream Doppler factor adjustment
-
----
-
-## Remaining Work
-
-See **[TODO.md](TODO.md)** for detailed technical review items and prioritized recommendations.
-
-### High Priority
-- Add unit tests for AudioEngine methods
-
-### Medium Priority  
-- Improve error/logging detail in key areas
-- Re-evaluate seek logic
-
-### Low Priority
-- Cache failed operator file loads
-- Clarify seek semantics documentation
-- Consider removing unused `OfflineMixerHandle`
-
----
-
-# Diff Summary
-
-Diff summary for branch `Bass-AudioImplementation` vs `upstream/main`
-
-Added
-
-- `Core/Audio/AUDIO_ARCHITECTURE.md` — new architecture/design doc for the audio subsystem.
-- `Core/Audio/AdsrCalculator.cs` — ADSR envelope calculation utility.
-- `Core/Audio/AudioAnalysisResult.cs` — analysis result data structures.
-- `Core/Audio/AudioAnalysisContext.cs` — owns all FFT/waveform buffers, enables multi-threaded analysis.
-- `Core/Audio/AudioConfig.cs` — centralized audio configuration and logging toggles.
-- `Core/Audio/AudioExportSourceRegistry.cs` — registry for export/record audio sources.
-- `Core/Audio/AudioMixerManager.cs` — BASS mixer initialization/management and helpers.
-- `Core/Audio/IAudioExportSource.cs` — interface for exportable audio sources.
-- `Core/Audio/OperatorAudioStreamBase.cs` — abstract base for operator audio streams.
-- `Core/Audio/OperatorAudioUtils.cs` — helper utilities for operator streams.
-- `Core/Audio/STALE_DETECTION.md` — doc for stale stream detection.
-- `Core/Audio/SpatialOperatorAudioStream.cs` — spatial/3D operator stream implementation.
-- `Core/Audio/StereoOperatorAudioStream.cs` — stereo operator stream implementation.
-- `Core/Audio/TODO.md` — audio-specific TODO / technical review list.
-- `Core/Audio/BeatTimingDetails.cs` — beat timing data structures.
-- `Dependencies/bassflac.dll` — native FLAC plugin binary (new dependency).
-- `Dependencies/bassmix.dll` — native BASS mixer plugin (new dependency).
-- `Editor/Gui/InputUi/CombinedInputs/AdsrEnvelopeInputUi.cs` — UI input for ADSR envelope.
-- `Editor/Gui/OpUis/UIs/AdsrEnvelopeUi.cs` — ADSR editor UI control.
-- `Editor/Gui/Windows/SettingsWindow.AudioPanel.cs` — audio panel for settings window.
-- `Operators/Lib/io/audio/AudioPlayerUtils.cs` — shared operator audio utilities.
-- `Operators/Lib/io/audio/AudioToneGenerator.cs` (+ `.t3`/`.t3ui`) — tone generator operator and UI.
-- `Operators/Lib/io/audio/SpatialAudioPlayer.cs` (+ `.t3`/`.t3ui`) — spatial audio operator and UI metadata.
-- `Operators/Lib/io/audio/AudioPlayer.cs` (+ `.t3`/`.t3ui`) — stereo audio operator and UI metadata.
-- `Operators/Lib/numbers/anim/AdsrEnvelope.cs` — ADSR data structure/operator type.
-- `Operators/examples/lib/io/audio/AudioPlaybackExample.*` — example operator for audio playback.
-- `Resources/audio/HH_03.wav`, `Resources/audio/KICK_09.wav`, `Resources/audio/SNARE_01.wav`, `Resources/audio/h445-loop1.wav` — added sample audio resources.
-
-Modified
-
-- `Core/Audio/AudioAnalysis.cs` — now delegates to `AudioAnalysisContext.Default` for backwards compatibility.
-- `Core/Audio/AudioEngine.cs` — central audio API changes for playback/update/export integration.
-- `Core/Audio/AudioRendering.cs` — export/mixdown improvements and buffer reuse notes.
-- `Core/Audio/BeatSynchronizer.cs` — beat detection / timing adjustments.
-- `Core/Audio/WasapiAudioInput.cs` — Wasapi input adjustments.
-- `Core/Audio/WaveFormProcessing.cs` — now delegates to `AudioAnalysisContext.Default` for backwards compatibility.
-- `Core/Core.csproj` — project file updated (Core).
-- `Core/IO/ProjectSettings.cs` — project settings changes.
-- `Core/Operator/PlaybackSettings.cs` — operator playback settings modified.
-- `Core/Operator/Symbol.Child.cs` — symbol child related updates.
-- `Editor/Gui/Audio/AudioImageFactory.cs` — audio image factory updates.
-- `Editor/Gui/Audio/AudioImageGenerator.cs` — audio image generation tweaks.
-- `Editor/Gui/InputUi/VectorInputs/Vector4InputUi.cs` — vector4 input UI changes.
-- `Editor/Gui/Interaction/Timing/PlaybackUtils.cs` — playback timing helpers updated.
-- `Editor/Gui/OpUis/OpUi.cs` — operator UI adjustments.
-- `Editor/Gui/UiHelpers/UserSettings.cs` — user settings persistence/UX changes.
-- `Editor/Gui/Windows/RenderExport/RenderAudioInfo.cs` — render audio info updates.
-- `Editor/Gui/Windows/RenderExport/RenderProcess.cs` — render/export process changes.
-- `Editor/Gui/Windows/RenderExport/RenderTiming.cs` — render timing adjustments.
-- `Editor/Gui/Windows/SettingsWindow.cs` — settings window updated to include audio panel.
-- `Editor/Gui/Windows/TimeLine/PlaybackSettingsPopup.cs` — timeline playback settings tweaks.
-- `Editor/Gui/Windows/TimeLine/TimeControls.cs` — timeline controls updated.
-- `Editor/Program.cs` — editor startup changes to include audio initialization.
-- `Operators/Lib/io/video/PlayAudioClip.cs` — video operator audio clip glue changes.
-- `Operators/Lib/io/video/PlayVideo.cs` — play video operator adjusted for audio changes.
-- `Operators/Lib/io/video/PlayVideoClip.cs` — video clip operator updates.
-- `Operators/Lib/Lib.csproj` — operators lib project updated.
-- `Player/Player.csproj`, `Player/Program.RenderLoop.cs`, `Player/Program.cs` — player project and playback loop adjusted for audio changes.
-
-Renamed
-
-- `Core/Audio/AudioClipDefinition.cs` → `Core/Audio/SoundtrackClipDefinition.cs` — renamed soundtrack clip definition.
-- `Core/Audio/AudioClipStream.cs` → `Core/Audio/SoundtrackClipStream.cs` — renamed soundtrack clip stream.
