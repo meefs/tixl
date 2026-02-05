@@ -1,5 +1,5 @@
-﻿using T3.Core.Operator.Slots;
-namespace Lib.io.audio;
+﻿namespace Lib.io.audio;
+
 /// <summary>
 /// A debug visualization composite operator for SpatialAudioPlayer.
 /// The composite graph uses the input slots directly for visualization.

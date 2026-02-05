@@ -1,11 +1,9 @@
-using System;
-
 namespace T3.Core.Audio
 {
     /// <summary>
     /// Interface for audio sources that can provide audio data for export/rendering.
     /// </summary>
-    public interface IAudioExportSource
+    internal interface IAudioExportSource
     {
         /// <summary>
         /// Fill the provided buffer with audio data for the given time range (in seconds).

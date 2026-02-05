@@ -26,7 +26,7 @@ public abstract class OperatorAudioStreamBase
     /// <summary>
     /// Gets the BASS stream handle for this audio stream.
     /// </summary>
-    public int StreamHandle { get; protected init; }
+    internal int StreamHandle { get; init; }
     
     /// <summary>
     /// Gets the BASS mixer stream handle that this stream is connected to.
@@ -56,12 +56,12 @@ public abstract class OperatorAudioStreamBase
     /// <summary>
     /// The current volume level (0.0 to 1.0).
     /// </summary>
-    internal float CurrentVolume = 1.0f;
+    private float CurrentVolume = 1.0f;
     
     /// <summary>
     /// The current playback speed multiplier.
     /// </summary>
-    internal float CurrentSpeed = 1.0f;
+    private float CurrentSpeed = 1.0f;
     
     /// <summary>
     /// Cached number of channels in the audio stream.
@@ -81,7 +81,7 @@ public abstract class OperatorAudioStreamBase
     /// <summary>
     /// Indicates whether the stream is muted by user request.
     /// </summary>
-    internal bool IsUserMuted;
+    private bool IsUserMuted;
 
     /// <summary>
     /// The audio level during export, if available.

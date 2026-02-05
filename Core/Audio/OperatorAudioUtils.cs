@@ -5,7 +5,7 @@ namespace T3.Core.Audio
     /// <summary>
     /// Utility methods for operator audio sources to ensure correct buffer filling and resampling.
     /// </summary>
-    public static class OperatorAudioUtils
+    internal static class OperatorAudioUtils
     {
         /// <summary>
         /// Fills the output buffer for the requested duration, sample rate, and channel count.
@@ -54,7 +54,7 @@ namespace T3.Core.Audio
         /// <summary>
         /// Simple linear resampler and up/down-mixer for float[] audio (interleaved).
         /// </summary>
-        public static void LinearResample(
+        private static void LinearResample(
             float[] input, int inputSamples, int inputChannels,
             float[] output, int outputSamples, int outputChannels)
         {

@@ -1,5 +1,4 @@
 using T3.Core.Audio;
-using T3.Core.Logging;
 // ReSharper disable MemberCanBePrivate.Global
 
 namespace Lib.io.audio

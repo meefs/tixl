@@ -24,22 +24,22 @@ public static class AudioConfig
     /// <summary>
     /// BASS update period in milliseconds for low-latency playback.
     /// </summary>
-    public const int UpdatePeriodMs = 10;
+    internal const int UpdatePeriodMs = 10;
 
     /// <summary>
     /// Number of BASS update threads.
     /// </summary>
-    public const int UpdateThreads = 2;
+    internal const int UpdateThreads = 2;
 
     /// <summary>
     /// Playback buffer length in milliseconds.
     /// </summary>
-    public const int PlaybackBufferLengthMs = 100;
+    internal const int PlaybackBufferLengthMs = 100;
 
     /// <summary>
     /// Device buffer length in milliseconds for low-latency output.
     /// </summary>
-    public const int DeviceBufferLengthMs = 20;
+    internal const int DeviceBufferLengthMs = 20;
     #endregion
 
     #region 3D Audio Configuration
@@ -47,19 +47,19 @@ public static class AudioConfig
     /// Distance factor for 3D audio. This is the number of units per meter.
     /// Default is 1.0 (1 unit = 1 meter). Set to 100 if your world uses centimeters.
     /// </summary>
-    public static float DistanceFactor { get; set; } = 1.0f;
+    internal static float DistanceFactor { get; set; } = 1.0f;
 
     /// <summary>
     /// Rolloff factor for 3D audio distance attenuation.
     /// 0 = no rolloff, 1 = real-world rolloff, higher = faster rolloff.
     /// </summary>
-    public static float RolloffFactor { get; set; } = 1.0f;
+    internal static float RolloffFactor { get; set; } = 1.0f;
 
     /// <summary>
     /// Doppler factor for 3D audio velocity effects.
     /// 0 = no Doppler, 1 = real-world Doppler, higher = exaggerated Doppler.
     /// </summary>
-    public static float DopplerFactor { get; set; } = 1.0f;
+    internal static float DopplerFactor { get; set; } = 1.0f;
     #endregion
 
     #region FFT and Analysis Configuration (Compile-time Constants)
@@ -68,7 +68,7 @@ public static class AudioConfig
     /// <summary>
     /// FFT buffer size for frequency analysis.
     /// </summary>
-    public const int FftBufferSize = 1024;
+    internal const int FftBufferSize = 1024;
 
     /// <summary>
     /// BASS data flag corresponding to the FFT buffer size.
@@ -78,22 +78,22 @@ public static class AudioConfig
     /// <summary>
     /// Number of frequency bands for audio analysis.
     /// </summary>
-    public const int FrequencyBandCount = 32;
+    internal const int FrequencyBandCount = 32;
 
     /// <summary>
     /// Waveform sample buffer size.
     /// </summary>
-    public const int WaveformSampleCount = 1024;
+    internal const int WaveformSampleCount = 1024;
 
     /// <summary>
     /// Low-pass filter cutoff frequency (Hz) for low frequency separation.
     /// </summary>
-    public const float LowPassCutoffFrequency = 250f;
+    internal const float LowPassCutoffFrequency = 250f;
 
     /// <summary>
     /// High-pass filter cutoff frequency (Hz) for high frequency separation.
     /// </summary>
-    public const float HighPassCutoffFrequency = 2000f;
+    internal const float HighPassCutoffFrequency = 2000f;
     #endregion
 
     #region Metering Configuration
@@ -102,6 +102,6 @@ public static class AudioConfig
     /// Shorter values = more responsive but noisier, longer values = smoother but more latency.
     /// 0.05s (50ms) provides a good balance for visual metering.
     /// </summary>
-    public const float LevelMeteringWindowSeconds = 0.05f;
+    internal const float LevelMeteringWindowSeconds = 0.05f;
     #endregion
 }

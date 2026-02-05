@@ -7,6 +7,7 @@ using T3.Core.IO;
 using T3.Core.Logging;
 using T3.Core.Operator;
 using T3.Core.Resource.Assets;
+// ReSharper disable MergeIntoPattern
 
 namespace T3.Core.Audio;
 
@@ -42,13 +43,12 @@ public static class AudioEngine
     private static long _lastStaleCheckFrameToken = -1;
     
     // Export state
-    private static bool _isExporting;
-    
+
     /// <summary>
     /// Gets whether the audio engine is currently in export mode.
     /// During export, streams should not be paused when marked stale.
     /// </summary>
-    public static bool IsExporting => _isExporting;
+    internal static bool IsExporting { get; private set; }
 
     // 3D Listener
     private static Vector3 _listenerPosition = Vector3.Zero;
@@ -589,7 +589,7 @@ public static class AudioEngine
     /// <param name="outerConeVolume">The volume level outside the outer cone.</param>
     /// <param name="mode3D">The 3D processing mode.</param>
     public static void UpdateSpatialOperatorPlayback(
-        Guid operatorId, string filePath, bool shouldPlay, bool shouldStop,
+        Guid operatorId, string? filePath, bool shouldPlay, bool shouldStop,
         float volume, bool mute, Vector3 position, float minDistance, float maxDistance,
         float speed = 1.0f, float seek = 0f, Vector3? orientation = null,
         float innerConeAngle = 360f, float outerConeAngle = 360f, float outerConeVolume = 1.0f, int mode3D = 0)
@@ -763,9 +763,7 @@ public static class AudioEngine
         if (state.CurrentFilePath == resolvedPath)
         {
             // If we have a cached error for this path, skip loading without logging again
-            if (state.FailedFilePath == resolvedPath && state.LastLoadError != null)
-                return true;
-            return true;
+            return state.FailedFilePath == resolvedPath && state.LastLoadError != null || true;
         }
 
         Log.Gated.Audio($"[AudioEngine] File changed for {operatorId}: '{state.CurrentFilePath}' → '{resolvedPath}'");
@@ -795,7 +793,7 @@ public static class AudioEngine
                 state.Stream = loadFunc(resolvedPath);
                 if (state.Stream == null)
                 {
-                    var bassError = ManagedBass.Bass.LastError;
+                    var bassError = Bass.LastError;
                     var error = $"{resolvedPath} (BASS error: {bassError})";
                     Log.Error($"[AudioEngine] Failed to load stream for {operatorId}: {error}");
                     state.FailedFilePath = resolvedPath;
@@ -918,9 +916,7 @@ public static class AudioEngine
         if (state.CurrentFilePath == resolvedPath)
         {
             // If we have a cached error for this path, skip loading without logging again
-            if (state.FailedFilePath == resolvedPath && state.LastLoadError != null)
-                return true;
-            return true;
+            return state.FailedFilePath == resolvedPath && state.LastLoadError != null || true;
         }
 
         Log.Gated.Audio($"[AudioEngine] File changed for spatial {operatorId}: '{state.CurrentFilePath}' → '{resolvedPath}'");
@@ -948,7 +944,7 @@ public static class AudioEngine
             // Note: mixerHandle parameter is ignored for spatial streams - they play directly to BASS
             else if (!SpatialOperatorAudioStream.TryLoadStream(resolvedPath, 0, out var stream))
             {
-                var bassError = ManagedBass.Bass.LastError;
+                var bassError = Bass.LastError;
                 var error = $"{resolvedPath} (BASS error: {bassError})";
                 Log.Error($"[AudioEngine] Failed to load spatial stream for {operatorId}: {error}");
                 state.FailedFilePath = resolvedPath;
@@ -1103,7 +1099,7 @@ public static class AudioEngine
     private static void UpdateStaleStates<T>(Dictionary<Guid, OperatorAudioState<T>> states)
         where T : OperatorAudioStreamBase
     {
-        foreach (var (operatorId, state) in states)
+        foreach (var (_, state) in states)
         {
             if (state.Stream == null) continue;
 
@@ -1119,7 +1115,7 @@ public static class AudioEngine
 
     private static void UpdateSpatialStaleStates()
     {
-        foreach (var (operatorId, state) in _spatialOperatorStates)
+        foreach (var (_, state) in _spatialOperatorStates)
         {
             if (state.Stream == null) continue;
 
@@ -1138,7 +1134,7 @@ public static class AudioEngine
     /// </summary>
     internal static void ResetAllOperatorStreamsForExport()
     {
-        _isExporting = true;
+        IsExporting = true;
         ResetOperatorStreamsForExport(_stereoOperatorStates);
         ResetSpatialOperatorStreamsForExport();
     }
@@ -1193,7 +1189,7 @@ public static class AudioEngine
     /// </summary>
     internal static void RestoreOperatorAudioStreams()
     {
-        _isExporting = false;
+        IsExporting = false;
         
         if (AudioMixerManager.GlobalMixerHandle != 0)
         {
@@ -1334,7 +1330,7 @@ public static class AudioEngine
     /// <summary>
     /// Gets all stereo operator states for export metering purposes.
     /// </summary>
-    /// <returns>An enumerable of operator ID and stream state pairs.</returns>
+    /// <returns>Enumerable of operator ID and stream state pairs.</returns>
     public static IEnumerable<KeyValuePair<Guid, (StereoOperatorAudioStream? Stream, bool IsStale)>> GetAllStereoOperatorStates()
     {
         foreach (var kvp in _stereoOperatorStates)
@@ -1344,7 +1340,7 @@ public static class AudioEngine
     /// <summary>
     /// Gets all spatial operator states for export metering purposes.
     /// </summary>
-    /// <returns>An enumerable of operator ID and stream state pairs.</returns>
+    /// <returns>Enumerable of operator ID and stream state pairs.</returns>
     public static IEnumerable<KeyValuePair<Guid, (SpatialOperatorAudioStream? Stream, bool IsStale)>> GetAllSpatialOperatorStates()
     {
         foreach (var kvp in _spatialOperatorStates)

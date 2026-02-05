@@ -44,7 +44,7 @@ public sealed record AudioClipResourceHandle(SoundtrackClipDefinition Clip, IRes
     /// </summary>
     public bool TryToApplyFilePath(string newFilePath, Instance composition)
     {
-        if (!AssetRegistry.TryResolveAddress(newFilePath, composition, out var absolutePath, out var resourceContainer))
+        if (!AssetRegistry.TryResolveAddress(newFilePath, composition, out _, out _))
         {
             Clip.FilePath = string.Empty;
             return false;

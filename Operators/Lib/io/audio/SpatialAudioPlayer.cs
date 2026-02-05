@@ -1,9 +1,6 @@
 ﻿#nullable enable
 using ManagedBass;
 using T3.Core.Audio;
-using T3.Core.Logging;
-using T3.Core.Operator.Interfaces;
-using T3.Core.Operator.Slots;
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedMember.Local
 
@@ -20,7 +17,7 @@ namespace Lib.io.audio
         
         IInputSlot ITransformable.TranslationInput => SourcePosition;
         IInputSlot ITransformable.RotationInput => SourceRotation;
-        IInputSlot ITransformable.ScaleInput => null;
+        IInputSlot? ITransformable.ScaleInput => null;
         
         public Action<Instance, EvaluationContext>? TransformCallback { get; set; }
         
@@ -162,7 +159,7 @@ namespace Lib.io.audio
                 Log.Gated.Audio($"[SpatialAudioPlayer] Initialized: {_operatorId}");
             }
 
-            string filePath = AudioFile.GetValue(context);
+            string? filePath = AudioFile.GetValue(context);
             bool shouldPlay = PlayAudio.GetValue(context);
 
             var shouldStop = StopAudio.GetValue(context);

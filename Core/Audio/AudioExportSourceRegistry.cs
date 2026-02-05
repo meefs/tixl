@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 
 namespace T3.Core.Audio
 {
@@ -6,16 +7,16 @@ namespace T3.Core.Audio
     /// Registry for audio export sources (e.g., operator instances that provide audio for rendering).
     /// Thread-safe to allow registration/unregistration during enumeration.
     /// </summary>
-    public static class AudioExportSourceRegistry
+    internal static class AudioExportSourceRegistry
     {
         private static readonly List<IAudioExportSource> _sources = new();
-        private static readonly object _lock = new();
+        private static readonly Lock _lock = new();
 
         /// <summary>
         /// Returns a snapshot of the current sources to allow safe enumeration
         /// while other threads may modify the collection.
         /// </summary>
-        public static IReadOnlyList<IAudioExportSource> Sources
+        internal static IReadOnlyList<IAudioExportSource> Sources
         {
             get
             {

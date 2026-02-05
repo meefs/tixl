@@ -12,8 +12,8 @@ namespace T3.Core.Audio;
 /// externally if used from multiple threads. The default <see cref="Default"/> instance
 /// is designed for single-threaded use on the main update loop.
 /// 
-/// <para><b>Multi-Threading Migration Path:</b></para>
-/// To enable multi-threaded audio analysis:
+/// <para><b>MultiThreading Migration Path:</b></para>
+/// To enable multithreaded audio analysis:
 /// <list type="number">
 ///   <item>Create separate <see cref="AudioAnalysisContext"/> instances per thread/consumer</item>
 ///   <item>Pass the context explicitly to analysis methods instead of using <see cref="Default"/></item>
@@ -42,22 +42,22 @@ public sealed class AudioAnalysisContext
     /// The default context used by the main thread audio update loop.
     /// This is the instance used when no explicit context is provided.
     /// 
-    /// <para><b>Warning:</b> Only access this from the main thread. For multi-threaded
+    /// <para><b>Warning:</b> Only access this from the main thread. For multithreaded
     /// analysis, create separate instances.</para>
     /// </summary>
-    public static AudioAnalysisContext Default { get; } = new();
+    internal static AudioAnalysisContext Default { get; } = new();
 
     #region FFT Buffers
 
     /// <summary>
     /// Raw FFT gain values from BASS. Written by <see cref="AudioEngine.UpdateFftBufferFromSoundtrack"/>.
     /// </summary>
-    public readonly float[] FftGainBuffer = new float[AudioConfig.FftBufferSize];
+    internal readonly float[] FftGainBuffer = new float[AudioConfig.FftBufferSize];
 
     /// <summary>
     /// FFT values converted to dB and normalized to 0-1 range.
     /// </summary>
-    public readonly float[] FftNormalizedBuffer = new float[AudioConfig.FftBufferSize];
+    internal readonly float[] FftNormalizedBuffer = new float[AudioConfig.FftBufferSize];
 
     #endregion
 
@@ -66,22 +66,22 @@ public sealed class AudioAnalysisContext
     /// <summary>
     /// Current frequency band levels (0-1 normalized).
     /// </summary>
-    public readonly float[] FrequencyBands = new float[AudioConfig.FrequencyBandCount];
+    internal readonly float[] FrequencyBands = new float[AudioConfig.FrequencyBandCount];
 
     /// <summary>
     /// Peak-hold values for frequency bands with decay.
     /// </summary>
-    public readonly float[] FrequencyBandPeaks = new float[AudioConfig.FrequencyBandCount];
+    internal readonly float[] FrequencyBandPeaks = new float[AudioConfig.FrequencyBandCount];
 
     /// <summary>
     /// Attack values for frequency bands (rate of increase).
     /// </summary>
-    public readonly float[] FrequencyBandAttacks = new float[AudioConfig.FrequencyBandCount];
+    internal readonly float[] FrequencyBandAttacks = new float[AudioConfig.FrequencyBandCount];
 
     /// <summary>
     /// Peak attack values with slower decay.
     /// </summary>
-    public readonly float[] FrequencyBandAttackPeaks = new float[AudioConfig.FrequencyBandCount];
+    internal readonly float[] FrequencyBandAttackPeaks = new float[AudioConfig.FrequencyBandCount];
 
     /// <summary>
     /// Onset detection values for beat synchronization.
@@ -111,27 +111,27 @@ public sealed class AudioAnalysisContext
     /// <summary>
     /// Left channel waveform samples.
     /// </summary>
-    public readonly float[] WaveformLeftBuffer = new float[AudioConfig.WaveformSampleCount];
+    internal readonly float[] WaveformLeftBuffer = new float[AudioConfig.WaveformSampleCount];
 
     /// <summary>
     /// Right channel waveform samples.
     /// </summary>
-    public readonly float[] WaveformRightBuffer = new float[AudioConfig.WaveformSampleCount];
+    internal readonly float[] WaveformRightBuffer = new float[AudioConfig.WaveformSampleCount];
 
     /// <summary>
-    /// Low frequency waveform (filtered).
+    /// Low-frequency waveform (filtered).
     /// </summary>
-    public readonly float[] WaveformLowBuffer = new float[AudioConfig.WaveformSampleCount];
+    internal readonly float[] WaveformLowBuffer = new float[AudioConfig.WaveformSampleCount];
 
     /// <summary>
-    /// Mid frequency waveform (filtered).
+    /// Mid-frequency waveform (filtered).
     /// </summary>
-    public readonly float[] WaveformMidBuffer = new float[AudioConfig.WaveformSampleCount];
+    internal readonly float[] WaveformMidBuffer = new float[AudioConfig.WaveformSampleCount];
 
     /// <summary>
-    /// High frequency waveform (filtered).
+    /// High-frequency waveform (filtered).
     /// </summary>
-    public readonly float[] WaveformHighBuffer = new float[AudioConfig.WaveformSampleCount];
+    internal readonly float[] WaveformHighBuffer = new float[AudioConfig.WaveformSampleCount];
 
     /// <summary>
     /// Whether waveform data has been requested by an operator this session.
@@ -167,7 +167,7 @@ public sealed class AudioAnalysisContext
     /// <summary>
     /// Creates a new audio analysis context with freshly allocated buffers.
     /// </summary>
-    public AudioAnalysisContext()
+    private AudioAnalysisContext()
     {
         _frequencyBandHistories = new Queue<float>[AudioConfig.FrequencyBandCount];
         for (var i = 0; i < AudioConfig.FrequencyBandCount; i++)
@@ -180,7 +180,7 @@ public sealed class AudioAnalysisContext
     /// Resets all buffers and state to initial values.
     /// Useful when starting a new analysis session or switching audio sources.
     /// </summary>
-    public void Reset()
+    internal void Reset()
     {
         Array.Clear(FftGainBuffer, 0, FftGainBuffer.Length);
         Array.Clear(FftNormalizedBuffer, 0, FftNormalizedBuffer.Length);
@@ -229,7 +229,7 @@ public sealed class AudioAnalysisContext
     /// </summary>
     /// <param name="gainFactor">Multiplier for FFT gain values.</param>
     /// <param name="decayFactor">Decay factor for peak values (0-1, higher = slower decay).</param>
-    public void ProcessFftUpdate(float gainFactor = 1f, float decayFactor = 0.9f)
+    internal void ProcessFftUpdate(float gainFactor = 1f, float decayFactor = 0.9f)
     {
         var lastTargetIndex = -1;
 
@@ -243,7 +243,7 @@ public sealed class AudioAnalysisContext
                 var normalizedValue = RemapAndClamp(gainDb, -80, 0, 0, 1);
                 FftNormalizedBuffer[binIndex] = normalizedValue;
 
-                var bandIndex = BandIndexForFftBin[binIndex];
+                var bandIndex = _bandIndexForFftBin[binIndex];
                 if (bandIndex == NoBandIndex)
                     continue;
 
@@ -326,7 +326,7 @@ public sealed class AudioAnalysisContext
     /// Lookup table mapping FFT bin indices to frequency band indices.
     /// Shared across all contexts since it's read-only configuration data.
     /// </summary>
-    internal static readonly int[] BandIndexForFftBin = InitializeBandLookupTable();
+    private static readonly int[] _bandIndexForFftBin = InitializeBandLookupTable();
 
     private static int[] InitializeBandLookupTable()
     {

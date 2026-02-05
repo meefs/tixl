@@ -18,32 +18,32 @@ public sealed class SpatialOperatorAudioStream
     /// <summary>
     /// Gets the BASS stream handle for this audio stream.
     /// </summary>
-    public int StreamHandle { get; private set; }
+    public int StreamHandle { get; private init; }
 
     /// <summary>
     /// Gets the duration of the audio stream in seconds.
     /// </summary>
-    internal double Duration { get; private set; }
+    internal double Duration { get; private init; }
 
     /// <summary>
     /// Gets the file path of the loaded audio file.
     /// </summary>
-    public string FilePath { get; private set; } = string.Empty;
+    private string FilePath { get; init; } = string.Empty;
 
     /// <summary>
     /// Gets or sets whether the stream is currently playing.
     /// </summary>
-    internal bool IsPlaying { get; set; }
+    internal bool IsPlaying { get; private set; }
 
     /// <summary>
     /// Gets or sets whether the stream is currently paused.
     /// </summary>
-    internal bool IsPaused { get; set; }
+    internal bool IsPaused { get; private set; }
 
     /// <summary>
     /// Indicates whether the stream has been stopped and reset due to being stale (not actively updated).
     /// </summary>
-    internal bool IsStoppedDueToStale { get; private set; }
+    private bool IsStoppedDueToStale { get; set; }
 
     /// <summary>
     /// The 3D position of the audio source.
@@ -346,7 +346,7 @@ public sealed class SpatialOperatorAudioStream
             _exportPlaybackPosition = 0.0;
             if (_exportDecodeStreamHandle != 0)
             {
-                Bass.ChannelSetPosition(_exportDecodeStreamHandle, 0, PositionFlags.Bytes);
+                Bass.ChannelSetPosition(_exportDecodeStreamHandle, 0);
             }
             return;
         }
@@ -383,7 +383,7 @@ public sealed class SpatialOperatorAudioStream
             return;
         }
 
-        Bass.ChannelPlay(StreamHandle, false);
+        Bass.ChannelPlay(StreamHandle);
         AudioEngine.Mark3DApplyNeeded();
     }
 
@@ -396,7 +396,7 @@ public sealed class SpatialOperatorAudioStream
         IsPaused = false;
         IsStoppedDueToStale = false;
         Bass.ChannelPause(StreamHandle);
-        Bass.ChannelSetPosition(StreamHandle, 0, PositionFlags.Bytes);
+        Bass.ChannelSetPosition(StreamHandle, 0);
     }
 
     /// <summary>
@@ -413,7 +413,7 @@ public sealed class SpatialOperatorAudioStream
         {
             // Stop playback and seek to beginning when becoming stale
             Bass.ChannelPause(StreamHandle);
-            Bass.ChannelSetPosition(StreamHandle, 0, PositionFlags.Bytes);
+            Bass.ChannelSetPosition(StreamHandle, 0);
             IsPlaying = false;
             IsPaused = false;
         }
@@ -500,13 +500,13 @@ public sealed class SpatialOperatorAudioStream
             if (_exportDecodeStreamHandle != 0)
             {
                 var position = Bass.ChannelSeconds2Bytes(_exportDecodeStreamHandle, timeInSeconds);
-                Bass.ChannelSetPosition(_exportDecodeStreamHandle, position, PositionFlags.Bytes);
+                Bass.ChannelSetPosition(_exportDecodeStreamHandle, position);
             }
             return;
         }
         
         var position2 = Bass.ChannelSeconds2Bytes(StreamHandle, timeInSeconds);
-        Bass.ChannelSetPosition(StreamHandle, position2, PositionFlags.Bytes);
+        Bass.ChannelSetPosition(StreamHandle, position2);
     }
 
     /// <summary>
@@ -553,7 +553,7 @@ public sealed class SpatialOperatorAudioStream
         // Mute and pause the playback stream - prevent any audio going to speakers
         Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
         Bass.ChannelPause(StreamHandle);
-        Bass.ChannelSetPosition(StreamHandle, 0, PositionFlags.Bytes);
+        Bass.ChannelSetPosition(StreamHandle, 0);
 
         // Create a separate decode stream for export rendering
         // This allows us to read audio data without affecting the 3D playback stream
@@ -584,10 +584,10 @@ public sealed class SpatialOperatorAudioStream
         }
 
         // Reset playback stream position
-        Bass.ChannelSetPosition(StreamHandle, 0, PositionFlags.Bytes);
+        Bass.ChannelSetPosition(StreamHandle, 0);
 
         // Restart playback
-        Bass.ChannelPlay(StreamHandle, false);
+        Bass.ChannelPlay(StreamHandle);
 
         if (!_isUserMuted)
             Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, _currentVolume);
@@ -672,6 +672,7 @@ public sealed class SpatialOperatorAudioStream
         // Reading at (nativeSampleRate / speed) and outputting at targetSampleRate achieves speed change
         int effectiveSampleRate = (int)(nativeSampleRate / _currentSpeed);
         
+        // Fill and resample the output buffer from the decode stream
         OperatorAudioUtils.FillAndResample(
             (start, dur, buffer) => RenderNativeAudio(streamToUse, buffer),
             startTime, sourceDuration, outputBuffer,

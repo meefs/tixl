@@ -6,18 +6,17 @@ using ManagedBass.Mix;
 using T3.Core.Animation;
 using T3.Core.IO;
 using T3.Core.Logging;
-using T3.Core.Resource;
 
 namespace T3.Core.Audio;
 
 /// <summary>
 /// Controls the playback of a <see cref="SoundtrackClipDefinition"/> with BASS by the <see cref="AudioEngine"/>.
-// / 
+/// 
 /// The stream is created as a decode stream and added to the SoundtrackMixer.
 /// For live playback, audio flows through: Stream -> SoundtrackMixer -> GlobalMixer -> Soundcard
 /// For export, we read directly from the stream using BassMix.ChannelGetData().
 /// </summary>
-public sealed class SoundtrackClipStream
+internal sealed class SoundtrackClipStream
 {
     // Private constructor
     private SoundtrackClipStream()
@@ -28,7 +27,7 @@ public sealed class SoundtrackClipStream
     internal int StreamHandle;
     internal bool IsInUse;
     public bool IsNew = true;
-    private float DefaultPlaybackFrequency { get; set; }
+    private float DefaultPlaybackFrequency { get; init; }
     internal double TargetTime { get; set; }
 
     internal AudioClipResourceHandle ResourceHandle = null!;
@@ -185,7 +184,7 @@ public sealed class SoundtrackClipStream
         }
 
         // Get the current playback position from the mixer
-        var currentStreamBufferPos = BassMix.ChannelGetPosition(StreamHandle, PositionFlags.Bytes);
+        var currentStreamBufferPos = BassMix.ChannelGetPosition(StreamHandle);
         var currentPosInSec = Bass.ChannelBytes2Seconds(StreamHandle, currentStreamBufferPos) - AudioSyncingOffset;
         var soundDelta = (currentPosInSec - localTargetTimeInSecs) * playback.PlaybackSpeed;
 
@@ -250,7 +249,7 @@ public sealed class SoundtrackClipStream
         int nativeSampleRate = AudioEngine.GetClipSampleRate(ResourceHandle);
         int nativeChannels = AudioEngine.GetClipChannelCount(ResourceHandle);
         OperatorAudioUtils.FillAndResample(
-            (s, d, buf) => RenderNativeAudio(s, d, buf),
+            RenderNativeAudio,
             startTime, duration, outputBuffer,
             nativeSampleRate, nativeChannels, targetSampleRate, targetChannels);
         return outputBuffer.Length;

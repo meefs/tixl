@@ -1,6 +1,7 @@
 #nullable enable
 using T3.Core.Audio;
 using T3.Core.Utils;
+// ReSharper disable InconsistentNaming
 
 namespace Lib.io.audio.@_;
 
@@ -12,37 +13,37 @@ namespace Lib.io.audio.@_;
 internal sealed class GetAllSpatialAudioPlayers : Instance<GetAllSpatialAudioPlayers>
 {
     [Output(Guid = "38381654-017c-4856-ae28-7dbc9f6b0fc8")]
-    public readonly Slot<Vector3> SourcePosition = new();
+    private readonly Slot<Vector3> SourcePosition = new();
 
     [Output(Guid = "619b45b5-4749-431b-b6a0-5edce7d263f5")]
-    public readonly Slot<Vector3> SourceRotation = new();
+    private readonly Slot<Vector3> SourceRotation = new();
 
     [Output(Guid = "bb6aeccb-bc35-46a1-ade2-0f089ec8c92c")]
-    public readonly Slot<Vector3> ListenerPosition = new();
+    private readonly Slot<Vector3> ListenerPosition = new();
 
     [Output(Guid = "3d983835-8f8d-4e4b-abfe-7955b01a1581")]
-    public readonly Slot<Vector3> ListenerRotation = new();
+    private readonly Slot<Vector3> ListenerRotation = new();
 
     [Output(Guid = "859295a6-f928-4443-9eca-2e800f275235")]
-    public readonly Slot<float> MinDistance = new();
+    private readonly Slot<float> MinDistance = new();
 
     [Output(Guid = "16de1964-9ae7-42e1-8ee5-6872b9c529a5")]
-    public readonly Slot<float> MaxDistance = new();
+    private readonly Slot<float> MaxDistance = new();
 
     [Output(Guid = "fdde0e02-f7bb-4e7c-a542-0140894c8d0a")]
-    public readonly Slot<float> InnerConeAngle = new();
+    private readonly Slot<float> InnerConeAngle = new();
 
     [Output(Guid = "fab6f132-2d5a-42ff-83cd-e35d64bf19e4")]
-    public readonly Slot<float> OuterConeAngle = new();
+    private readonly Slot<float> OuterConeAngle = new();
 
     [Output(Guid = "b7e0d227-ceb8-4cf6-a3fa-fd956ad86869")]
-    public readonly Slot<int> FramesSinceLastUpdate = new();
+    private readonly Slot<int> FramesSinceLastUpdate = new();
 
     [Output(Guid = "45415e90-2a4d-400c-90a3-63426c091b7e")]
-    public readonly Slot<int> SpatialAudioPlayerCount = new();
+    private readonly Slot<int> SpatialAudioPlayerCount = new();
     
     [Output(Guid = "4c4eb902-9d1e-41a9-9794-7d9a10b3a5a1")]
-    public readonly Slot<GizmoVisibility> GizmoVisibility = new();
+    private readonly Slot<GizmoVisibility> GizmoVisibility = new();
 
     public GetAllSpatialAudioPlayers()
     {
@@ -59,7 +60,7 @@ internal sealed class GetAllSpatialAudioPlayers : Instance<GetAllSpatialAudioPla
         GizmoVisibility.UpdateAction += Update;
     }
 
-    private List<ISpatialAudioPropertiesProvider> _spatialAudioInstances = new();
+    private readonly List<ISpatialAudioPropertiesProvider> _spatialAudioInstances = new();
 
     private void Update(EvaluationContext context)
     {
@@ -125,5 +126,5 @@ internal sealed class GetAllSpatialAudioPlayers : Instance<GetAllSpatialAudioPla
     }
 
     [Input(Guid = "5c07c8a2-b1da-42c1-addf-8ef5877784d7")]
-    public readonly InputSlot<int> SpatialAudioPlayerIndex = new();
+    private readonly InputSlot<int> SpatialAudioPlayerIndex = new();
 }

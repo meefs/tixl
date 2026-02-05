@@ -114,7 +114,7 @@ public static class AudioRendering
         Log.Gated.AudioRender($"[AudioRendering] EndRecording: Exported {_frameCount} frames");
 
         // Remove soundtrack streams from export mixer and re-add to live mixer
-        foreach (var (handle, clipStream) in AudioEngine.SoundtrackClipStreams)
+        foreach (var (_, clipStream) in AudioEngine.SoundtrackClipStreams)
         {
             if (_exportMixerInitialized)
             {
@@ -170,7 +170,7 @@ public static class AudioRendering
         // Mix soundtrack streams using BASS export mixer (handles resampling automatically)
         if (_exportMixerInitialized)
         {
-            MixSoundtracksFromExportMixer(mixBuffer, floatCount, currentTime, frameDurationInSeconds);
+            MixSoundtracksFromExportMixer(mixBuffer, floatCount, currentTime);
         }
 
         // Mix operator audio (always included)
@@ -201,7 +201,7 @@ public static class AudioRendering
     /// Mixes all soundtrack clips using the BASS export mixer.
     /// BASS handles resampling from each clip's native frequency to the mixer frequency.
     /// </summary>
-    private static void MixSoundtracksFromExportMixer(float[] mixBuffer, int floatCount, double currentTime, double frameDuration)
+    private static void MixSoundtracksFromExportMixer(float[] mixBuffer, int floatCount, double currentTime)
     {
         // Position each soundtrack clip and set its volume based on whether it should be active
         foreach (var (handle, clipStream) in AudioEngine.SoundtrackClipStreams)
@@ -216,7 +216,7 @@ public static class AudioRendering
             {
                 // Position the stream at the correct time in the clip
                 long targetBytes = Bass.ChannelSeconds2Bytes(clipStream.StreamHandle, timeInClip);
-                Bass.ChannelSetPosition(clipStream.StreamHandle, targetBytes, PositionFlags.Bytes);
+                Bass.ChannelSetPosition(clipStream.StreamHandle, targetBytes);
                 
                 // Apply volume: clip.Volume * SoundtrackPlaybackVolume * GlobalPlaybackVolume
                 float effectiveVolume = handle.Clip.Volume 
@@ -243,42 +243,6 @@ public static class AudioRendering
             if (error != Errors.OK && error != Errors.Ended)
             {
                 Log.Gated.AudioRender($"[AudioRendering] Export mixer read error: {error}");
-            }
-        }
-    }
-
-    private static void MixSoundtrackClip(AudioClipResourceHandle handle, SoundtrackClipStream clipStream,
-        float[] mixBuffer, double currentTime, double frameDuration)
-    {
-        // Legacy fallback - only used if export mixer failed to initialize
-        double clipStart = Playback.Current.SecondsFromBars(handle.Clip.StartTime);
-        double timeInClip = currentTime - clipStart;
-
-        if (timeInClip < 0 || timeInClip > handle.Clip.LengthInSeconds)
-            return;
-
-        Bass.ChannelGetInfo(clipStream.StreamHandle, out var streamInfo);
-        float nativeFreq = clipStream.GetDefaultFrequency();
-
-        long targetBytes = Bass.ChannelSeconds2Bytes(clipStream.StreamHandle, timeInClip);
-        Bass.ChannelSetPosition(clipStream.StreamHandle, targetBytes, PositionFlags.Bytes);
-
-        int sourceSampleCount = (int)Math.Ceiling(frameDuration * nativeFreq);
-        int sourceFloatCount = sourceSampleCount * streamInfo.Channels;
-        
-        // Read directly at target frequency since we can't resample without the export mixer
-        int bytesRead = Bass.ChannelGetData(clipStream.StreamHandle, mixBuffer, sourceFloatCount * sizeof(float));
-        if (bytesRead > 0)
-        {
-            // Apply volume directly since we can't resample
-            float effectiveVolume = handle.Clip.Volume 
-                                    * ProjectSettings.Config.SoundtrackPlaybackVolume
-                                    * ProjectSettings.Config.GlobalPlaybackVolume;
-            
-            int samplesRead = Math.Min(bytesRead / sizeof(float), mixBuffer.Length);
-            for (int i = 0; i < samplesRead; i++)
-            {
-                mixBuffer[i] *= effectiveVolume;
             }
         }
     }
@@ -432,7 +396,7 @@ public static class AudioRendering
             Bass.ChannelSetAttribute(AudioMixerManager.GlobalMixerHandle, ChannelAttribute.Volume, _savedVolume);
             if (_wasPlaying)
             {
-                Bass.ChannelPlay(AudioMixerManager.GlobalMixerHandle, false);
+                Bass.ChannelPlay(AudioMixerManager.GlobalMixerHandle);
                 Log.Gated.AudioRender("[AudioRendering] GlobalMixer RESUMED");
             }
         }

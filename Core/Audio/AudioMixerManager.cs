@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using ManagedBass;
 using ManagedBass.Mix;
 using ManagedBass.Wasapi;
@@ -32,14 +33,14 @@ public static class AudioMixerManager
     private static bool _initialized;
     private static bool _initializationFailed;
     private static int _flacPluginHandle;
-    private static readonly object _offlineStreamLock = new();
-    private static readonly object _initLock = new();
+    private static readonly Lock _offlineStreamLock = new();
+    private static readonly Lock _initLock = new();
 
     private static float _globalMixerVolume = 1.0f;
 
-    public static int GlobalMixerHandle => _globalMixerHandle;
+    internal static int GlobalMixerHandle => _globalMixerHandle;
     public static int OperatorMixerHandle => _operatorMixerHandle;
-    public static int SoundtrackMixerHandle => _soundtrackMixerHandle;
+    internal static int SoundtrackMixerHandle => _soundtrackMixerHandle;
     public static bool IsInitialized => _initialized;
     
     public static void Initialize()
@@ -62,12 +63,11 @@ public static class AudioMixerManager
 
         // Check if BASS is already initialized by checking the default output device
         // Note: Bass.CurrentDevice returns -1 when not initialized, so we check device 1 (default output)
-        DeviceInfo deviceInfo;
         bool bassIsInitialized = false;
         try
         {
             // Device 1 is typically the default output device
-            if (Bass.GetDeviceInfo(1, out deviceInfo))
+            if (Bass.GetDeviceInfo(1, out var deviceInfo))
             {
                 bassIsInitialized = deviceInfo.IsInitialized;
             }
@@ -300,7 +300,7 @@ public static class AudioMixerManager
 
         // Start the global mixer playing (outputs to soundcard)
         Log.Gated.Audio("[AudioMixer] Starting global mixer playback...");
-        if (!Bass.ChannelPlay(_globalMixerHandle, false))
+        if (!Bass.ChannelPlay(_globalMixerHandle))
         {
             Log.Error($"[AudioMixer] Failed to start global mixer: {Bass.LastError}");
         }
@@ -315,7 +315,7 @@ public static class AudioMixerManager
         } // end lock
     }
 
-    public static void Shutdown()
+    internal static void Shutdown()
     {
         lock (_initLock)
         {
@@ -359,20 +359,19 @@ public static class AudioMixerManager
         Bass.ChannelSetAttribute(_soundtrackMixerHandle, ChannelAttribute.Volume, volume);
     }
 
-    public static void SetGlobalVolume(float volume)
+    internal static void SetGlobalVolume(float volume)
     {
         if (!_initialized) return;
         Bass.ChannelSetAttribute(_globalMixerHandle, ChannelAttribute.Volume, volume);
     }
 
-    public static void SetGlobalMute(bool mute)
+    internal static void SetGlobalMute(bool mute)
     {
         if (!_initialized) return;
         if (mute)
         {
             // Store the current volume before muting, but only if not already muted
-            float currentVolume;
-            Bass.ChannelGetAttribute(_globalMixerHandle, ChannelAttribute.Volume, out currentVolume);
+            Bass.ChannelGetAttribute(_globalMixerHandle, ChannelAttribute.Volume, out var currentVolume);
             if (currentVolume > 0.001f)
             {
                 _globalMixerVolume = currentVolume;
@@ -385,22 +384,26 @@ public static class AudioMixerManager
             float definedVolume = 1.0f;
             try
             {
-                definedVolume = T3.Core.IO.ProjectSettings.Config.GlobalPlaybackVolume;
+                definedVolume = IO.ProjectSettings.Config.GlobalPlaybackVolume;
             }
-            catch { }
+            catch
+            {
+                // ignored
+            }
+
             Bass.ChannelSetAttribute(_globalMixerHandle, ChannelAttribute.Volume, definedVolume);
         }
     }
 
     private static float _operatorMixerVolume = 1.0f;
-    public static void SetOperatorMute(bool mute)
+
+    internal static void SetOperatorMute(bool mute)
     {
         if (!_initialized) return;
         if (mute)
         {
             // Store the current volume before muting, but only if not already muted
-            float currentVolume;
-            Bass.ChannelGetAttribute(_operatorMixerHandle, ChannelAttribute.Volume, out currentVolume);
+            Bass.ChannelGetAttribute(_operatorMixerHandle, ChannelAttribute.Volume, out var currentVolume);
             if (currentVolume > 0.001f)
             {
                 _operatorMixerVolume = currentVolume;
@@ -413,9 +416,13 @@ public static class AudioMixerManager
             float definedVolume = 1.0f;
             try
             {
-                definedVolume = T3.Core.IO.ProjectSettings.Config.OperatorPlaybackVolume;
+                definedVolume = IO.ProjectSettings.Config.OperatorPlaybackVolume;
             }
-            catch { }
+            catch
+            {
+                // ignored
+            }
+
             Bass.ChannelSetAttribute(_operatorMixerHandle, ChannelAttribute.Volume, definedVolume);
         }
     }
