@@ -43,6 +43,12 @@ public static class AudioEngine
     
     // Export state
     private static bool _isExporting;
+    
+    /// <summary>
+    /// Gets whether the audio engine is currently in export mode.
+    /// During export, streams should not be paused when marked stale.
+    /// </summary>
+    public static bool IsExporting => _isExporting;
 
     // 3D Listener
     private static Vector3 _listenerPosition = Vector3.Zero;
@@ -1019,7 +1025,12 @@ public static class AudioEngine
     {
         foreach (var (_, state) in states)
         {
-            state.Stream?.PrepareForExport();
+            if (state.Stream == null) continue;
+            
+            state.Stream.PrepareForExport();
+            
+            // Mark as stale and pause - the stale detection will un-pause if operator updates
+            state.Stream.SetStale(true);
             state.IsStale = true;
         }
     }
@@ -1028,22 +1039,30 @@ public static class AudioEngine
     {
         foreach (var (_, state) in _spatialOperatorStates)
         {
-            state.Stream?.PrepareForExport();
+            if (state.Stream == null) continue;
+            
+            state.Stream.PrepareForExport();
+            
+            // Mark as stale - spatial streams handle stale differently
             state.IsStale = true;
         }
     }
 
     /// <summary>
     /// Updates the stale states for all operator streams during export.
-    /// Increments the frame token to ensure proper stale detection.
+    /// Checks stale state against current token (operators that updated last frame),
+    /// THEN increments the token for the next frame.
     /// </summary>
     internal static void UpdateStaleStatesForExport()
     {
-        // Increment frame token for export frame processing
-        _audioFrameToken++;
-        
+        // First, check stale states against the CURRENT token
+        // This identifies which operators were updated in the previous frame
+        // (i.e., which operators should be producing audio for this export frame)
         UpdateStaleStates(_stereoOperatorStates);
         UpdateSpatialStaleStates();
+        
+        // Then increment the frame token for the next frame's operator updates
+        _audioFrameToken++;
     }
 
     /// <summary>

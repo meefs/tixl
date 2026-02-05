@@ -101,18 +101,10 @@ public static class WaveFormProcessing
         if (context.LastWaveformFetchResult <= 0)
             return;
 
-        // Check if we're exporting with external audio - can't monitor external audio during export
-        if (Playback.Current.IsRenderingToFile &&
-            Playback.Current.Settings?.AudioSource == PlaybackSettings.AudioSources.ExternalDevice)
-        {
-            // Clear buffers - external audio cannot be monitored during export
-            Array.Clear(context.WaveformLeftBuffer, 0, context.WaveformLeftBuffer.Length);
-            Array.Clear(context.WaveformRightBuffer, 0, context.WaveformRightBuffer.Length);
-            Array.Clear(context.WaveformLowBuffer, 0, context.WaveformLowBuffer.Length);
-            Array.Clear(context.WaveformMidBuffer, 0, context.WaveformMidBuffer.Length);
-            Array.Clear(context.WaveformHighBuffer, 0, context.WaveformHighBuffer.Length);
-            return;
-        }
+        // Note: During export, waveform data is populated via PopulateFromExportBuffer()
+        // which is called in AudioRendering.GetFullMixDownBuffer(). That buffer contains
+        // operator audio regardless of audio source mode. So we don't need to check
+        // for external audio mode here - the data is already valid.
 
         var idx = 0;
         for (var it = 0; it < context.InterleavedSampleBuffer.Length;)

@@ -56,12 +56,12 @@ public abstract class OperatorAudioStreamBase
     /// <summary>
     /// The current volume level (0.0 to 1.0).
     /// </summary>
-    private float CurrentVolume = 1.0f;
+    internal float CurrentVolume = 1.0f;
     
     /// <summary>
     /// The current playback speed multiplier.
     /// </summary>
-    private float CurrentSpeed = 1.0f;
+    internal float CurrentSpeed = 1.0f;
     
     /// <summary>
     /// Cached number of channels in the audio stream.
@@ -76,12 +76,12 @@ public abstract class OperatorAudioStreamBase
     /// <summary>
     /// Indicates whether the stream has been stopped and reset due to being stale (not actively updated).
     /// </summary>
-    protected bool IsStaleStopped;
+    internal bool IsStaleStopped;
     
     /// <summary>
     /// Indicates whether the stream is muted by user request.
     /// </summary>
-    private bool IsUserMuted;
+    internal bool IsUserMuted;
 
     /// <summary>
     /// The audio level during export, if available.
@@ -211,7 +211,8 @@ public abstract class OperatorAudioStreamBase
     }
 
     /// <summary>
-    /// Sets the stale state of the stream. Stale streams are stopped and reset to the beginning.
+    /// Sets the stale state of the stream. Stale streams are paused to prevent them from contributing to the mix.
+    /// During export mode, we pause but don't reset position (to preserve playback continuity when stream becomes active again).
     /// </summary>
     /// <param name="stale">Whether the stream should be stopped due to being stale.</param>
     /// <param name="reason">Optional reason for the stale state change (for debugging).</param>
@@ -222,16 +223,28 @@ public abstract class OperatorAudioStreamBase
 
         if (stale)
         {
-            // Stop playback and seek to beginning when becoming stale
+            // Pause the stream so it doesn't contribute to the mixer output
             BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
-            var position = Bass.ChannelSeconds2Bytes(StreamHandle, 0);
-            BassMix.ChannelSetPosition(StreamHandle, position, PositionFlags.Bytes | PositionFlags.MixerReset);
-            IsPlaying = false;
-            IsPaused = false;
+            
+            // During normal playback, also reset position and state
+            // During export, preserve position for continuity when stream becomes active again
+            if (!AudioEngine.IsExporting)
+            {
+                var position = Bass.ChannelSeconds2Bytes(StreamHandle, 0);
+                BassMix.ChannelSetPosition(StreamHandle, position, PositionFlags.Bytes | PositionFlags.MixerReset);
+                IsPlaying = false;
+                IsPaused = false;
+            }
         }
-        else if (IsPlaying && !IsPaused && !IsUserMuted)
+        else
         {
-            Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, CurrentVolume);
+            // Un-pause the stream when it becomes non-stale
+            BassMix.ChannelFlags(StreamHandle, 0, BassFlags.MixerChanPause);
+            
+            if (IsPlaying && !IsPaused && !IsUserMuted)
+            {
+                Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, CurrentVolume);
+            }
         }
     }
 
@@ -393,17 +406,15 @@ public abstract class OperatorAudioStreamBase
     }
 
     /// <summary>
-    /// Prepares the stream for export by pausing playback, muting, and resetting position.
+    /// Prepares the stream for export by resetting position for sync.
+    /// Note: We do NOT pause or mute the stream because:
+    /// 1. The OperatorMixer is a decode-only mixer (no soundcard output)
+    /// 2. The GlobalMixer is already paused during export
+    /// 3. We still need to read audio from streams via ChannelGetData on the OperatorMixer
     /// </summary>
     internal virtual void PrepareForExport()
     {
-        IsPlaying = false;
-        IsPaused = false;
-        IsStaleStopped = true;
-
-        Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
-        BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
-
+        // Reset position to beginning for consistent export
         var resetPosition = Bass.ChannelSeconds2Bytes(StreamHandle, 0);
         BassMix.ChannelSetPosition(StreamHandle, resetPosition, PositionFlags.Bytes | PositionFlags.MixerReset);
 

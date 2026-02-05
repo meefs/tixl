@@ -159,6 +159,10 @@ public static class AudioRendering
     public static float[] GetFullMixDownBuffer(double frameDurationInSeconds)
     {
         _frameCount++;
+        
+        // Update stale states - this marks which operators were active in the previous frame.
+        // Streams that weren't updated will be marked stale, but during export they won't be paused
+        // (handled in SetStale). We use the stale flag to know which streams to include in the mix.
         AudioEngine.UpdateStaleStatesForExport();
 
         int sampleCount = (int)Math.Max(Math.Round(frameDurationInSeconds * AudioConfig.MixerFrequency), 1);
@@ -185,6 +189,13 @@ public static class AudioRendering
         // This ensures AudioWaveform, PlaybackFFT, AudioReaction, etc. work correctly during rendering
         WaveFormProcessing.PopulateFromExportBuffer(mixBuffer);
         AudioAnalysis.ComputeFftFromBuffer(mixBuffer);
+        
+        // Process FFT data to compute frequency bands, peaks, and attacks for AudioReaction
+        // Use the same gain/decay factors from playback settings as used during normal playback
+        var settings = Playback.Current.Settings;
+        float gainFactor = settings?.AudioGainFactor ?? 1f;
+        float decayFactor = settings?.AudioDecayFactor ?? 0.9f;
+        AudioAnalysis.ProcessUpdate(gainFactor, decayFactor);
 
         return mixBuffer;
     }
@@ -277,7 +288,11 @@ public static class AudioRendering
 
     private static void MixOperatorAudio(float[] mixBuffer, int floatCount, double currentTime, double frameDuration)
     {
-        // Mix stereo operator audio from the operator mixer
+        // Mix all operator audio from the operator mixer
+        // This includes:
+        // - Procedural/callback streams (e.g., AudioToneGenerator) 
+        // - File-based stereo streams (e.g., AudioPlayer) - these are NOT paused during export
+        // The OperatorMixer is a decode-only mixer, so it doesn't output to soundcard
         var operatorBuffer = EnsureBuffer(ref _operatorBuffer, floatCount);
         int bytesRead = Bass.ChannelGetData(AudioMixerManager.OperatorMixerHandle, operatorBuffer, floatCount * sizeof(float));
 
