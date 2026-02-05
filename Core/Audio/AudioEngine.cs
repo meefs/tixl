@@ -1245,17 +1245,24 @@ public static class AudioEngine
     /// <summary>
     /// Handles audio device changes by reinitializing all audio streams.
     /// </summary>
+    /// <summary>
+    /// Handles audio device changes by disposing all audio streams and reinitializing.
+    /// This ensures no stale BASS handles remain after Bass.Free() is called.
+    /// </summary>
     public static void OnAudioDeviceChanged()
     {
+        // Dispose ALL streams before calling AudioMixerManager.Shutdown() / Bass.Free()
+        // This prevents invalid handle errors when streams are accessed after device change
         DisposeAllOperatorStreams(_stereoOperatorStates);
         DisposeSpatialOperatorStreams();
+        DisposeAllSoundtrackStreams();
 
         AudioMixerManager.Shutdown();
         _bassInitialized = false; // Reset flag to allow proper reinitialization
         _bassInitFailed = false;  // Reset failure flag to allow retry
         AudioMixerManager.Initialize();
 
-        Log.Gated.Audio("[AudioEngine] Audio device changed: reinitialized.");
+        Log.Gated.Audio("[AudioEngine] Audio device changed: all streams disposed and reinitialized.");
     }
 
     private static void DisposeAllOperatorStreams<T>(Dictionary<Guid, OperatorAudioState<T>> states)
@@ -1271,6 +1278,22 @@ public static class AudioEngine
         foreach (var state in _spatialOperatorStates.Values)
             state.Stream?.Dispose();
         _spatialOperatorStates.Clear();
+    }
+
+    /// <summary>
+    /// Disposes all soundtrack clip streams, clearing the dictionary.
+    /// Called during device changes to prevent invalid BASS handle errors.
+    /// </summary>
+    private static void DisposeAllSoundtrackStreams()
+    {
+        foreach (var (_, clipStream) in SoundtrackClipStreams)
+        {
+            clipStream.DisableSoundtrackStream();
+        }
+        SoundtrackClipStreams.Clear();
+        _updatedSoundtrackClipTimes.Clear();
+        _obsoleteSoundtrackHandles.Clear();
+        Log.Gated.Audio($"[AudioEngine] Disposed all soundtrack streams.");
     }
 
     /// <summary>
