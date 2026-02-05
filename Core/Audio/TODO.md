@@ -21,7 +21,7 @@ The audio engine in is built around ManagedBass / BassMix and a mixer-centric ar
   - Per-frame: `UseSoundtrackClip` marks clips used; `CompleteFrame` calls `ProcessSoundtrackClips`.
   - Soundtrack clips are played via `SoundtrackMixerHandle` for live playback.
   - For export, `AudioRendering` temporarily removes soundtrack streams from mixer and reads directly.
-  - FFT and waveform analysis done via `UpdateFftBufferFromSoundtrack` into shared static buffers.
+  - FFT and waveform analysis done via `UpdateFftBufferFromSoundtrack` into `AudioAnalysisContext` buffers.
 
 - **Operator Audio (Clip Operators)** (`AudioEngine.cs`, `StereoOperatorAudioStream.cs`, `SpatialOperatorAudioStream.cs`, `OperatorAudioStreamBase.cs`)
   - Two dictionaries of operator state:
@@ -57,25 +57,10 @@ Overall, the design is clear and reasonably modular: mixer management is central
 
 ### (b) Specific Findings (with impact)
 
-1. Shared static buffers for FFT / waveform introduce hidden coupling and potential race issues
+1. ~~Shared static buffers for FFT / waveform introduce hidden coupling and potential race issues~~ **RESOLVED**
 
-- **Location**:
-  - `AudioEngine.UpdateFftBufferFromSoundtrack` (in `AudioEngine.cs`)
-  - `AudioAnalysis`, `WaveFormProcessing` (other files in `Core\Audio`)
-- **Code Pattern**:
-  ```csharp
-  _ = BassMix.ChannelGetData(soundStreamHandle, AudioAnalysis.FftGainBuffer, dataFlags);
-  ...
-  WaveFormProcessing.LastFetchResultCode = BassMix.ChannelGetData(soundStreamHandle,
-      WaveFormProcessing.InterleavenSampleBuffer, lengthInBytes);
-  ```
-- **Issues**:
-  1. `AudioAnalysis.FftGainBuffer` and `WaveFormProcessing.InterleavenSampleBuffer` are static arrays shared across the system. The code assumes single-threaded access from the main update / export loop.
-  2. If future changes introduce multi-threaded evaluation (e.g., operator graph or analysis in background tasks) and call `UpdateFftBufferFromSoundtrack` concurrently, data races and inconsistent FFT results are likely.
-  3. `WaveFormProcessing.RequestedOnce` is a global static flag determining whether waveform data is fetched; the behaviour may be non-obvious from operator code.
-- **Impact / Risk**:
-  - **Thread-safety**: current design is sensitive to concurrency changes; small architectural updates can introduce subtle bugs.
-  - **Maintainability**: static buffers obscure data flow; it's not obvious who owns or uses them.
+- **Status**: Resolved via `AudioAnalysisContext` class
+- **Solution**: All FFT and waveform buffers are now owned by `AudioAnalysisContext` instances. A default singleton (`AudioAnalysisContext.Default`) maintains backwards compatibility. See `AudioAnalysisContext.cs` for the implementation and multi-threading migration guide.
 
 2. `AudioRendering.PrepareRecording` / `EndRecording` manipulate BASS state with limited error handling
 
@@ -226,18 +211,10 @@ Below are the remaining prioritized recommendations grouped and ordered by prior
 
 Medium priority
 
-1. Make FFT / waveform buffers explicitly owned and avoid global static coupling
+1. ~~Make FFT / waveform buffers explicitly owned and avoid global static coupling~~ **COMPLETED**
 
-- **Goals**: improve thread-safety and clarity.
-
-- **Steps**:
-  1. In `AudioAnalysis` and `WaveFormProcessing`, introduce instance-level buffers and a small "analysis context" struct/class that holds them.
-  2. Change `AudioEngine.UpdateFftBufferFromSoundtrack` to accept an analysis context (or explicit buffers) instead of writing into static arrays.
-  3. Document that currently all analysis is assumed to run on the main thread; warn that multi-threaded usage requires extra synchronization.
-
-- **Benefits**:
-  - Clearer ownership of buffers.
-  - Easier future refactoring to multi-threaded or multi-consumer analysis.
+- **Implementation**: See `AudioAnalysisContext.cs`
+- **Migration Path for Multi-Threading**: See documentation in `AudioAnalysisContext` class header
 
 2. Harden export state transitions in `AudioRendering.PrepareRecording` / `EndRecording`
 

@@ -16,8 +16,9 @@
 7. [Audio Operators](#audio-operators)
 8. [Configuration System](#configuration-system)
 9. [Export and Rendering](#export-and-rendering)
-10. [Documentation Index](#documentation-index)
-11. [Future Enhancement Opportunities](#future-enhancement-opportunities)
+10. [Audio Analysis and Buffer Ownership](#audio-analysis-and-buffer-ownership)
+11. [Documentation Index](#documentation-index)
+12. [Future Enhancement Opportunities](#future-enhancement-opportunities)
 
 ---
 
@@ -501,6 +502,108 @@ During export, spatial audio streams require special handling:
 
 ---
 
+## Audio Analysis and Buffer Ownership
+
+### AudioAnalysisContext
+
+All FFT and waveform analysis buffers are owned by `AudioAnalysisContext` instances. This design enables:
+
+- **Clear ownership**: Each context owns its own set of buffers
+- **Thread safety preparation**: Separate contexts can be used on different threads
+- **Testability**: Contexts can be created and manipulated independently
+
+### Default Context
+
+For backwards compatibility, a singleton `AudioAnalysisContext.Default` is provided:
+
+```csharp
+// Static accessors delegate to the default context
+AudioAnalysis.FftGainBuffer        // → AudioAnalysisContext.Default.FftGainBuffer
+AudioAnalysis.FrequencyBands       // → AudioAnalysisContext.Default.FrequencyBands
+WaveFormProcessing.WaveformLeftBuffer  // → AudioAnalysisContext.Default.WaveformLeftBuffer
+```
+
+### Thread Safety
+
+**Current Behavior:** The default context is designed for single-threaded use on the main update loop. All BASS channel reads and buffer processing occur on the main thread.
+
+**Warning:** Do not access `AudioAnalysisContext.Default` from multiple threads without external synchronization.
+
+### Multi-Threading Migration Path
+
+To enable multi-threaded audio analysis:
+
+1. **Create separate contexts** per thread/consumer:
+   ```csharp
+   var backgroundContext = new AudioAnalysisContext();
+   ```
+
+2. **Pass context explicitly** to analysis methods:
+   ```csharp
+   AudioEngine.UpdateFftBufferFromSoundtrack(playback, backgroundContext);
+   WaveFormProcessing.UpdateWaveformData(backgroundContext);
+   AudioAnalysis.ComputeFftFromBuffer(pcmBuffer, backgroundContext);
+   ```
+
+3. **Synchronize BASS channel reads** (BASS itself may have thread constraints):
+   ```csharp
+   lock (bassLock)
+   {
+       AudioEngine.UpdateFftBufferFromSoundtrack(playback, backgroundContext);
+   }
+   ```
+
+4. **Use locks or concurrent collections** if sharing results between threads
+
+### Example: Background Thread Analysis
+
+```csharp
+// Create a dedicated context for background analysis
+var backgroundContext = new AudioAnalysisContext();
+object bassLock = new object();
+
+// On background thread:
+void AnalyzeOnBackgroundThread(Playback playback)
+{
+    // Synchronize BASS access
+    lock (bassLock)
+    {
+        AudioEngine.UpdateFftBufferFromSoundtrack(playback, backgroundContext);
+    }
+    
+    // Process FFT data (no lock needed - context is thread-local)
+    backgroundContext.ProcessFftUpdate();
+    
+    // Access results
+    float[] bands = backgroundContext.FrequencyBands;
+    float[] fft = backgroundContext.FftNormalizedBuffer;
+    
+    // Do something with the analysis results...
+}
+```
+
+### Context Buffers
+
+Each `AudioAnalysisContext` contains:
+
+| Buffer | Size | Description |
+|--------|------|-------------|
+| `FftGainBuffer` | 1024 | Raw FFT gain values from BASS |
+| `FftNormalizedBuffer` | 1024 | FFT values normalized to 0-1 |
+| `FrequencyBands` | 32 | Frequency band levels |
+| `FrequencyBandPeaks` | 32 | Peak-hold values with decay |
+| `FrequencyBandAttacks` | 32 | Attack (rate of increase) values |
+| `FrequencyBandAttackPeaks` | 32 | Peak attack values |
+| `FrequencyBandOnSets` | 32 | Onset detection for beat sync |
+| `InterleavedSampleBuffer` | 2048 | Raw interleaved stereo samples |
+| `WaveformLeftBuffer` | 1024 | Left channel waveform |
+| `WaveformRightBuffer` | 1024 | Right channel waveform |
+| `WaveformLowBuffer` | 1024 | Low frequency filtered waveform |
+| `WaveformMidBuffer` | 1024 | Mid frequency filtered waveform |
+| `WaveformHighBuffer` | 1024 | High frequency filtered waveform |
+
+---
+
 ## Documentation Index
 
 ### Core Files
@@ -514,10 +617,11 @@ During export, spatial audio streams require special handling:
 | `AudioRendering.cs`               | Export/recording functionality                   |
 | `AudioMixerManager.cs`            | BASS mixer setup and level metering              |
 | `AudioConfig.cs`                  | Centralized configuration                        |
-| `AudioAnalysis.cs`                | FFT processing and frequency bands               |
+| `AudioAnalysis.cs`                | FFT processing and frequency bands (delegates to context) |
+| `AudioAnalysisContext.cs`         | Owns all FFT/waveform buffers, enables multi-threading |
 | `AudioAnalysisResult.cs`          | Analysis result data structures                  |
 | `OperatorAudioUtils.cs`           | Buffer filling and resampling utilities          |
-| `WaveFormProcessing.cs`           | Waveform buffer management and filtering         |
+| `WaveFormProcessing.cs`           | Waveform buffer management and filtering (delegates to context) |
 | `SoundtrackClipDefinition.cs`     | Soundtrack clip data structures                  |
 | `SoundtrackClipStream.cs`         | Soundtrack stream playback                       |
 | `AudioExportSourceRegistry.cs`    | Registry for export audio sources                |
@@ -543,39 +647,68 @@ During export, spatial audio streams require special handling:
 
 ## Future Enhancement Opportunities
 
-### Environmental Audio
-- EAX effects integration (reverb, echo, chorus)
+### Completed Features ✅
+- ✅ **Centralized `Apply3D()` batching** - `Mark3DApplyNeeded()` and single call in `CompleteFrame()`
+- ✅ **Multi-threaded FFT infrastructure** - `AudioAnalysisContext` enables per-thread analysis
+- ✅ **ADSR envelope support** - `AdsrCalculator` for `AudioPlayer` amplitude modulation
+- ✅ **SpatialAudioPlayer with ITransformable** - Full gizmo support, rotation inputs
+- ✅ **Stale detection refactoring** - Frame token system with `LastUpdatedFrameId`
+- ✅ **Device-native sample rate** - Automatic WASAPI query before BASS init
+- ✅ **FLAC support** - Native BASS FLAC plugin integration
+- ✅ **Export with operator audio** - Both stereo and spatial streams included in export
+
+### Environmental Audio (Not Started)
+- EAX effects integration (reverb, echo, chorus) - BASS supports, not yet exposed
 - Room acoustics simulation
 - Environmental audio zones
 
-### Advanced 3D Audio
-- Custom distance rolloff curves
-- Adjustable Doppler factor
-- HRTF for headphone spatialization
-- Geometry-based occlusion (maybe)
+### Advanced 3D Audio (Partial)
+- ✅ **Doppler effects** - Implemented via velocity tracking
+- ✅ **Directional cones** - Inner/outer angle with volume falloff
+- ✅ **Distance attenuation** - Linear rolloff from min to max distance
+- Custom distance rolloff curves (not implemented)
+- Per-stream Doppler factor adjustment (not implemented)
+- HRTF for headphone spatialization (not implemented)
+- Geometry-based occlusion (not implemented)
 
-### Performance Optimizations
-- ✅ **Centralized `Apply3D()` batching** - Implemented via `Mark3DApplyNeeded()` and single call in `CompleteFrame()`
-- Stream pooling and recycling
-- Async file loading (partially via `BassFlags.AsyncFile`)
-- Multithreaded FFT processing
+### Performance Optimizations (Partial)
+- ✅ **Async file loading** - Via `BassFlags.AsyncFile`
+- ✅ **Reusable export buffers** - Static buffers minimize per-frame allocations
+- Stream pooling and recycling (not implemented)
+
+### Robustness Improvements (From TODO.md)
+- Harden export state transitions (`PrepareRecording`/`EndRecording`)
+- Improve error handling and logging detail
+- Cache failed operator file loads
+- Handle device changes more gracefully
 
 ### Current Limitations
 1. No EAX environmental effects (BASS supports, not yet exposed)
-2. Single Doppler factor (not yet adjustable per-stream)
-3. No custom distance rolloff curves
-4. Spatial audio not included in mixer-level metering (plays directly to BASS)
-5. Export of spatial audio uses separate decode stream (not hardware 3D processed)
+2. Spatial audio not included in mixer-level metering (plays directly to BASS)
+3. Export of spatial audio uses separate decode stream (no hardware 3D in export)
+4. No custom distance rolloff curves
+5. No per-stream Doppler factor adjustment
 
 ---
 
-# Immediate TODO:
-- ✅ Finish implementing SpatialAudioPlayer (ITransformable, gizmo, rotation inputs)
-- ✅ Add the sample accurate ADSR envelope to AudioPlayer via AdsrCalculator
-- Re-think the seek logic?
+## Remaining Work
+
+See **[TODO.md](TODO.md)** for detailed technical review items and prioritized recommendations.
+
+### High Priority
 - Add unit tests for AudioEngine methods
-- Implement remaining technical review items
-- Add ADSR envelope support to SpatialAudioPlayer
+
+### Medium Priority  
+- Harden export state transitions
+- Improve error/logging detail in key areas
+- Re-evaluate seek logic
+
+### Low Priority
+- Cache failed operator file loads
+- Clarify seek semantics documentation
+- Consider removing unused `OfflineMixerHandle`
+
+---
 
 # Diff Summary
 
@@ -586,6 +719,7 @@ Added
 - `Core/Audio/AUDIO_ARCHITECTURE.md` — new architecture/design doc for the audio subsystem.
 - `Core/Audio/AdsrCalculator.cs` — ADSR envelope calculation utility.
 - `Core/Audio/AudioAnalysisResult.cs` — analysis result data structures.
+- `Core/Audio/AudioAnalysisContext.cs` — owns all FFT/waveform buffers, enables multi-threaded analysis.
 - `Core/Audio/AudioConfig.cs` — centralized audio configuration and logging toggles.
 - `Core/Audio/AudioExportSourceRegistry.cs` — registry for export/record audio sources.
 - `Core/Audio/AudioMixerManager.cs` — BASS mixer initialization/management and helpers.
@@ -612,12 +746,12 @@ Added
 
 Modified
 
-- `Core/Audio/AudioAnalysis.cs` — FFT/waveform handling updates and buffer ownership changes.
+- `Core/Audio/AudioAnalysis.cs` — now delegates to `AudioAnalysisContext.Default` for backwards compatibility.
 - `Core/Audio/AudioEngine.cs` — central audio API changes for playback/update/export integration.
 - `Core/Audio/AudioRendering.cs` — export/mixdown improvements and buffer reuse notes.
 - `Core/Audio/BeatSynchronizer.cs` — beat detection / timing adjustments.
 - `Core/Audio/WasapiAudioInput.cs` — Wasapi input adjustments.
-- `Core/Audio/WaveFormProcessing.cs` — waveform processing tweaks.
+- `Core/Audio/WaveFormProcessing.cs` — now delegates to `AudioAnalysisContext.Default` for backwards compatibility.
 - `Core/Core.csproj` — project file updated (Core).
 - `Core/IO/ProjectSettings.cs` — project settings changes.
 - `Core/Operator/PlaybackSettings.cs` — operator playback settings modified.
