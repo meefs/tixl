@@ -33,16 +33,17 @@ The audio engine in is built around ManagedBass / BassMix and a mixer-centric ar
   - Streams feed into `OperatorMixerHandle` which mixes into the global mixer.
 
 - **Stale / Lifetime Management** (`AudioEngine.cs`, `STALE_DETECTION.md`)
-  - `_operatorsUpdatedThisFrame` holds GUIDs updated in current frame.
-  - Each frame: `CheckAndMuteStaleOperators` marks operator streams as stale (muted) if no update.
+  - Uses internal monotonic frame token (`_audioFrameToken`) for stale detection.
+  - Each operator state tracks `LastUpdatedFrameId` to determine if it was updated this frame.
+  - Each frame: `StopStaleOperators` marks operator streams as stale (stopped) if no update.
   - During export, special export/reset functions mark streams stale and restore after export.
 
 - **Audio Rendering / Export Path** (`AudioRendering.cs`)
   - `PrepareRecording`: pauses global mixer, saves state, clears export registry, resets operator streams.
-  - Removes soundtrack streams from `SoundtrackMixerHandle`, configures them for reverse-direction reading.
-  - `GetFullMixDownBuffer` constructs a per-frame stereo float buffer by:
-    - Mixing soundtrack clips via manual `Bass.ChannelGetData` + custom resampler.
-    - Mixing operator audio via `Bass.ChannelGetData` from `OperatorMixerHandle`.
+  - Creates dedicated export mixer for sample-accurate seeking and BASS-handled resampling.
+  - Removes soundtrack streams from `SoundtrackMixerHandle`, adds them to export mixer.
+  - `GetFullMixDownBuffer` reads from export mixer (BASS handles resampling), mixes operator audio.
+  - Uses reusable static buffers to minimize per-frame allocations.
   - Logs per-frame stats, updates meter levels for operator streams.
   - `EndRecording`: re-adds soundtrack streams to mixer, restores saved state, resumes playback.
 
@@ -56,77 +57,7 @@ Overall, the design is clear and reasonably modular: mixer management is central
 
 ### (b) Specific Findings (with impact)
 
-(Note: previously resolved/merged items have been removed from this list.)
-
-1. Manual resampling in `AudioRendering.ResampleAndMix` is simple but potentially suboptimal
-
-- **Location**: `Core\Audio\AudioRendering.cs`
-  - `ResampleAndMix(...)`
-- **Code Pattern**:
-  ```csharp
-  private static void ResampleAndMix(float[] source, int sourceFloatCount, float sourceRate, int sourceChannels,
-      float[] target, int targetFloatCount, int targetRate, int targetChannels, float volume)
-  {
-      int targetSampleCount = targetFloatCount / targetChannels;
-      int sourceSampleCount = sourceFloatCount / sourceChannels;
-      double ratio = sourceRate / targetRate;
-
-      for (int t = 0; t < targetSampleCount; t++)
-      {
-          double sourcePos = t * ratio;
-          int s0 = (int)sourcePos;
-          int s1 = s0 + 1;
-          double frac = sourcePos - s0;
-
-          for (int c = 0; c < targetChannels; c++)
-          {
-              int sc = c % sourceChannels;
-              int idx0 = s0 * sourceChannels + sc;
-              int idx1 = s1 * sourceChannels + sc;
-
-              float v0 = (idx0 >= 0 && idx0 < sourceFloatCount) ? source[idx0] : 0;
-              float v1 = (idx1 >= 0 && idx1 < sourceFloatCount) ? source[idx1] : 0;
-
-              float interpolated = (float)(v0 * (1.0 - frac) + v1 * frac);
-              int targetIdx = t * targetChannels + c;
-
-              if (targetIdx < target.Length && !float.IsNaN(interpolated))
-                  target[targetIdx] += interpolated * volume;
-          }
-      }
-  }
-  ```
-- **Issues**:
-  1. **Quality**: simple linear interpolation is OK for many cases but can introduce noticeable aliasing and dullness for large resampling ratios (especially with pitch changes or large sample-rate differences).
-  2. **Performance**: tight nested loops in C# over per-sample operations may incur overhead compared to BASS’s internal resampling (which is often highly optimized and possibly vectorized).
-  3. **Duplication**: BASS/Mixer already provides resampling, channel conversion, and mixing; the engine is re-implementing this only for the export path.
-- **Impact / Risk**:
-  - **CPU usage**: export of long sequences at high FPS can be heavier than necessary.
-  - **Audio quality**: resampling artifacts in export that differ from live playback.
-  - **Maintenance**: any improvements to resampling have to be done manually here.
-
-2. `AudioRendering.GetFullMixDownBuffer` allocates buffers per frame, which can increase GC pressure
-
-- **Location**: `Core\Audio\AudioRendering.cs`
-  - `GetFullMixDownBuffer(double frameDurationInSeconds, double localFxTime)`
-- **Code Pattern**:
-  ```csharp
-  int sampleCount = (int)Math.Max(Math.Round(frameDurationInSeconds * AudioConfig.MixerFrequency), 1);
-  int floatCount = sampleCount * 2; // stereo
-  float[] mixBuffer = new float[floatCount];
-  ...
-  float[] operatorBuffer = new float[floatCount];
-  ...
-  float[] sourceBuffer = new float[sourceFloatCount]; // in MixSoundtrackClip
-  ```
-- **Issues**:
-  - Every export frame allocates several new arrays: `mixBuffer`, `operatorBuffer`, and per-soundtrack `sourceBuffer`. For long exports (e.g., thousands of frames), this can generate substantial managed allocations, increasing GC activity and possibly causing intermittent pauses.
-  - GC pressure during export is less critical than for real-time playback, but can still impact total export time (especially with high FPS or many clips).
-- **Impact / Risk**:
-  - **CPU / throughput**: increased GC may slow down offline export.
-  - **Predictability**: memory allocation pattern may cause inconsistent export durations between scenes.
-
-3. Shared static buffers for FFT / waveform introduce hidden coupling and potential race issues
+1. Shared static buffers for FFT / waveform introduce hidden coupling and potential race issues
 
 - **Location**:
   - `AudioEngine.UpdateFftBufferFromSoundtrack` (in `AudioEngine.cs`)
@@ -144,22 +75,9 @@ Overall, the design is clear and reasonably modular: mixer management is central
   3. `WaveFormProcessing.RequestedOnce` is a global static flag determining whether waveform data is fetched; the behaviour may be non-obvious from operator code.
 - **Impact / Risk**:
   - **Thread-safety**: current design is sensitive to concurrency changes; small architectural updates can introduce subtle bugs.
-  - **Maintainability**: static buffers obscure data flow; it’s not obvious who owns or uses them.
+  - **Maintainability**: static buffers obscure data flow; it's not obvious who owns or uses them.
 
-4. Operator stale detection depends on per-frame `Update*` calls and global state
-
-- **Location**: `Core\Audio\AudioEngine.cs`
-  - Fields: `_operatorsUpdatedThisFrame`, `_lastStaleCheckFrame`.
-  - Methods: `UpdateStereoOperatorPlayback`, `UpdateSpatialOperatorPlayback`, `CheckAndMuteStaleOperators`, `UpdateStaleStates`, export-related stale methods.
-- **Issues**:
-  1. Stale detection is implicit: it requires that operator instances call `UpdateStereoOperatorPlayback` / `UpdateSpatialOperatorPlayback` every frame in which they are “logically active.” If a caller misses a frame or changes update frequency, streams can be incorrectly muted.
-  2. `_lastStaleCheckFrame` / `Playback.FrameCount` coupling ties the stale logic to the global `Playback` system, which may complicate reuse or testing.
-  3. A stream being stale is indicated by both `OperatorAudioState<T>.IsStale` and `stream.SetStale(bool)`; there is duplication of state.
-- **Impact / Risk**:
-  - **Glitch resilience**: if an operator is updated a frame late due to performance hitches or scheduling, its audio might be muted for a frame.
-  - **Maintainability**: reliance on global frame count and implicit update contracts makes the behaviour harder to reason about.
-
-5. `AudioRendering.PrepareRecording` / `EndRecording` manipulate BASS state with limited error handling
+2. `AudioRendering.PrepareRecording` / `EndRecording` manipulate BASS state with limited error handling
 
 - **Location**: `Core\Audio\AudioRendering.cs`
   - `PrepareRecording`, `EndRecording`.
@@ -182,7 +100,7 @@ Overall, the design is clear and reasonably modular: mixer management is central
   - **Glitch / state corruption**: after export, soundtrack streams might have unexpected attributes or be missing from mixers if error conditions were hit.
   - **Debugging difficulty**: distortions or silence after export could be hard to trace.
 
-6. `AudioMixerManager.Initialize` uses `Bass.ChannelGetLevel` for levels in `GetGlobalMixerLevel`
+3. `AudioMixerManager.Initialize` uses `Bass.ChannelGetLevel` for levels in `GetGlobalMixerLevel`
 
 - **Location**: `Core\Audio\AudioMixerManager.cs`
   - `GetGlobalMixerLevel()`
@@ -193,11 +111,11 @@ Overall, the design is clear and reasonably modular: mixer management is central
       return 0f;
   ```
 - **Issues / Observation**:
-  - Uses `ChannelGetLevel` overload with `float[]` (level-ex variant) and a 50ms window, which is ok for metering; just ensure that the `Bass.dll` version supports this overload and that it does not conflict with how the engine wants “instant” vs “windowed” levels.
+  - Uses `ChannelGetLevel` overload with `float[]` (level-ex variant) and a 50ms window, which is ok for metering; just ensure that the `Bass.dll` version supports this overload and that it does not conflict with how the engine wants "instant" vs "windowed" levels.
 - **Impact / Risk**:
   - Low, but any mismatch in BASS version or flags could produce incorrect metering.
 
-7. `AudioMixerManager.CreateOfflineAnalysisStream` does not use the `OfflineMixerHandle`
+4. `AudioMixerManager.CreateOfflineAnalysisStream` does not use the `OfflineMixerHandle`
 
 - **Location**: `Core\Audio\AudioMixerManager.cs`
   - `CreateOfflineAnalysisStream`, `OfflineMixerHandle` property.
@@ -206,11 +124,11 @@ Overall, the design is clear and reasonably modular: mixer management is central
   var stream = Bass.CreateStream(filePath, 0, 0, BassFlags.Decode | BassFlags.Prescan | BassFlags.Float);
   ```
 - **Issues**:
-  - The offline mixer (`_offlineMixerHandle`) is created but not used here. Offline streams are standalone decode streams, not added to the offline mixer. This is not incorrect, but it contradicts the comment in the class docstring about an “offline mixer for analysis tasks.”
+  - The offline mixer (`_offlineMixerHandle`) is created but not used here. Offline streams are standalone decode streams, not added to the offline mixer. This is not incorrect, but it contradicts the comment in the class docstring about an "offline mixer for analysis tasks."
 - **Impact / Risk**:
   - **Maintainability / clarity**: future contributors may assume offline analysis uses `_offlineMixerHandle` for mixing multiple streams and could mis-use it.
 
-8. Operator file path resolution lacks caching of failures and clearer error semantics
+5. Operator file path resolution lacks caching of failures and clearer error semantics
 
 - **Location**: `Core\Audio\AudioEngine.cs`
   - `ResolveFilePath`, `HandleFileChange`.
@@ -239,7 +157,7 @@ Overall, the design is clear and reasonably modular: mixer management is central
   - **CPU / logging overhead**: repeated load attempts and logging for missing files.
   - **UX**: noisy logs for users experimenting with paths.
 
-9. Operator seek handling is edge-triggered but state only tracks last normalized seek value
+6. Operator seek handling is edge-triggered but state only tracks last normalized seek value
 
 - **Location**: `Core\Audio\AudioEngine.cs`
   - `HandleSeek`.
@@ -254,13 +172,13 @@ Overall, the design is clear and reasonably modular: mixer management is central
   }
   ```
 - **Issues**:
-  - If calling code uses 0 as “no seek” value but sometimes legitimately wants to seek to 0, there is ambiguity.
+  - If calling code uses 0 as "no seek" value but sometimes legitimately wants to seek to 0, there is ambiguity.
   - Continuous changes around a value might cause repeated `Seek` calls per frame if not rate-limited by caller.
 - **Impact / Risk**:
   - **Performance**: repeated seek operations (which may be expensive) if upstream code is noisy.
   - **Clarity**: semantics of `seek` parameter (edge-trigger vs absolute desire) may not be obvious from the interface.
 
-10. Exception handling in `AudioRendering.ExportAudioFrame` is too coarse and hides error details
+7. Exception handling in `AudioRendering.ExportAudioFrame` is too coarse and hides error details
 
 - **Location**: `Core\Audio\AudioRendering.cs`
   - `ExportAudioFrame`.
@@ -281,7 +199,7 @@ Overall, the design is clear and reasonably modular: mixer management is central
 - **Impact / Risk**:
   - **Debuggability**: less context makes it harder to diagnose issues in FFT/export path.
 
-11. `AudioMixerManager.Shutdown` frees all streams and calls `Bass.Free` without notifying higher layers
+8. `AudioMixerManager.Shutdown` frees all streams and calls `Bass.Free` without notifying higher layers
 
 - **Location**: `Core\Audio\AudioMixerManager.cs`
   - `Shutdown()`.
@@ -304,44 +222,16 @@ Overall, the design is clear and reasonably modular: mixer management is central
 
 ### (c) Prioritized Recommendations (implementation-oriented)
 
-Below are the remaining prioritized recommendations grouped and ordered by priority (High → Medium → Low). Completed items were removed.
-
-High priority
-
-1. ~~Reduce per-frame allocations in `AudioRendering.GetFullMixDownBuffer` by using reusable buffers~~ ✅ **COMPLETED**
-
-- **Status**: Implemented on 2026-01-29
-- **Changes made**:
-  - Added static reusable buffers: `_mixBuffer`, `_operatorBuffer`, `_spatialStreamBuffer`
-  - Added `EnsureBuffer` helper method that reallocates only when needed and clears the buffer
-  - Updated `GetFullMixDownBuffer`, `MixOperatorAudio`, and `MixSpatialOperatorAudio` to use reusable buffers
-
-2. ~~Consider leveraging BASS/Mixer for export resampling instead of manual `ResampleAndMix`~~ ✅ **COMPLETED**
-
-- **Status**: Implemented on 2026-01-29
-- **Changes made**:
-  - Created dedicated export mixer (`_exportMixerHandle`) in `PrepareRecording` at `AudioConfig.MixerFrequency`
-  - Added `MixSoundtracksFromExportMixer` method that positions clips and reads from the BASS mixer
-  - Soundtrack streams are added to export mixer with `MixerChanNoRamping` for sample-accurate seeking
-  - BASS now handles all resampling from native clip frequencies to mixer frequency
-  - Removed manual `ResampleAndMix` method (was using simple linear interpolation)
-  - Export mixer is properly cleaned up in `EndRecording`
-  - Legacy `MixSoundtrackClip` kept as fallback if export mixer fails to initialize
-- **Benefits achieved**:
-  - Better audio quality (BASS's optimized resampler vs simple linear interpolation)
-  - Improved performance (BASS's potentially vectorized implementation)
-  - Export audio now uses same mixing path as live playback
-  - Reduced code complexity
-
+Below are the remaining prioritized recommendations grouped and ordered by priority (High → Medium → Low).
 
 Medium priority
 
-3. Make FFT / waveform buffers explicitly owned and avoid global static coupling
+1. Make FFT / waveform buffers explicitly owned and avoid global static coupling
 
 - **Goals**: improve thread-safety and clarity.
 
 - **Steps**:
-  1. In `AudioAnalysis` and `WaveFormProcessing`, introduce instance-level buffers and a small “analysis context” struct/class that holds them.
+  1. In `AudioAnalysis` and `WaveFormProcessing`, introduce instance-level buffers and a small "analysis context" struct/class that holds them.
   2. Change `AudioEngine.UpdateFftBufferFromSoundtrack` to accept an analysis context (or explicit buffers) instead of writing into static arrays.
   3. Document that currently all analysis is assumed to run on the main thread; warn that multi-threaded usage requires extra synchronization.
 
@@ -349,7 +239,7 @@ Medium priority
   - Clearer ownership of buffers.
   - Easier future refactoring to multi-threaded or multi-consumer analysis.
 
-4. Harden export state transitions in `AudioRendering.PrepareRecording` / `EndRecording`
+2. Harden export state transitions in `AudioRendering.PrepareRecording` / `EndRecording`
 
 - **Goals**: robustness against errors and double-calls, easier debugging.
 
@@ -363,20 +253,7 @@ Medium priority
   - Fewer surprises after export.
   - Safer integration with UI or scripting where export commands may be spammed.
 
-5. Clarify and slightly decouple stale detection from global frame count
-
-- **Goals**: improve clarity and reduce accidental muting.
-
-- **Steps**:
-  1. Document operator update contract in `STALE_DETECTION.md`.
-  2. Optionally change `CheckAndMuteStaleOperators` to use an internal monotonic frame token instead of `Playback.FrameCount`.
-  3. Consider storing `LastUpdatedFrameId` inside `OperatorAudioState<T>` to reduce allocations and make logic explicit.
-
-- **Benefits**:
-  - More robust detection of stale operators.
-  - Easier to change update frequency of operators if needed.
-
-6. Improve error and logging detail in key areas
+3. Improve error and logging detail in key areas
 
 - **Goals**: easier troubleshooting of audio issues.
 
@@ -390,7 +267,7 @@ Medium priority
 
 Low priority
 
-7. Cache failed operator file loads or mark invalid paths
+4. Cache failed operator file loads or mark invalid paths
 
 - **Goals**: reduce repeated error logging and load attempts.
 
@@ -403,7 +280,7 @@ Low priority
   - Cleaner logs when users experiment with invalid files.
   - Less redundant work.
 
-8. Clarify and refine seek semantics for operators
+5. Clarify and refine seek semantics for operators
 
 - **Goals**: avoid unnecessary seeks and clarify API usage.
 
@@ -415,7 +292,7 @@ Low priority
 - **Benefits**:
   - More predictable operator behaviour when upstream controls seek via UI or automation.
 
-9. Either use `_offlineMixerHandle` for multi-stream analysis or simplify the abstraction
+6. Either use `_offlineMixerHandle` for multi-stream analysis or simplify the abstraction
 
 - **Goals**: reduce conceptual unused complexity.
 
@@ -425,4 +302,3 @@ Low priority
 
 - **Benefits**:
   - Clearer understanding of the analysis path.
-

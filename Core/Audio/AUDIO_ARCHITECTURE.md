@@ -159,7 +159,7 @@ Centralized configuration with compile-time and runtime settings:
 ```
 OperatorAudioStreamBase (abstract)
 ├── Properties: Duration, StreamHandle, MixerStreamHandle, IsPaused, IsPlaying, FilePath
-├── Protected: DefaultPlaybackFrequency, CachedChannels, CachedFrequency, IsStaleMuted
+├── Protected: DefaultPlaybackFrequency, CachedChannels, CachedFrequency, IsStaleStopped
 ├── Methods: Play, Pause, Resume, Stop, SetVolume, SetSpeed, Seek
 ├── Metering: GetLevel, UpdateFromBuffer, ClearExportMetering
 ├── Export: PrepareForExport, RestartAfterExport, RenderAudio, GetCurrentPosition
@@ -169,7 +169,7 @@ OperatorAudioStreamBase (abstract)
     └── SetPanning(float) - Pan audio left (-1) to right (+1)
 
 SpatialOperatorAudioStream (standalone class - does NOT inherit from base)
-├── Properties: Duration, StreamHandle, FilePath, IsPaused, IsPlaying, IsStaleMuted
+├── Properties: Duration, StreamHandle, FilePath, IsPaused, IsPlaying, IsStaleStopped
 ├── Methods: Play, Pause, Resume, Stop, SetVolume, SetSpeed, Seek
 ├── 3D Methods:
 │   ├── Initialize3DAudio() - Setup initial 3D attributes
@@ -194,11 +194,12 @@ AudioEngine (static)
 ├── Soundtrack: SoundtrackClipStreams, UseSoundtrackClip, ReloadSoundtrackClip
 ├── Operators: _stereoOperatorStates, _spatialOperatorStates, Update*OperatorPlayback
 ├── Internal State Classes:
-│   ├── OperatorAudioState<T> - Stream, CurrentFilePath, IsPaused, PreviousSeek/Play/Stop, IsStale
+│   ├── OperatorAudioState<T> - Stream, CurrentFilePath, IsPaused, PreviousSeek/Play/Stop, IsStale, LastUpdatedFrameId
 │   └── SpatialOperatorState - Same structure but non-generic for spatial streams
 ├── 3D Listener: _listenerPosition, _listenerForward, _listenerUp, Set3DListenerPosition
 ├── 3D Batching: Mark3DApplyNeeded(), Apply3DChanges() (called once per frame)
-├── Stale Detection: _operatorsUpdatedThisFrame, CheckAndMuteStaleOperators
+├── Stale Detection: _audioFrameToken (monotonic), LastUpdatedFrameId per operator, StopStaleOperators
+│   └── See STALE_DETECTION.md for detailed documentation
 ├── Export: ResetAllOperatorStreamsForExport, RestoreOperatorAudioStreams, UpdateStaleStatesForExport
 └── Device: OnAudioDeviceChanged, SetGlobalVolume, SetGlobalMute, SetOperatorMute
 ```
@@ -495,8 +496,8 @@ During export, spatial audio streams require special handling:
 - 3D positioning effects are only present during live playback
 - Exported spatial audio is mixed as mono, then converted to stereo for the final mixdown
 
-> **Important:** Spatial audio in exported videos will NOT include 3D positioning effects. 
-> The exported audio is the raw source audio mixed to stereo without spatial processing.
+> **Important:** Spatial audio in exported videos will NOT include 3D positioning effects. (Doppler)
+> The exported audio is the raw source audio mixed to stereo with simulated spatial processing.
 
 ---
 

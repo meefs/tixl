@@ -41,9 +41,9 @@ public sealed class SpatialOperatorAudioStream
     internal bool IsPaused { get; set; }
 
     /// <summary>
-    /// Indicates whether the stream is muted due to being stale (not actively used).
+    /// Indicates whether the stream has been stopped and reset due to being stale (not actively updated).
     /// </summary>
-    internal bool IsStaleMuted { get; private set; }
+    internal bool IsStoppedDueToStale { get; private set; }
 
     /// <summary>
     /// The 3D position of the audio source.
@@ -214,7 +214,7 @@ public sealed class SpatialOperatorAudioStream
             IsPaused = false,
             _cachedChannels = info.Channels,
             _cachedFrequency = info.Frequency,
-            IsStaleMuted = true
+            IsStoppedDueToStale = true
         };
 
         // Initialize with volume at 0 - will be unmuted when Play() is triggered
@@ -335,7 +335,7 @@ public sealed class SpatialOperatorAudioStream
     /// </summary>
     internal void Play()
     {
-        IsStaleMuted = false;
+        IsStoppedDueToStale = false;
         IsPlaying = true;
         IsPaused = false;
 
@@ -394,7 +394,7 @@ public sealed class SpatialOperatorAudioStream
     {
         IsPlaying = false;
         IsPaused = false;
-        IsStaleMuted = false;
+        IsStoppedDueToStale = false;
         Bass.ChannelPause(StreamHandle);
         Bass.ChannelSetPosition(StreamHandle, 0, PositionFlags.Bytes);
     }
@@ -406,8 +406,8 @@ public sealed class SpatialOperatorAudioStream
     /// <param name="reason">Optional reason for the stale state change (for debugging).</param>
     internal void SetStale(bool stale, string reason = "")
     {
-        if (IsStaleMuted == stale) return;
-        IsStaleMuted = stale;
+        if (IsStoppedDueToStale == stale) return;
+        IsStoppedDueToStale = stale;
 
         if (stale)
         {
@@ -452,8 +452,8 @@ public sealed class SpatialOperatorAudioStream
             return;
         }
         
-        // Mute if: user muted, stale muted, or beyond max distance
-        if (_isUserMuted || IsStaleMuted || _isBeyondMaxDistance)
+        // Mute if: user muted, stale stopped, or beyond max distance
+        if (_isUserMuted || IsStoppedDueToStale || _isBeyondMaxDistance)
         {
             Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
             return;
@@ -516,7 +516,7 @@ public sealed class SpatialOperatorAudioStream
     internal float GetLevel()
     {
         if (_exportLevel.HasValue) return _exportLevel.Value;
-        if (!IsPlaying || (IsPaused && !IsStaleMuted)) return 0f;
+        if (!IsPlaying || (IsPaused && !IsStoppedDueToStale)) return 0f;
 
         var level = Bass.ChannelGetLevel(StreamHandle);
         if (level == -1) return 0f;
@@ -548,7 +548,7 @@ public sealed class SpatialOperatorAudioStream
         _exportPlaybackPosition = 0.0;
         IsPlaying = false;
         IsPaused = false;
-        IsStaleMuted = true;
+        IsStoppedDueToStale = true;
 
         // Mute and pause the playback stream - prevent any audio going to speakers
         Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
@@ -574,7 +574,7 @@ public sealed class SpatialOperatorAudioStream
     internal void RestartAfterExport()
     {
         _isExportMode = false;
-        IsStaleMuted = false;
+        IsStoppedDueToStale = false;
 
         // Free the export decode stream
         if (_exportDecodeStreamHandle != 0)

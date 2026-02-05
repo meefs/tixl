@@ -74,9 +74,9 @@ public abstract class OperatorAudioStreamBase
     protected int CachedFrequency;
     
     /// <summary>
-    /// Indicates whether the stream is muted due to being stale (not actively used).
+    /// Indicates whether the stream has been stopped and reset due to being stale (not actively updated).
     /// </summary>
-    protected bool IsStaleMuted;
+    protected bool IsStaleStopped;
     
     /// <summary>
     /// Indicates whether the stream is muted by user request.
@@ -162,7 +162,7 @@ public abstract class OperatorAudioStreamBase
     /// </summary>
     internal virtual void Play()
     {
-        IsStaleMuted = false;
+        IsStaleStopped = false;
         BassMix.ChannelFlags(StreamHandle, 0, BassFlags.MixerChanPause);
         IsPlaying = true;
         IsPaused = false;
@@ -204,7 +204,7 @@ public abstract class OperatorAudioStreamBase
     {
         IsPlaying = false;
         IsPaused = false;
-        IsStaleMuted = false;
+        IsStaleStopped = false;
         BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);
         var position = Bass.ChannelSeconds2Bytes(StreamHandle, 0);
         BassMix.ChannelSetPosition(StreamHandle, position, PositionFlags.Bytes | PositionFlags.MixerReset);
@@ -217,8 +217,8 @@ public abstract class OperatorAudioStreamBase
     /// <param name="reason">Optional reason for the stale state change (for debugging).</param>
     internal void SetStale(bool stale, string reason = "")
     {
-        if (IsStaleMuted == stale) return;
-        IsStaleMuted = stale;
+        if (IsStaleStopped == stale) return;
+        IsStaleStopped = stale;
 
         if (stale)
         {
@@ -247,7 +247,7 @@ public abstract class OperatorAudioStreamBase
 
         if (!IsPlaying) return;
 
-        float finalVolume = (!mute && !IsStaleMuted) ? volume : 0.0f;
+        float finalVolume = (!mute && !IsStaleStopped) ? volume : 0.0f;
         Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, finalVolume);
     }
 
@@ -281,7 +281,7 @@ public abstract class OperatorAudioStreamBase
     /// </summary>
     internal virtual void RestartAfterExport()
     {
-        IsStaleMuted = false;
+        IsStaleStopped = false;
 
         var resetPosition = Bass.ChannelSeconds2Bytes(StreamHandle, 0);
         BassMix.ChannelSetPosition(StreamHandle, resetPosition, PositionFlags.Bytes | PositionFlags.MixerReset);
@@ -321,7 +321,7 @@ public abstract class OperatorAudioStreamBase
     internal float GetLevel()
     {
         if (ExportLevel.HasValue) return ExportLevel.Value;
-        if (!IsPlaying || (IsPaused && !IsStaleMuted)) return 0f;
+        if (!IsPlaying || (IsPaused && !IsStaleStopped)) return 0f;
 
         var level = BassMix.ChannelGetLevel(StreamHandle);
         if (level == -1) return 0f;
@@ -399,7 +399,7 @@ public abstract class OperatorAudioStreamBase
     {
         IsPlaying = false;
         IsPaused = false;
-        IsStaleMuted = true;
+        IsStaleStopped = true;
 
         Bass.ChannelSetAttribute(StreamHandle, ChannelAttribute.Volume, 0.0f);
         BassMix.ChannelFlags(StreamHandle, BassFlags.MixerChanPause, BassFlags.MixerChanPause);

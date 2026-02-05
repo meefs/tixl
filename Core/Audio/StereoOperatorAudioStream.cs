@@ -44,7 +44,7 @@ public sealed class StereoOperatorAudioStream : OperatorAudioStreamBase
             IsPaused = false,
             CachedChannels = info.Channels,
             CachedFrequency = info.Frequency,
-            IsStaleMuted = true
+            IsStaleStopped = true
         };
 
         Log.Gated.Audio($"[AudioPlayer] Loaded: '{Path.GetFileName(filePath)}' ({info.Channels}ch, {info.Frequency}Hz, {duration:F2}s)");

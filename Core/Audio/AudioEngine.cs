@@ -23,8 +23,23 @@ public static class AudioEngine
     // --- Operator Audio ---
     private static readonly Dictionary<Guid, OperatorAudioState<StereoOperatorAudioStream>> _stereoOperatorStates = new();
     private static readonly Dictionary<Guid, SpatialOperatorState> _spatialOperatorStates = new();
-    private static readonly HashSet<Guid> _operatorsUpdatedThisFrame = new();
-    private static int _lastStaleCheckFrame = -1;
+    
+    /// <summary>
+    /// Internal monotonic frame token for stale detection.
+    /// Incremented at the start of each new frame (detected via Playback.FrameCount change).
+    /// </summary>
+    private static long _audioFrameToken;
+    
+    /// <summary>
+    /// Tracks the last seen Playback.FrameCount to detect when a new frame has started.
+    /// When this differs from current Playback.FrameCount, we increment _audioFrameToken.
+    /// </summary>
+    private static int _lastSeenPlaybackFrame = -1;
+    
+    /// <summary>
+    /// Tracks whether stale check has been performed for the current frame token.
+    /// </summary>
+    private static long _lastStaleCheckFrameToken = -1;
     
     // Export state
     private static bool _isExporting;
@@ -54,6 +69,13 @@ public static class AudioEngine
         public bool PreviousPlay;
         public bool PreviousStop;
         public bool IsStale;
+        
+        /// <summary>
+        /// The frame token when this operator was last updated.
+        /// Used for stale detection - if this doesn't match the current _audioFrameToken,
+        /// the operator is considered stale.
+        /// </summary>
+        public long LastUpdatedFrameId = -1;
     }
 
     /// <summary>
@@ -68,6 +90,13 @@ public static class AudioEngine
         public bool PreviousPlay;
         public bool PreviousStop;
         public bool IsStale;
+        
+        /// <summary>
+        /// The frame token when this operator was last updated.
+        /// Used for stale detection - if this doesn't match the current _audioFrameToken,
+        /// the operator is considered stale.
+        /// </summary>
+        public long LastUpdatedFrameId = -1;
     }
 
     #region Soundtrack Management
@@ -112,7 +141,7 @@ public static class AudioEngine
         if (playback.Settings is { Enabled: true, AudioSource: PlaybackSettings.AudioSources.ProjectSoundTrack })
             AudioAnalysis.ProcessUpdate(playback.Settings.AudioGainFactor, playback.Settings.AudioDecayFactor);
 
-        CheckAndMuteStaleOperators();
+        StopStaleOperators();
         
         // Apply all 3D audio changes once per frame (batched for performance)
         Apply3DChanges();
@@ -414,11 +443,15 @@ public static class AudioEngine
         Guid operatorId, string filePath, bool shouldPlay, bool shouldStop,
         float volume, bool mute, float panning, float speed = 1.0f, float seek = 0f)
     {
-        _operatorsUpdatedThisFrame.Add(operatorId);
-
+        EnsureFrameTokenCurrent();
+        
         if (!EnsureMixerInitialized()) return;
 
         var state = GetOrCreateState(_stereoOperatorStates, operatorId);
+        
+        // Mark this operator as updated for this frame (used for stale detection)
+        state.LastUpdatedFrameId = _audioFrameToken;
+        
         var resolvedPath = ResolveFilePath(filePath);
 
         if (!HandleFileChange(state, resolvedPath, operatorId,
@@ -509,14 +542,18 @@ public static class AudioEngine
         float speed = 1.0f, float seek = 0f, Vector3? orientation = null,
         float innerConeAngle = 360f, float outerConeAngle = 360f, float outerConeVolume = 1.0f, int mode3D = 0)
     {
-        _operatorsUpdatedThisFrame.Add(operatorId);
-
+        EnsureFrameTokenCurrent();
+        
         if (!EnsureMixerInitialized()) return;
 
         if (!_3dInitialized)
             Set3DListenerPosition(Vector3.Zero, new Vector3(0, 0, 1), new Vector3(0, 1, 0));
 
         var state = GetOrCreateSpatialState(operatorId);
+        
+        // Mark this operator as updated for this frame (used for stale detection)
+        state.LastUpdatedFrameId = _audioFrameToken;
+        
         var resolvedPath = ResolveFilePath(filePath);
 
         if (!HandleSpatialFileChange(state, resolvedPath, operatorId))
@@ -895,18 +932,33 @@ public static class AudioEngine
 
     #region Stale Detection & Export
 
-    private static void CheckAndMuteStaleOperators()
+    /// <summary>
+    /// Checks if a new frame has started and increments the internal frame token if so.
+    /// Called automatically by operator update methods to ensure frame token is current
+    /// before recording operator updates.
+    /// </summary>
+    private static void EnsureFrameTokenCurrent()
+    {
+        if (Playback.Current.IsRenderingToFile) return;
+        
+        var currentPlaybackFrame = Playback.FrameCount;
+        if (_lastSeenPlaybackFrame != currentPlaybackFrame)
+        {
+            _lastSeenPlaybackFrame = currentPlaybackFrame;
+            _audioFrameToken++;
+        }
+    }
+
+    private static void StopStaleOperators()
     {
         if (Playback.Current.IsRenderingToFile) return;
 
-        var currentFrame = Playback.FrameCount;
-        if (_lastStaleCheckFrame == currentFrame) return;
-        _lastStaleCheckFrame = currentFrame;
+        // Only run stale check once per frame token
+        if (_lastStaleCheckFrameToken == _audioFrameToken) return;
+        _lastStaleCheckFrameToken = _audioFrameToken;
 
         UpdateStaleStates(_stereoOperatorStates);
         UpdateSpatialStaleStates();
-
-        _operatorsUpdatedThisFrame.Clear();
     }
 
     private static void UpdateStaleStates<T>(Dictionary<Guid, OperatorAudioState<T>> states)
@@ -916,7 +968,8 @@ public static class AudioEngine
         {
             if (state.Stream == null) continue;
 
-            bool isStale = !_operatorsUpdatedThisFrame.Contains(operatorId);
+            // An operator is stale if it wasn't updated this frame
+            bool isStale = (state.LastUpdatedFrameId != _audioFrameToken);
             if (state.IsStale != isStale)
             {
                 state.Stream.SetStale(isStale);
@@ -931,7 +984,8 @@ public static class AudioEngine
         {
             if (state.Stream == null) continue;
 
-            bool isStale = !_operatorsUpdatedThisFrame.Contains(operatorId);
+            // An operator is stale if it wasn't updated this frame
+            bool isStale = (state.LastUpdatedFrameId != _audioFrameToken);
             if (state.IsStale != isStale)
             {
                 state.Stream.SetStale(isStale);
@@ -948,7 +1002,6 @@ public static class AudioEngine
         _isExporting = true;
         ResetOperatorStreamsForExport(_stereoOperatorStates);
         ResetSpatialOperatorStreamsForExport();
-        _operatorsUpdatedThisFrame.Clear();
     }
 
     private static void ResetOperatorStreamsForExport<T>(Dictionary<Guid, OperatorAudioState<T>> states)
@@ -972,12 +1025,15 @@ public static class AudioEngine
 
     /// <summary>
     /// Updates the stale states for all operator streams during export.
+    /// Increments the frame token to ensure proper stale detection.
     /// </summary>
     internal static void UpdateStaleStatesForExport()
     {
+        // Increment frame token for export frame processing
+        _audioFrameToken++;
+        
         UpdateStaleStates(_stereoOperatorStates);
         UpdateSpatialStaleStates();
-        _operatorsUpdatedThisFrame.Clear();
     }
 
     /// <summary>
@@ -996,7 +1052,6 @@ public static class AudioEngine
 
         RestoreOperatorStreams(_stereoOperatorStates);
         RestoreSpatialOperatorStreams();
-        _operatorsUpdatedThisFrame.Clear();
 
         if (AudioMixerManager.GlobalMixerHandle != 0)
             Bass.ChannelUpdate(AudioMixerManager.GlobalMixerHandle, 0);
