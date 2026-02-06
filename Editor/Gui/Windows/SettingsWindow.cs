@@ -1,17 +1,13 @@
 using System.IO;
 using ImGuiNET;
 using Operators.Utils;
-using T3.Core.Audio;
 using T3.Core.IO;
-using T3.Core.Logging;
-using T3.Core.UserData;
 using T3.Core.Utils;
 using T3.Editor.Gui.Input;
 using T3.Editor.Gui.Interaction.Keyboard;
 using T3.Editor.Gui.Interaction.Midi;
 using T3.Editor.Gui.Styling;
 using T3.Editor.Gui.UiHelpers;
-using T3.Editor.Skills.Data;
 using T3.Editor.Skills.Training;
 using T3.Editor.UiModel.Helpers;
 
@@ -495,13 +491,12 @@ internal sealed partial class SettingsWindow : Window
                     FormInputs.SetIndentToLeft();
                     FormInputs.AddSectionSubHeader("Audio System");
                     FormInputs.AddVerticalSpace();
-                    var audioDebugChanged = FormInputs.AddCheckBox("Show Audio Logs",
-                        ref ProjectSettings.Config.ShowAudioDebugLogs,
-                        "Shows Debug and Info log messages from audio system classes. Warning and Error messages will still be logged.",
-                        ProjectSettings.Defaults.ShowAudioDebugLogs);
-                    if (audioDebugChanged)
+                    if (FormInputs.AddCheckBox("Show Audio Logs",
+                            ref UserSettings.Config.LogAudioDetails,
+                            "Shows Debug and Info log messages from audio system classes. Warning and Error messages will still be logged.",
+                            UserSettings.Defaults.ShowAudioDebugLogs))
                     {
-                        Log.Gated.AudioEnabled = ProjectSettings.Config.ShowAudioDebugLogs;
+                        Log.Gated.AudioEnabled = UserSettings.Config.LogAudioDetails;
                         changed = true;
                     }
                     changed |= FormInputs.AddCheckBox("Profile Beat Syncing",
@@ -552,24 +547,24 @@ internal sealed partial class SettingsWindow : Window
                     FormInputs.AddSectionSubHeader("Rendering");
                     // Add Show Audio Render Logs here
                     var audioRenderingDebugChanged = FormInputs.AddCheckBox("Show Audio Render Logs",
-                        ref ProjectSettings.Config.ShowAudioRenderingDebugLogs,
+                        ref UserSettings.Config.LogAudioRenderingDetails,
                         "Shows Debug and Info log messages from audio rendering classes (e.g., export, offline rendering).",
-                        ProjectSettings.Defaults.ShowAudioRenderingDebugLogs);
+                        UserSettings.Defaults.LogAudioRenderingDetails);
                     if (audioRenderingDebugChanged)
                     {
-                        Log.Gated.AudioRenderEnabled = ProjectSettings.Config.ShowAudioRenderingDebugLogs;
+                        Log.Gated.AudioRenderEnabled = UserSettings.Config.LogAudioRenderingDetails;
                         changed = true;
                     }
                     
                     
                     // Change label for video rendering logs
                     var videoRenderingDebugChanged = FormInputs.AddCheckBox("Show Video Render Logs",
-                        ref ProjectSettings.Config.ShowVideoRenderingDebugLogs,
+                        ref UserSettings.Config.LogVideoRenderingDetails,
                         "Shows Debug and Info log messages from video rendering/export (e.g., Mp4VideoWriter, RenderProcess).",
-                        ProjectSettings.Defaults.ShowVideoRenderingDebugLogs);
+                        UserSettings.Defaults.ShowVideoRenderingDebugLogs);
                     if (videoRenderingDebugChanged)
                     {
-                        Log.Gated.VideoRenderEnabled = ProjectSettings.Config.ShowVideoRenderingDebugLogs;
+                        Log.Gated.VideoRenderEnabled = UserSettings.Config.LogVideoRenderingDetails;
                         changed = true;
                     }
                     FormInputs.AddVerticalSpace();

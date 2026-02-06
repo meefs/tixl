@@ -42,6 +42,12 @@ public static class Log
             if (VideoRenderEnabled) Log.Debug(message);
         }
         
+        /// <summary>
+        /// Initializes the gated debug logging configuration by enabling or disabling specific logging categories.
+        /// </summary>
+        /// <param name="audio">Enable logging of audio-related debug messages.</param>
+        /// <param name="audioRender">Enable logging of audio rendering debug messages.</param>
+        /// <param name="videoRender">Enable logging of video rendering debug messages.</param>
         public static void Initialize(bool audio, bool audioRender, bool videoRender)
         {
             AudioEnabled = audio;

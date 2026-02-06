@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using T3.Core.Animation;
 using T3.Core.IO;
+using T3.Core.Logging;
 using T3.Core.UserData;
 using T3.Editor.Compilation;
 using T3.Editor.Gui.Windows;
@@ -18,6 +19,17 @@ public sealed class UserSettings : Settings<UserSettings.ConfigData>
 {
     internal UserSettings(bool saveOnQuit) : base("userSettings.json", saveOnQuit: saveOnQuit)
     {
+    }
+
+    /// <summary>
+    /// Initializes gated debug logging based on current user settings configuration.
+    /// </summary>
+    public static void InitializeGatedLogging()
+    {
+        Log.Gated.Initialize(
+            Config.LogAudioDetails,
+            Config.LogAudioRenderingDetails,
+            Config.LogVideoRenderingDetails);
     }
 
     public sealed class ConfigData
@@ -150,6 +162,11 @@ public sealed class UserSettings : Settings<UserSettings.ConfigData>
         public bool EnableGCProfiling = false;
         public bool EnableMidiDebugLogging = false;
         public bool ShowOperatorStats = false;
+        
+        // Gated Debug Logging
+        public bool LogAudioDetails = false;
+        public bool LogAudioRenderingDetails = false;
+        public bool LogVideoRenderingDetails = false;
 
         public CompilerOptions.Verbosity CompileCsVerbosity = CompilerOptions.Verbosity.Normal;
 
@@ -213,6 +230,11 @@ public sealed class UserSettings : Settings<UserSettings.ConfigData>
         public static CompilerOptions.Verbosity CompileCsVerbosity = CompilerOptions.Verbosity.Normal;
         public static bool ShowOperatorStats = false;
         public static float CameraSpeed = 1;
+        
+        // Gated Debug Logging
+        public static bool ShowAudioDebugLogs = false;
+        public static bool LogAudioRenderingDetails = false;
+        public static bool ShowVideoRenderingDebugLogs = false;
     }
 
     public enum ValueEditMethods

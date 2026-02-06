@@ -298,7 +298,7 @@ internal static class RenderProcess
                     Bitrate = _activeSession.Settings.Bitrate,
                     Framerate = (int)_activeSession.Settings.Fps
                 };
-                Log.Gated.VideoRender($"Mp4VideoWriter initialized: Codec=H.264, FileFormat=mp4, Bitrate={_activeSession.VideoWriter.Bitrate}, Framerate={_activeSession.VideoWriter.Framerate}, AudioEnabled={_activeSession.Settings.ExportAudio}, Channels={RenderAudioInfo.SoundtrackChannels()}, SampleRate={RenderAudioInfo.SoundtrackSampleRate()}");
+                Log.Gated.VideoRender($"Mp4VideoWriter initialized: Codec=H.264, FileFormat=mp4, Bitrate={_activeSession.VideoWriter.Bitrate}, Framerate={_activeSession.VideoWriter.Framerate}, Channels={RenderAudioInfo.SoundtrackChannels()}, SampleRate={RenderAudioInfo.SoundtrackSampleRate()}");
             }
             catch (Exception ex)
             {

@@ -35,11 +35,6 @@ public class ProjectSettings : Settings<ProjectSettings.ConfigData>
         
         // Profiling
         public bool EnableBeatSyncProfiling = false;
-        
-        // Logging
-        public bool ShowAudioDebugLogs = false;
-        public bool ShowAudioRenderingDebugLogs = false;
-        public bool ShowVideoRenderingDebugLogs = false;
 
         // Audio
         public bool GlobalMute = false;
@@ -67,11 +62,6 @@ public class ProjectSettings : Settings<ProjectSettings.ConfigData>
         public static bool LogFileEvents = false;
         public static bool EnableBeatSyncProfiling = false;
         
-        // Logging
-        public static bool ShowAudioDebugLogs = false;
-        public static bool ShowAudioRenderingDebugLogs = false;
-        public static bool ShowVideoRenderingDebugLogs = false;
-
         // Audio
         public static bool GlobalMute = false;
         public static float GlobalPlaybackVolume = 1;

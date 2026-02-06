@@ -143,14 +143,11 @@ internal static class Program
         // ReSharper disable once UnusedVariable
         var userSettings = new UserSettings(saveOnQuit: true);
         
+        // Initialize debug logging configuration from user settings
+        UserSettings.InitializeGatedLogging();
+        
         // ReSharper disable once UnusedVariable
         var projectSettings = new ProjectSettings(saveOnQuit: true);
-        
-        // Initialize debug logging configuration from project settings
-        Log.Gated.Initialize(
-            ProjectSettings.Config.ShowAudioDebugLogs,
-            ProjectSettings.Config.ShowAudioRenderingDebugLogs,
-            ProjectSettings.Config.ShowVideoRenderingDebugLogs);
 
         if (UserSettings.Config.ProjectDirectories.Count == 0)
         {
