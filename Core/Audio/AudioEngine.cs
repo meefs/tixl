@@ -12,7 +12,7 @@ using T3.Core.Resource.Assets;
 namespace T3.Core.Audio;
 
 /// <summary>
-/// Controls loading, playback and discarding of audio clips.
+/// Controls loading, playback, and discarding of audio clips.
 /// </summary>
 public static class AudioEngine
 {
@@ -606,7 +606,7 @@ public static class AudioEngine
         // Mark this operator as updated for this frame (used for stale detection)
         state.LastUpdatedFrameId = _audioFrameToken;
         
-        var resolvedPath = ResolveFilePath(filePath);
+        var resolvedPath = !string.IsNullOrEmpty(filePath) ? ResolveFilePath(filePath) : string.Empty;
 
         if (!HandleSpatialFileChange(state, resolvedPath, operatorId))
             return;

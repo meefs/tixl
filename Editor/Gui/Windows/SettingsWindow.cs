@@ -494,7 +494,7 @@ internal sealed partial class SettingsWindow : Window
                     if (FormInputs.AddCheckBox("Show Audio Logs",
                             ref UserSettings.Config.LogAudioDetails,
                             "Shows Debug and Info log messages from audio system classes. Warning and Error messages will still be logged.",
-                            UserSettings.Defaults.ShowAudioDebugLogs))
+                            UserSettings.Defaults.LogAudioDetails))
                     {
                         Log.Gated.AudioEnabled = UserSettings.Config.LogAudioDetails;
                         changed = true;
@@ -561,7 +561,7 @@ internal sealed partial class SettingsWindow : Window
                     var videoRenderingDebugChanged = FormInputs.AddCheckBox("Show Video Render Logs",
                         ref UserSettings.Config.LogVideoRenderingDetails,
                         "Shows Debug and Info log messages from video rendering/export (e.g., Mp4VideoWriter, RenderProcess).",
-                        UserSettings.Defaults.ShowVideoRenderingDebugLogs);
+                        UserSettings.Defaults.LogVideoRenderingDetails);
                     if (videoRenderingDebugChanged)
                     {
                         Log.Gated.VideoRenderEnabled = UserSettings.Config.LogVideoRenderingDetails;

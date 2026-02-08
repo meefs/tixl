@@ -271,8 +271,6 @@ public sealed class AdsrEnvelopeInputUi : InputValueUi<Vector4>
     }
 
     private static DragTarget _activeDragTarget = DragTarget.None;
-    private static Vector4 _dragStartEnvelope;
-    private static Vector2 _dragStartMousePos;
 
     private static InputEditStateFlags HandleEnvelopeDrag(ref Vector4 envelope, ImRect area, bool cloneIfModified)
     {

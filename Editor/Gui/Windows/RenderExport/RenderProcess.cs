@@ -495,7 +495,7 @@ internal static class RenderProcess
         }
     }
 
-    private class ExportSession
+    private sealed class ExportSession
     {
         public Mp4VideoWriter? VideoWriter;
         public string TargetFolder = string.Empty;
@@ -505,7 +505,8 @@ internal static class RenderProcess
         public RenderSettings Settings = null!;
         public RenderTiming.Runtime Runtime;
         public int ResolutionMismatchCount;
-        public double ExportStartTimeLocal;
+        public readonly double ExportStartTimeLocal = 0;
+        
         /// <summary>
         /// When true, we're waiting for the first frame to be rendered at the correct resolution
         /// before setting playback time.

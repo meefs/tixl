@@ -116,10 +116,6 @@ public sealed class SpatialOperatorAudioStream
     /// </summary>
     private float _defaultPlaybackFrequency;
 
-    /// <summary>
-    /// Cached number of channels in the audio stream.
-    /// </summary>
-    private int _cachedChannels;
 
     /// <summary>
     /// Cached sample frequency of the audio stream.
@@ -212,7 +208,6 @@ public sealed class SpatialOperatorAudioStream
             FilePath = filePath,
             IsPlaying = false,
             IsPaused = false,
-            _cachedChannels = info.Channels,
             _cachedFrequency = info.Frequency,
             IsStoppedDueToStale = true
         };
