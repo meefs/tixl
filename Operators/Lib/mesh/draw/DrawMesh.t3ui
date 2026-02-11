@@ -101,8 +101,8 @@
     {
       "InputId": "cf8fe9a6-f9f7-4485-9ca5-ae96326ae25f"/*SpecularAA*/,
       "Position": {
-        "X": 1647.684,
-        "Y": 3337.1091
+        "X": 1824.9539,
+        "Y": 3655.8855
       },
       "Description": "This reduces specular aliasing on silhouettes and high-frequency normalmap regions.",
       "Min": 0.0,
@@ -289,13 +289,6 @@
       "Position": {
         "X": 1696.4711,
         "Y": 3933.1995
-      }
-    },
-    {
-      "ChildId": "a1e13772-64b7-4a05-847d-6d268516a299"/*Value*/,
-      "Position": {
-        "X": 1778.1173,
-        "Y": 3661.538
       }
     },
     {
