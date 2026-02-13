@@ -44,11 +44,13 @@ internal sealed class SearchDialog : ModalDialog
             FormInputs.SetIndentToLeft();
 
             FormInputs.SetWidth(0.7f);
-            needsUpdate |= FormInputs.AddStringInput("##searchInput", ref _searchString, "Search", null, null, string.Empty);
-            ImGui.SameLine();
+            needsUpdate |= FormInputs.AddStringInput("##searchInput", ref _searchString, "Search", null, null);
+            ImGui.SameLine(0,10);
+            
             FormInputs.SetWidth(1f);
             needsUpdate |= FormInputs.AddEnumDropdown(ref _searchMode, "");
             FormInputs.ResetWidth();
+            FormInputs.AddVerticalSpace();
 
             if (needsUpdate)
             {
@@ -136,7 +138,6 @@ internal sealed class SearchDialog : ModalDialog
 
     private void DrawItem(SearchResult item)
     {
-        //var instance = item.Instance;
         var components = item.GraphCanvas;
         if (components == null)
             return;
@@ -145,7 +146,7 @@ internal sealed class SearchDialog : ModalDialog
         ImGui.PushID(symbolHash);
         {
             var instance = item.Instance;
-            if (instance != null)
+            if (item.Annotation == null)
             {
                 var symbolNamespace = instance.Symbol.Namespace;
                 var isRelevantNamespace = symbolNamespace.StartsWith("Lib.")
@@ -165,12 +166,13 @@ internal sealed class SearchDialog : ModalDialog
                 var hoverColor = ColorVariations.OperatorBackgroundHover.Apply(color).Rgba;
                 hoverColor.W = 0.1f;
                 ImGui.PushStyleColor(ImGuiCol.HeaderHovered, hoverColor);
-                //ImGui.PushStyleColor(ImGuiCol.HeaderActive, ColorVariations.OperatorInputZone.Apply(color).Rgba);
                 ImGui.PushStyleColor(ImGuiCol.Text, ColorVariations.OperatorLabel.Apply(color).Rgba);
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(2, 4));
 
                 var isSelected = item == _selectedInstance;
-                var hasBeenClicked = ImGui.Selectable($"##Selectable{symbolHash.ToString()}", isSelected);
+                ImGui.PushID(item.Id.GetHashCode());
+                var hasBeenClicked = ImGui.Selectable("##Selectable", isSelected);
+                ImGui.PopID();
                 _selectedItemChanged |= hasBeenClicked;
 
                 var path = instance.InstancePath;
@@ -194,55 +196,43 @@ internal sealed class SearchDialog : ModalDialog
                 ImGui.TextUnformatted(instance.Symbol.Name);
                 ImGui.SameLine(0, 10);
 
-                ImGui.PushStyleColor(ImGuiCol.Text, UiColors.Gray.Fade(0.5f).Rgba);
-                ImGui.TextUnformatted(readablePath);
-                ImGui.PopStyleColor();
-
+                CustomComponents.StylizedText(readablePath, Fonts.FontNormal, UiColors.Gray.Fade(0.5f));
+                
                 ImGui.PopStyleVar();
                 ImGui.PopStyleColor(3);
             }
-            else if (item.Annotation != null)
+            else if (item.Annotation != null) 
             {
-                // ImGui.PushStyleColor(ImGuiCol.Header, ColorVariations.OperatorBackground.Apply(color).Rgba);
-                //
-                // var hoverColor = ColorVariations.OperatorBackgroundHover.Apply(color).Rgba;
-                // hoverColor.W = 0.1f;
-                // ImGui.PushStyleColor(ImGuiCol.HeaderHovered, hoverColor);
-                // //ImGui.PushStyleColor(ImGuiCol.HeaderActive, ColorVariations.OperatorInputZone.Apply(color).Rgba);
-                // ImGui.PushStyleColor(ImGuiCol.Text, ColorVariations.OperatorLabel.Apply(color).Rgba);
-                // ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(2, 4));
-
                 var isSelected = item == _selectedInstance;
                 var hasBeenClicked = ImGui.Selectable($"##Selectable{symbolHash.ToString()}", isSelected);
+                
                 _selectedItemChanged |= hasBeenClicked;
 
-                //var path = instance.InstancePath;
-                //var readablePath = string.Join(" / ", components.OpenedProject.Structure.GetReadableInstancePath(path, false));
-
+                var activate = false;
                 if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
-                    // components.GraphView.OpenAndFocusInstance(path);
-                    // _selectedInstance = item;
-                    // _selectedItemChanged = false;
+                    _selectedInstance = item;
+                    activate = true;
                 }
                 else if (_selectedItemChanged && _selectedInstance == item)
                 {
                     UiListHelpers.ScrollToMakeItemVisible();
-                    // components.GraphView.OpenAndFocusInstance(path);
-                    // _selectedItemChanged = false;
+                    _selectedItemChanged = false;
+                    activate = true;
                 }
 
-                ImGui.SameLine();
+                if (activate)
+                {
+                    components.GraphView.OpenAndFocusAnnotation(item.Instance.InstancePath, item.Annotation.Id);
+                    _selectedInstance = item;
+                }
 
+                ImGui.SameLine(0,2);
                 ImGui.TextUnformatted(item.Name);
-                ImGui.SameLine(0, 10);
+                
+                ImGui.SameLine(0,10);
+                CustomComponents.StylizedText("(Annotation)", Fonts.FontNormal, UiColors.TextMuted);
 
-                // ImGui.PushStyleColor(ImGuiCol.Text, UiColors.Gray.Fade(0.5f).Rgba);
-                // ImGui.TextUnformatted(readablePath);
-                // ImGui.PopStyleColor();
-
-                // ImGui.PopStyleVar();
-                // ImGui.PopStyleColor(3);
             }
         }
 
@@ -288,44 +278,43 @@ internal sealed class SearchDialog : ModalDialog
         if (!string.IsNullOrEmpty(_searchString))
         {
             FindAllChildren(composition,
-                            instance => _matchingItems.Add(new SearchResult(instance)),
-                            (_, annotation) => _matchingItems.Add(new SearchResult(annotation))
-                            );
+                            instance =>
+                            {
+                                _matchingItems.Add(new SearchResult(instance));
+                            },
+                            (compositionInstance, annotation) =>
+                            {
+                                _matchingItems.Add(new SearchResult(compositionInstance, annotation));
+                            });
         }
 
         _matchingItems.Sort((foundA, foundB) => string.Compare(foundA.Name, foundB.Name, StringComparison.Ordinal));
     }
 
-    private void FindAllChildren(Instance instance, Action<Instance> instanceCallback, Action<Instance, Annotation> annotationCallback)
+    private void FindAllChildren(Instance composition, Action<Instance> instanceCallback, Action<Instance, Annotation> annotationCallback)
     {
-        // var symbolUi = instance.GetSymbolUi();
-        //
-        // foreach (var annotation in symbolUi.Annotations.Values)
-        // {
-        //     if (annotation.Label.Contains(_searchString, StringComparison.InvariantCultureIgnoreCase) ||
-        //         annotation.Title.Contains(_searchString, StringComparison.InvariantCultureIgnoreCase))
-        //         annotationCallback(instance, annotation);
-        // }
-
-        foreach (var child in instance.Children.Values)
+        var symbolUi = composition.GetSymbolUi();
+        
+        foreach (var annotation in symbolUi.Annotations.Values)
         {
+            if (annotation.Label.Contains(_searchString, StringComparison.InvariantCultureIgnoreCase) ||
+                annotation.Title.Contains(_searchString, StringComparison.InvariantCultureIgnoreCase))
+                annotationCallback(composition, annotation);
+        }
+
+        foreach (var child in composition.Children.Values)
+        {
+            if (child.Symbol.Name.Contains(_searchString, StringComparison.InvariantCultureIgnoreCase))
+            {
+                instanceCallback(child);
+            }
+            
             if (_searchMode == SearchModes.Local)
                 continue;
 
-            if (instance.Symbol.Name.Contains(_searchString, StringComparison.InvariantCultureIgnoreCase))
-                instanceCallback(child);
 
             FindAllChildren(child, instanceCallback, annotationCallback);
         }
-
-        // foreach (var child in instance.Children.Values)
-        // {
-        //     //instanceCallback(child);
-        //     if (_searchMode == SearchModes.Local)
-        //         continue;
-        //
-        //     FindAllChildren(child, instanceCallback, annotationCallback);
-        // }
     }
 
     private readonly List<SearchResult> _matchingItems = new();
@@ -344,19 +333,22 @@ internal sealed class SearchDialog : ModalDialog
             Id = instance.SymbolChildId;
         }
 
-        public SearchResult(Annotation annotation)
+        public SearchResult(Instance compositionInstance, Annotation annotation)
         {
+            Instance = compositionInstance;
             Annotation = annotation;
             GraphCanvas = ProjectView.Focused;
             Id = annotation.Id;
         }
 
         public readonly Guid Id;
-        public readonly Instance? Instance;
+        public readonly Instance Instance;
         public readonly Annotation? Annotation;
         public readonly ProjectView? GraphCanvas;
 
-        public string Name => Instance != null ? Instance.Symbol.Name : Annotation?.Label ?? string.Empty;
+        public string Name => Annotation != null 
+                                  ? Annotation?.Label ?? string.Empty 
+                                  : Instance.Symbol.Name;
     }
 
     private enum SearchModes
