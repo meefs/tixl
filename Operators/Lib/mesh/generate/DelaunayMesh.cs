@@ -1,11 +1,8 @@
 using T3.Core.Rendering;
 using T3.Core.Utils;
-using T3.Core.Utils.Geometry;
+
 using DelaunatorSharp;
-using T3.Core.DataTypes;
-using System.Linq;
-using System.Collections.Generic;
-using System;
+
 
 
 namespace Lib.mesh.generate;
@@ -25,10 +22,18 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
 
     private void Update(EvaluationContext context)
     {
+        var pointList = BoundaryPoints.GetValue(context);
+        var extraPointList = ExtraPoints.GetValue(context);
+        var tweak = Tweak.GetValue(context);
+        var seed = Seed.GetValue(context);
+        var subdivideLongEdges = SubdivideLongEdges.GetValue(context);
+        // Get fill density parameter
+        // Note: Inverted so that 1 means full fill and 0 means no fill for the user
+        var fillDensity = 1 - FillDensity.GetValue(context);
         try
         {
             // Get the point list from input
-            var pointList = BoundaryPoints.GetValue(context);
+            
             if (pointList == null || pointList.NumElements == 0)
             {
                 Log.Warning("DelaunayMesh: No points in list");
@@ -49,9 +54,7 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
             int currentHash = CalculateBoundaryPointsHash(originalPointArray);
             
 
-            // Get fill density parameter
-            // Note: Inverted so that 1 means full fill and 0 means no fill for the user
-            var fillDensity = 1 - FillDensity.GetValue(context);
+            
 
            // Determine if we need to reprocess the boundary points
             bool needsReprocessing = !_hasProcessedOnce ||                       // First evaluation after load (CRITICAL!)
@@ -108,9 +111,7 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
 
             
 
-            var tweak = Tweak.GetValue(context);
-            var seed = Seed.GetValue(context);
-            var subdivideLongEdges = SubdivideLongEdges.GetValue(context);
+            
 
             // Subdivide long boundary edges for better triangulation
             var subdividedPoints = new List<Point>();
@@ -142,13 +143,13 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
                     {
                         float t = (float)j / subdivisions;
                         var interpolatedPos = Vector3.Lerp(currentPoint.Position, nextPoint.Position, t);
-
+                        var interpolatedColor = Vector4.Lerp(currentPoint.Color, nextPoint.Color, t);
                         subdividedPoints.Add(new Point
                         {
                             Position = interpolatedPos,
                             F1 = 1,
                             Orientation = Quaternion.Identity,
-                            Color = Vector4.One,
+                            Color = interpolatedColor,
                             Scale = Vector3.One,
                             F2 = 1
                         });
@@ -165,6 +166,10 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
             {
                 boundaryPolygon[i] = new Vector2(pointArray[i].Position.X, pointArray[i].Position.Y);
             }
+
+            // Create spatial grid for boundary points
+            float gridCellSize = fillDensity * 2f; // Adjust based on your needs
+            var boundaryGrid = new BoundaryGrid(boundaryPolygon, gridCellSize);
 
             // Generate additional points inside the boundary using Poisson disc sampling
             var allPoints = new List<Point>(pointArray);
@@ -199,25 +204,12 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
 
                 foreach (var fillPoint in fillPoints)
                 {
-                    // Check if inside boundary
+                    // Check if inside boundary (still need polygon test)
                     if (!IsPointInPolygon(fillPoint, boundaryPolygon))
                         continue;
 
-                    // Check distance from all boundary points
-                    bool tooCloseToEdge = false;
-                    for (int i = 0; i < originalBoundaryCount; i++)
-                    {
-                        var boundaryPoint = new Vector2(pointArray[i].Position.X, pointArray[i].Position.Y);
-                        var distance = Vector2.Distance(fillPoint, boundaryPoint);
-
-                        if (distance < minDistanceFromBoundary)
-                        {
-                            tooCloseToEdge = true;
-                            break;
-                        }
-                    }
-
-                    if (!tooCloseToEdge)
+                    // Use spatial grid for distance check (much faster!)
+                    if (!boundaryGrid.IsTooCloseToBoundary(fillPoint, minDistanceFromBoundary, boundaryPolygon))
                     {
                         validFillPoints.Add(fillPoint);
                     }
@@ -240,7 +232,6 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
             else
             {
                 // Use ExtraPoints list when fillDensity is very low (user's FillDensity > 0.9999)
-                var extraPointList = ExtraPoints.GetValue(context);
                 if (extraPointList != null && extraPointList.NumElements > 0)
                 {
                     // Cast to StructuredList<Point> to access TypedElements
@@ -249,13 +240,27 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
                     {
                         var extraPointArray = typedExtraPointList.TypedElements;
 
-                        // Add extra points to the allPoints list
+                        // Filter extra points similarly to Poisson disc samples
+                        var minDistanceFromBoundary = fillDensity * tweak; // Use same margin as for fill points
+
+                        // Add valid extra points to the allPoints list
                         for (int i = 0; i < extraPointArray.Length; i++)
                         {
                             var point = extraPointArray[i];
 
                             // Skip points with NaN values
                             if (float.IsNaN(point.Scale.X) || float.IsNaN(point.Scale.Y) || float.IsNaN(point.Scale.Z))
+                                continue;
+
+                            var pointPos2D = new Vector2(point.Position.X, point.Position.Y);
+                          
+
+                            // Check if point is inside boundary polygon
+                            if (!IsPointInPolygon(pointPos2D, boundaryPolygon))
+                                continue;
+
+                            // Check if point is too close to boundary (using the spatial grid for efficiency)
+                            if (boundaryGrid.IsTooCloseToBoundary(pointPos2D, minDistanceFromBoundary, boundaryPolygon))
                                 continue;
 
                             allPoints.Add(point);
@@ -277,21 +282,21 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
 
             // Perform Delaunay triangulation
             var delaunay = new Delaunator(delaunatorPoints);
-
+       
             // Get vertices and triangles count
             var verticesCount = pointArray.Length;
             var triangleCount = delaunay.Triangles.Length / 3;
 
             // Calculate bounds for UV mapping
-            float minX = float.MaxValue;
-            float maxX = float.MinValue;
-            float minY = float.MaxValue;
-            float maxY = float.MinValue;
+            var minX = float.MaxValue;
+            var maxX = float.MinValue;
+            var minY = float.MaxValue;
+            var maxY = float.MinValue;
 
             foreach (var point in pointArray)
             {
-                float x = point.Position.X;
-                float y = point.Position.Y;
+                var x = point.Position.X;
+                var y = point.Position.Y;
 
                 if (x < minX) minX = x;
                 if (x > maxX) maxX = x;
@@ -299,8 +304,8 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
                 if (y > maxY) maxY = y;
             }
 
-            float rangeX = maxX - minX;
-            float rangeY = maxY - minY;
+            var rangeX = maxX - minX;
+            var rangeY = maxY - minY;
 
             // Avoid division by zero for UV calculation
             if (rangeX < 0.0001f) rangeX = 1.0f;
@@ -316,6 +321,7 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
             {
                 var point = pointArray[i];
                 var pos = point.Position;
+                var color = new Vector3( point.Color.X, point.Color.Y, point.Color.Z);
 
                 // Calculate UV coordinates (normalized 0-1 based on point positions)
                 var u = (pos.X - minX) / rangeX;
@@ -330,7 +336,7 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
                     Bitangent = new Vector3(0, 1, 0),
                     Texcoord = uv,
                     Selection = point.F1,
-                    ColorRgb = Vector3.One,
+                    ColorRgb = color,
                 };
             }
 
@@ -349,8 +355,6 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
                 var p2 = pointArray[idx2].Position;
 
                 bool keepTriangle = true;
-
-               
 
                 // Boundary filtering - check if triangle centroid is inside boundary polygon
                 if (keepTriangle)
@@ -386,7 +390,7 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
             }
 
             // Update GPU buffers
-            int stride = PbrVertex.Stride;
+            var stride = PbrVertex.Stride;
             ResourceManager.SetupStructuredBuffer(_vertexBufferData, stride * verticesCount, stride, ref _vertexBuffer);
             ResourceManager.CreateStructuredBufferSrv(_vertexBuffer, ref _vertexBufferWithViews.Srv);
             ResourceManager.CreateStructuredBufferUav(_vertexBuffer, UnorderedAccessViewBufferFlags.None, ref _vertexBufferWithViews.Uav);
@@ -412,8 +416,8 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
     // Point-in-polygon test using ray casting algorithm
     private static bool IsPointInPolygon(Vector2 point, Vector2[] polygon)
     {
-        bool inside = false;
-        int n = polygon.Length;
+        var inside = false;
+        var n = polygon.Length;
 
         for (int i = 0, j = n - 1; i < n; j = i++)
         {
@@ -428,7 +432,6 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
     }
 
     // Generate Poisson disc samples inside the boundary polygon
-    // MODIFIED: Added seed parameter for deterministic results
     private static List<Vector2> GeneratePoissonDiscSamples(float minX, float maxX, float minY, float maxY, float radius, int seed)
     {
         var samples = new List<Vector2>();
@@ -436,9 +439,9 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
         var random = new System.Random(seed); // FIXED: Use seed for deterministic generation
 
         // Grid cell size
-        float cellSize = radius / MathF.Sqrt(2);
-        int gridWidth = (int)MathF.Ceiling((maxX - minX) / cellSize);
-        int gridHeight = (int)MathF.Ceiling((maxY - minY) / cellSize);
+        var cellSize = radius / MathF.Sqrt(2);
+        var gridWidth = (int)MathF.Ceiling((maxX - minX) / cellSize);
+        var gridHeight = (int)MathF.Ceiling((maxY - minY) / cellSize);
 
         // Grid to track occupied cells (-1 = empty, >= 0 = index in samples list)
         var grid = new int[gridWidth * gridHeight];
@@ -455,23 +458,11 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
             return gridX + gridY * gridWidth;
         }
 
-        // Start with a random point inside the boundary
-        Vector2 firstPoint = Vector2.Zero;
-        bool foundFirst = false;
-        for (int attempt = 0; attempt < 1000 && !foundFirst; attempt++)
-        {
-            float x = minX + (float)random.NextDouble() * (maxX - minX);
-            float y = minY + (float)random.NextDouble() * (maxY - minY);
-            var testPoint = new Vector2(x, y);
-
-
-            firstPoint = testPoint;
-            foundFirst = true;
-
-        }
-
-        if (!foundFirst)
-            return samples; // Could not find starting point
+        // Start with the center point of the rectangle
+        Vector2 firstPoint = new Vector2(
+            minX + (maxX - minX) * 0.5f,
+            minY + (maxY - minY) * 0.5f
+        );
 
         samples.Add(firstPoint);
         activeList.Add(firstPoint);
@@ -481,7 +472,7 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
             grid[gridIdx] = 0;
 
         // Process active list
-        int maxAttempts = 20; // Standard Poisson disc parameter
+        int maxAttempts = 30; // Standard Poisson disc parameter
 
         while (activeList.Count > 0)
         {
@@ -510,6 +501,9 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
 
                 bool tooClose = false;
 
+                // Pre-calculate squared radius (avoid square root in distance checks)
+                float radiusSquared = radius * radius;
+
                 // Check neighboring grid cells
                 int gridX = (int)((newX - minX) / cellSize);
                 int gridY = (int)((newY - minY) / cellSize);
@@ -529,8 +523,12 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
 
                         if (sampleIdx >= 0)
                         {
-                            float dist = Vector2.Distance(newPoint, samples[sampleIdx]);
-                            if (dist < radius)
+                            Vector2 sample = samples[sampleIdx];
+                            float dxVal = newPoint.X - sample.X;
+                            float dyVal = newPoint.Y - sample.Y;
+                            float distSquared = dxVal * dxVal + dyVal * dyVal;
+
+                            if (distSquared < radiusSquared)
                             {
                                 tooClose = true;
                                 break;
@@ -598,6 +596,98 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
             hash = hash * 31 + point.Position.GetHashCode();
             hash = hash * 31 + point.Scale.GetHashCode();
             return hash;
+        }
+    }
+
+   
+    private class BoundaryGrid
+    {
+        private readonly float _minX, _minY, _maxX, _maxY;
+        private readonly float _cellSize;
+        private readonly int _gridWidth, _gridHeight;
+        private readonly List<int>[,] _grid; // Stores indices of boundary points in each cell
+
+        public BoundaryGrid(Vector2[] boundaryPoints, float cellSize)
+        {
+            _cellSize = cellSize;
+
+            // Calculate bounds
+            _minX = float.MaxValue;
+            _minY = float.MaxValue;
+            _maxX = float.MinValue;
+            _maxY = float.MinValue;
+
+            foreach (var point in boundaryPoints)
+            {
+                if (point.X < _minX) _minX = point.X;
+                if (point.X > _maxX) _maxX = point.X;
+                if (point.Y < _minY) _minY = point.Y;
+                if (point.Y > _maxY) _maxY = point.Y;
+            }
+
+            // Add small padding to handle points exactly on bounds
+            _minX -= 0.001f;
+            _minY -= 0.001f;
+            _maxX += 0.001f;
+            _maxY += 0.001f;
+
+            _gridWidth = (int)Math.Ceiling((_maxX - _minX) / _cellSize);
+            _gridHeight = (int)Math.Ceiling((_maxY - _minY) / _cellSize);
+
+            // Initialize grid
+            _grid = new List<int>[_gridWidth, _gridHeight];
+            for (int x = 0; x < _gridWidth; x++)
+                for (int y = 0; y < _gridHeight; y++)
+                    _grid[x, y] = new List<int>();
+
+            // Add points to grid
+            for (int i = 0; i < boundaryPoints.Length; i++)
+            {
+                var point = boundaryPoints[i];
+                int gridX = (int)((point.X - _minX) / _cellSize);
+                int gridY = (int)((point.Y - _minY) / _cellSize);
+
+                // Clamp to grid bounds (shouldn't happen with padding)
+                gridX = Math.Clamp(gridX, 0, _gridWidth - 1);
+                gridY = Math.Clamp(gridY, 0, _gridHeight - 1);
+
+                _grid[gridX, gridY].Add(i);
+            }
+        }
+
+        // Check if a point is too close to any boundary point
+        public bool IsTooCloseToBoundary(Vector2 point, float minDistance, Vector2[] boundaryPoints)
+        {
+            float minDistanceSquared = minDistance * minDistance;
+
+            // Determine which grid cell this point falls into
+            int gridX = (int)((point.X - _minX) / _cellSize);
+            int gridY = (int)((point.Y - _minY) / _cellSize);
+
+            // Check neighboring cells (including current cell)
+            int startX = Math.Max(0, gridX - 1);
+            int endX = Math.Min(_gridWidth - 1, gridX + 1);
+            int startY = Math.Max(0, gridY - 1);
+            int endY = Math.Min(_gridHeight - 1, gridY + 1);
+
+            for (int x = startX; x <= endX; x++)
+            {
+                for (int y = startY; y <= endY; y++)
+                {
+                    foreach (int index in _grid[x, y])
+                    {
+                        Vector2 boundaryPoint = boundaryPoints[index];
+                        float dx = point.X - boundaryPoint.X;
+                        float dy = point.Y - boundaryPoint.Y;
+                        float distSquared = dx * dx + dy * dy;
+
+                        if (distSquared < minDistanceSquared)
+                            return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 
