@@ -1,5 +1,4 @@
 #include "shared/hash-functions.hlsl"
-// #include "shared/noise-functions.hlsl"
 #include "shared/point.hlsl"
 #include "shared/quat-functions.hlsl"
 #include "shared/bias-functions.hlsl"
