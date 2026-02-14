@@ -132,6 +132,7 @@ internal sealed class LoadObj : Instance<LoadObj>, IDescriptiveFilename, IStatus
                                                             Bitangent = mesh.VertexBinormals[sortedVertexIndex],
                                                             Texcoord = mesh.TexCoords[sortedVertex.TextureCoordsIndex],
                                                             Selection = 1,
+                                                            ColorRgb = Vector3.One
                                                         };
                 }
 

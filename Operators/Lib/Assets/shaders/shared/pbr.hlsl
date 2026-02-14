@@ -24,7 +24,7 @@ struct PbrVertex
     float2 TexCoord;
     float2 TexCoord2;
     float Selected;
-    float3 __padding;
+    float3 ColorRGB;
 };
 
 // Constant normal incidence Fresnel factor for all dielectrics.

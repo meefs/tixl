@@ -329,7 +329,8 @@ internal sealed class DelaunayMesh : Instance<DelaunayMesh>
                     Tangent = new Vector3(1, 0, 0),
                     Bitangent = new Vector3(0, 1, 0),
                     Texcoord = uv,
-                    Selection = point.F1
+                    Selection = point.F1,
+                    ColorRgb = Vector3.One,
                 };
             }
 

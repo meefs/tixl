@@ -125,6 +125,7 @@ internal sealed class LoadGltf : Instance<LoadGltf>, IDescriptiveFilename, IStat
                                                                                    : new Vector2(texCoords[vertexIndex].X,
                                                                                                  1-texCoords[vertexIndex].Y),
                                                                     Selection = 1,
+                                                                    ColorRgb = Vector3.One,
                                                                 };
                 }
             }
