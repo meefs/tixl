@@ -16,7 +16,10 @@ namespace T3.Editor.Gui.UiHelpers;
 /// </summary>
 internal static class FilePickingUi
 {
-    public static InputEditStateFlags DrawTypeAheadSearch(FileOperations.FilePickerTypes pickMode, string? fileFilter, ref string? filterAndSelectedPath, bool showAssetFolderToggle = true)
+    public static InputEditStateFlags DrawTypeAheadSearch(FileOperations.FilePickerTypes pickMode, 
+                                                          string? fileFilter, 
+                                                          ref string? filterAndSelectedPath, 
+                                                          bool showAssetFolderToggle = true)
     {
         ImGui.SetNextItemWidth(-70 * T3Ui.UiScaleFactor);
 
@@ -45,14 +48,12 @@ internal static class FilePickingUi
         var inputEditStateFlags = InputEditStateFlags.Nothing;
         if (filterAndSelectedPath != null)
         {
-            var changed = AssetInputWithTypeAheadSearch.Draw(hasWarning,
+            var resultChanged = AssetInputWithTypeAheadSearch.Draw(hasWarning,
                                                                 fileFilter,
                                                                 ref filterAndSelectedPath,
                                                                 pickFolder);
 
-            var result = new InputResult(changed, filterAndSelectedPath);
-            filterAndSelectedPath = result.Value;
-            inputEditStateFlags = result.Modified ? InputEditStateFlags.Modified : InputEditStateFlags.Nothing;
+            inputEditStateFlags = resultChanged ? InputEditStateFlags.Modified : InputEditStateFlags.Nothing;
         }
 
         if (warningLabel != string.Empty)
