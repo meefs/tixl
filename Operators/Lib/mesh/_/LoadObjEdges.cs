@@ -23,14 +23,13 @@ internal sealed class LoadObjEdges : Instance<LoadObjEdges>, IDescriptiveFilenam
                 Log.Error($"File not found: {path}", this);
                 return;
             }
-                
-            var mesh = ObjMesh.LoadFromFile(fullPath);
-            if (mesh == null)
+
+            if (!ObjMesh.TryLoadFromFile(fullPath, out var mesh))
             {
                 Log.Error($"Failed to extract edge line points from obj {path}", this);
                 return;
             }
-                
+            
             var hashSet = new HashSet<uint>();
 
             foreach (var f in mesh.Faces)
