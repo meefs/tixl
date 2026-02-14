@@ -87,7 +87,7 @@ internal static class ThumbnailManager
     /// </summary>
     internal static ThumbnailRect GetThumbnail(Asset asset, IResourcePackage? package, Categories category = Categories.Temp)
     {
-        if (asset.AssetType != AssetHandling.Images || package == null || asset.FileSystemInfo == null)
+        if (asset.AssetType != AssetHandling.Images || package == null || asset.FileSystemInfo == null || asset.Address.EndsWith(".dds", StringComparison.OrdinalIgnoreCase))
             return _fallback;
 
         return GetThumbnail(asset.Id, package, category, asset.FileSystemInfo);
@@ -171,6 +171,7 @@ internal static class ThumbnailManager
         }
         catch (Exception e)
         {
+            _slots.Remove(guid);
             Log.Warning("Failed to load thumbnail " + e.Message);
         }
     }

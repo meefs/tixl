@@ -236,7 +236,7 @@ public sealed class Resource<T> : IDisposable, IResource
         T? newValue;
         var hasFileResource = _fileResource != null || SetAddress(_userPath);
 
-        if (hasFileResource && _fileResource!.FileInfo is { Exists : true })
+        if (hasFileResource && _fileResource != null && _fileResource!.FileInfo is { Exists : true })
         {
             try
             {
