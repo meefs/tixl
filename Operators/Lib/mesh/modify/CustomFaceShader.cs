@@ -19,6 +19,9 @@ namespace Lib.mesh.modify{
         [Input(Guid = "63fcdf71-45ce-4abd-a0f4-28364939e065")]
         public readonly InputSlot<bool> SplitVertices = new InputSlot<bool>();
 
+        [Input(Guid = "54059d29-e8d9-457c-9dff-25b23753872d")]
+        public readonly InputSlot<bool> RecomputeNormals = new InputSlot<bool>();
+
         [Input(Guid = "cb9f9b0e-0486-400e-9fa1-5d2a997bb7d6")]
         public readonly InputSlot<float> A = new InputSlot<float>();
 
@@ -48,6 +51,9 @@ namespace Lib.mesh.modify{
 
         [Input(Guid = "a14d4ec8-33b8-487d-8855-a33088c8885b")]
         public readonly InputSlot<string> ShaderTemplate = new InputSlot<string>();
+
+        [Input(Guid = "68ae89bb-31b4-4516-aeb5-6b9ac132cf38")]
+        public readonly InputSlot<bool> IgnoreTemplate = new InputSlot<bool>();
 
 
     }
