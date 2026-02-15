@@ -287,8 +287,22 @@ internal sealed class SearchDialog : ModalDialog
                                 _matchingItems.Add(new SearchResult(compositionInstance, annotation));
                             });
         }
+        
+        
+        
+        _matchingItems.Sort((foundA, foundB) =>
+                            {
+                                // 1. Sort by IsAnnotation (true first)
+                                if ((foundB.Annotation != null).CompareTo(foundA.Annotation !=null) != 0)
+                                {
+                                    return (foundB.Annotation != null).CompareTo(foundA.Annotation !=null);
+                                }
 
-        _matchingItems.Sort((foundA, foundB) => string.Compare(foundA.Name, foundB.Name, StringComparison.Ordinal));
+                                // 2. If IsAnnotation is the same, sort by Name alphabetically
+                                return string.Compare(foundA.Name, foundB.Name, StringComparison.Ordinal);
+                            });
+
+        //_matchingItems.Sort((foundA, foundB) => string.Compare(foundA.Name, foundB.Name, StringComparison.Ordinal));
     }
 
     private void FindAllChildren(Instance composition, Action<Instance> instanceCallback, Action<Instance, Annotation> annotationCallback)
