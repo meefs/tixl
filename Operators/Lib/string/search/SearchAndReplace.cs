@@ -23,7 +23,7 @@ internal sealed class SearchAndReplace : Instance<SearchAndReplace>
             || string.IsNullOrEmpty(replacement)
             || string.IsNullOrEmpty(pattern))
         {
-            Result.Value = string.Empty;
+            Result.Value = content?? string.Empty;
             return;
         }
 
