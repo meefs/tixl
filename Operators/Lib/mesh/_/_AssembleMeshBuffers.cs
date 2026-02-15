@@ -4,12 +4,12 @@ namespace Lib.mesh.@_;
 internal sealed class _AssembleMeshBuffers : Instance<_AssembleMeshBuffers>
 {
     [Output(Guid = "D71893DD-6CA2-4AB7-9E04-0BD7285ECCFB")]
-    public readonly Slot<MeshBuffers> MeshBuffers = new();
+    public readonly Slot<MeshBuffers> NewMeshBuffers = new();
         
         
     public _AssembleMeshBuffers()
     {
-        MeshBuffers.UpdateAction += Update;
+        NewMeshBuffers.UpdateAction += Update;
     }
 
     private void Update(EvaluationContext context)
@@ -29,14 +29,14 @@ internal sealed class _AssembleMeshBuffers : Instance<_AssembleMeshBuffers>
             
         if (vertices == null || indices == null)
         {
-            MeshBuffers.Value = null;
+            NewMeshBuffers.Value = null;
             return;
         }
 
         _result.VertexBuffer = vertices;
         _result.IndicesBuffer = indices;
         _result.ChunkDefsBuffer = chunks;
-        MeshBuffers.Value = _result;
+        NewMeshBuffers.Value = _result;
     }
 
     private MeshBuffers _result = new();
