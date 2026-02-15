@@ -4,6 +4,8 @@
 #include "shared/quat-functions.hlsl"
 #include "shared/pbr.hlsl"
 
+/*{ADDITIONAL_INCLUDES}*/
+
 cbuffer Params : register(b0)
 {
     float A;
@@ -11,6 +13,11 @@ cbuffer Params : register(b0)
     float C;
     float D;
     float3 Offset;
+}
+
+cbuffer Params : register(b1)
+{
+    /*{FLOAT_PARAMS}*/
 }
 
 StructuredBuffer<PbrVertex> SourceVertices : t0;
@@ -23,6 +30,31 @@ sampler Sampler : register(s0);
 sampler ClampedSampler : register(s1);
 
 RWStructuredBuffer<PbrVertex> ResultVertices : u0;
+
+//=== Additional Resources ==========================================
+/*{RESOURCES(t4)}*/
+
+//=== Global functions ==============================================
+/*{GLOBALS}*/
+
+//=== Field functions ===============================================
+/*{FIELD_FUNCTIONS}*/
+
+//-------------------------------------------------------------------
+float4 GetField(float4 p)
+{
+    float4 f = 1;
+    /*{FIELD_CALL}*/
+    return f;
+}
+
+inline float GetDistance(float3 p3)
+{
+    return GetField(float4(p3.xyz, 0)).w;
+}
+
+//===================================================================
+
 
 //- DEFINES ------------------------------------
 /*{defines}*/

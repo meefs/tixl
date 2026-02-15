@@ -55,6 +55,9 @@ namespace Lib.mesh.modify{
         [Input(Guid = "e3cbd904-b9c2-4461-8be3-c097bf7f70f6")]
         public readonly InputSlot<bool> IgnoreTemplate = new InputSlot<bool>();
 
+        [Input(Guid = "eecf7eeb-fefc-4821-b280-be2abd79a2b0")]
+        public readonly InputSlot<T3.Core.DataTypes.ShaderGraphNode> ShaderGraph = new InputSlot<T3.Core.DataTypes.ShaderGraphNode>();
+
 
     }
 }

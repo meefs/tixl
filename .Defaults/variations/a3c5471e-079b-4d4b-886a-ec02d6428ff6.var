@@ -30,6 +30,17 @@
           "9c17fa15-35f1-49d4-802f-a3a796cad96a": 1
         }
       }
+    },
+    {
+      "Id": "4cceea8b-f1ba-43db-a6ee-944db2764b4c",
+      "IsPreset": true,
+      "ActivationIndex": 3,
+      "Title": "Image -> Face Colors",
+      "PosOnCanvas": {
+        "X": 326.0,
+        "Y": 0.0
+      },
+      "ParameterSetsForChildIds": {}
     }
   ]
 }
