@@ -122,11 +122,12 @@ float4 psMain(vsOutput input) : SV_TARGET
 {
     float2 uv = input.texCoord;
     float aspectRatio = TargetWidth / TargetHeight;
-
+    uv.y = 1.0 - uv.y; // Flip Y for correct orientation
     uv -= 0.5;
-    uv -= Center * float2(1, -1);
+    uv -= Center;
     uv.x *= aspectRatio;
-    float a = Rotate * 3.141578 / 180;
+    uv *= 2.0; // Scale UV to cover the whole area from -1 to 1
+    float a = radians(Rotate);
     uv = cos(a) * uv + sin(a) * float2(uv.y, -uv.x);
 
     uv /= Scale;
