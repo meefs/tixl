@@ -7,7 +7,7 @@
     },
     {
       "Id": "074aed08-271d-4f2b-869f-1e2e869fdba5"/*ShaderCode*/,
-      "DefaultValue": ""
+      "DefaultValue": "float4 noise = hash41u(vertexIndex);\nfloat3 pos = v.Position;\nfloat4 f = GetField( float4(pos, 0));\nfloat4 fColor = GetField( float4(pos, 1));\n\nv.Position +=  A * (noise - 0.5) * f.w;"
     },
     {
       "Id": "3104dab4-8d71-44aa-a582-47416aa977b5"/*A*/,
