@@ -134,6 +134,28 @@
           "0957ec56-8c74-4e72-aee3-c14abddcc655": "//int3 faceIndicies\n//PbrVertex v1,v2,v3\n//float4 noise= hash41u(faceIndices.x);\n\nfloat3 avgPos = (v1.Position + v2.Position + v3.Position)/3;\nfloat4 color = Gradient.SampleLevel(ClampedSampler, (avgPos.y + Offset) * A +B, 0);\n\nv1.ColorRGB = color.rgb;\nv2.ColorRGB = color.rgb;\nv3.ColorRGB = color.rgb;\n\nv1.Position += (hash41u(faceIndices.x)-0.5) * C;\nv2.Position += (hash41u(faceIndices.y)-0.5) * C;\nv3.Position += (hash41u(faceIndices.z)-0.5) * C;\n"
         }
       }
+    },
+    {
+      "Id": "a6e18437-45a0-4900-80a3-b56463b3e995",
+      "IsPreset": true,
+      "ActivationIndex": 3,
+      "Title": "untitled",
+      "PosOnCanvas": {
+        "X": 326.0,
+        "Y": 0.0
+      },
+      "ParameterSetsForChildIds": {
+        "00000000-0000-0000-0000-000000000000": {
+          "cb9f9b0e-0486-400e-9fa1-5d2a997bb7d6": 2.85,
+          "ee09aa68-6191-494f-9900-f0dff16df27d": 1.0,
+          "e7f9c927-5d70-40d2-b5e3-43bd06731bf7": {
+            "X": 0.0,
+            "Y": -0.5,
+            "Z": 0.0
+          },
+          "0957ec56-8c74-4e72-aee3-c14abddcc655": "float2 uv1=v1.TexCoord.xy;\nfloat2 uv2=v2.TexCoord.xy;\nfloat2 uv3=v3.TexCoord.xy;\nif(B>0.5){\nfloat s=1;\nuv1=(v1.Position+Offset).xy*s+0.5;\nuv2=(v2.Position+Offset).xy*s+0.5;\nuv3=(v3.Position+Offset).xy*s+0.5;\n\n\n}\n\nfloat2 uvc=(uv1+uv2+uv3)/3;\nuv1=(uv1-(uv2+uv3)/2)*A+(uv2+uv3)/2;\nuv2=(uv2-(uv1+uv3)/2)*A+(uv1+uv3)/2;\nuv3=(uv3-(uv2+uv1)/2)*A+(uv2+uv1)/2;\n\nuv1.y=1.0-uv1.y;\nuv2.y=1.0-uv2.y;\nuv3.y=1.0-uv3.y;\n\nfloat4 smpc=Image.SampleLevel(Sampler,uvc,0);\nfloat4 smp1=Image.SampleLevel(Sampler,uv1,0);\nfloat4 smp2=Image.SampleLevel(Sampler,uv2,0);\nfloat4 smp3=Image.SampleLevel(Sampler,uv3,0);\n\nv1.ColorRGB=smp1.rgb;\nv2.ColorRGB=smp2.rgb;\nv3.ColorRGB=smp3.rgb;\n"
+        }
+      }
     }
   ]
 }
