@@ -76,7 +76,7 @@ internal static class ThumbnailManager
         if (!thumbnail.IsReady || AtlasSrv == null)
             return false;
 
-        ImGui.Image(AtlasSrv.NativePointer, new Vector2(height * 4 / 3, height), thumbnail.Min, thumbnail.Max);
+        ImGui.Image(AtlasSrv.NativePointer, new Vector2(height * 4 / 3, height), thumbnail.UvMin, thumbnail.UvMax);
         return true;
     }
     #endregion
@@ -384,8 +384,11 @@ internal static class ThumbnailManager
     }
     #endregion
 
-    private const int AtlasSize = 4096, SlotWidth = 178, SlotHeight = 133, Padding = 2, MaxSlots = 500;
-
+    private const int AtlasSize = 4096, Padding = 2, MaxSlots = 500;
+    public const int SlotWidth = 178;
+    public const int  SlotHeight = 133;
+    public const float AspectRatio = (float)SlotWidth / SlotHeight; 
+    
     private static SharpDX.Direct3D11.Texture2D? _atlas;
     internal static ShaderResourceView? AtlasSrv { get; private set; }
     private static readonly Dictionary<Guid, ThumbnailSlot> _slots = new();
@@ -394,7 +397,7 @@ internal static class ThumbnailManager
     private static readonly ThumbnailRect _fallback = new(Vector2.Zero, Vector2.Zero, false);
     private static bool _initialized;
 
-    internal readonly record struct ThumbnailRect(Vector2 Min, Vector2 Max, bool IsReady);
+    internal readonly record struct ThumbnailRect(Vector2 UvMin, Vector2 UvMax, bool IsReady);
     private record struct PendingUpload(Guid Guid, SharpDX.Direct3D11.Texture2D Texture, ThumbnailSlot Slot);
     private enum LoadingState { NotLoaded, Loading, Ready, DoesntExist }
 

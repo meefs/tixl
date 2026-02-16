@@ -1217,8 +1217,8 @@ internal sealed partial class MagGraphView
                 return false;
 
             previewTextureView = ThumbnailManager.AtlasSrv;
-            uvMin = thumbnail.Min;
-            uvMax = thumbnail.Max;
+            uvMin = thumbnail.UvMin;
+            uvMax = thumbnail.UvMax;
             aspect = 4 / 3.0f;
         }
         

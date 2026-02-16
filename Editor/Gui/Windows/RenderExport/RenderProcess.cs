@@ -48,25 +48,27 @@ internal static class RenderProcess
         Exporting,
     }
 
+    public static OutputWindow? OutputWindow;
+    
     /// <remarks>
     /// needs to be called once per frame
     /// </remarks>
     public static void Update()
     {
-        if (!OutputWindow.TryGetPrimaryOutputWindow(out var outputWindow))
+        if (!OutputWindow.TryGetPrimaryOutputWindow(out OutputWindow))
         {
             State = States.NoOutputWindow;
             return;
         }
 
-        MainOutputTexture = outputWindow.GetCurrentTexture();
+        MainOutputTexture = OutputWindow.GetCurrentTexture();
         if (MainOutputTexture == null)
         {
             State = States.NoValidOutputTexture;
             return;
         }
 
-        MainOutputType = outputWindow.ShownInstance?.Outputs.FirstOrDefault()?.ValueType;
+        MainOutputType = OutputWindow.ShownInstance?.Outputs.FirstOrDefault()?.ValueType;
         if (MainOutputType != typeof(Texture2D))
         {
             State = States.NoValidOutputType;
@@ -77,7 +79,7 @@ internal static class RenderProcess
 
         if (!IsExporting)
         {
-            var baseResolution = outputWindow.GetResolution();
+            var baseResolution = OutputWindow.GetResolution();
             MainOutputOriginalSize = baseResolution;
 
             MainOutputRenderedSize = new Int2(((int)(baseResolution.Width * RenderSettings.Current.ResolutionFactor) / 2 * 2).Clamp(2,16384),

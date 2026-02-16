@@ -115,7 +115,7 @@ internal static class ProjectsPanel
             dl.AddImage(ThumbnailManager.AtlasSrv.NativePointer, 
                         pos,
                         pos + size,
-                          thumbnail.Min, thumbnail.Max);
+                          thumbnail.UvMin, thumbnail.UvMax);
         }
         
         
