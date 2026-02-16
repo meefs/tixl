@@ -60,12 +60,12 @@ internal static partial class WindowManager
         
         _windows =
             [
+                new VariationsWindow(),
                 new OutputWindow(),
                 new GraphWindow(),
                 new ParameterWindow(),
                 new SymbolLibrary(),
                 new AssetLibrary(),
-                new VariationsWindow(),
                 new ExplorationWindow(),
                 new RenderWindow(),
                 new IoViewWindow(),
