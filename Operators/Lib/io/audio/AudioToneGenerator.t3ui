@@ -28,13 +28,6 @@
       }
     },
     {
-      "InputId": "53d1622e-b1d5-4b1c-acd0-ebceb7064043"/*Panning*/,
-      "Position": {
-        "X": -200.0,
-        "Y": 325.0
-      }
-    },
-    {
       "InputId": "5a7e9f2c-8d4b-4c1f-9a5e-3b2d6f7c8a4e"/*WaveformType*/,
       "Position": {
         "X": -200.0,
@@ -100,27 +93,6 @@
       "Position": {
         "X": 300.0,
         "Y": 400.0
-      }
-    },
-    {
-      "OutputId": "8f4e2d1a-3b7c-4d89-9e12-7a5b8c9d0e1f"/*GetWaveform*/,
-      "Position": {
-        "X": 300.0,
-        "Y": 500.0
-      }
-    },
-    {
-      "OutputId": "7f8e9d2a-4b5c-3e89-8f12-6a5b9c8d0e2f"/*GetSpectrum*/,
-      "Position": {
-        "X": 300.0,
-        "Y": 600.0
-      }
-    },
-    {
-      "OutputId": "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b"/*EnvelopeValue*/,
-      "Position": {
-        "X": 300.0,
-        "Y": 700.0
       }
     }
   ]

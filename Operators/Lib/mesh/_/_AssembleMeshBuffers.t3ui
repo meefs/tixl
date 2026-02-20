@@ -11,6 +11,13 @@
       }
     },
     {
+      "InputId": "87116a9a-beb0-4e2a-a2ef-f3e0b357f81d"/*ChunkDefs*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 120.0
+      }
+    },
+    {
       "InputId": "892838c5-fa5a-418e-81d6-a3a523819324"/*Indices*/,
       "Relevancy": "Required",
       "Position": {
@@ -30,7 +37,7 @@
   "SymbolChildUis": [],
   "OutputUis": [
     {
-      "OutputId": "d71893dd-6ca2-4ab7-9e04-0bd7285eccfb"/*MeshBuffers*/,
+      "OutputId": "d71893dd-6ca2-4ab7-9e04-0bd7285eccfb"/*NewMeshBuffers*/,
       "Position": {
         "X": 0.0,
         "Y": 0.0

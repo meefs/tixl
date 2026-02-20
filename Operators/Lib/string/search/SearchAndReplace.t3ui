@@ -4,6 +4,13 @@
   "SymbolTags": "1",
   "InputUis": [
     {
+      "InputId": "3c65f1d1-d535-4ed8-885d-78a3d1bf26bc"/*UseRegex*/,
+      "Position": {
+        "X": 0.0,
+        "Y": 210.0
+      }
+    },
+    {
       "InputId": "3ca66cbd-a16a-479c-b858-84732e5023ad"/*OriginalString*/,
       "Position": {
         "X": 0.0,

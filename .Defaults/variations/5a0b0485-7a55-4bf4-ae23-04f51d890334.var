@@ -8,7 +8,7 @@
       "Title": "Noisy",
       "PosOnCanvas": {
         "X": 0.0,
-        "Y": 186.0
+        "Y": 156.44943
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -29,7 +29,7 @@
       "Title": "Black Stains",
       "PosOnCanvas": {
         "X": 163.0,
-        "Y": 186.0
+        "Y": 156.44943
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -49,7 +49,7 @@
       "Title": "Stars",
       "PosOnCanvas": {
         "X": 326.0,
-        "Y": 186.0
+        "Y": 156.44943
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -193,7 +193,7 @@
       "Title": "Glowing Sun",
       "PosOnCanvas": {
         "X": 0.0,
-        "Y": 372.0
+        "Y": 401.55057
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {

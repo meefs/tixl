@@ -14,10 +14,6 @@
       "DefaultValue": false
     },
     {
-      "Id": "53d1622e-b1d5-4b1c-acd0-ebceb7064043"/*Panning*/,
-      "DefaultValue": 0.0
-    },
-    {
       "Id": "5a7e9f2c-8d4b-4c1f-9a5e-3b2d6f7c8a4e"/*WaveformType*/,
       "DefaultValue": 2
     },

@@ -8,11 +8,9 @@
       "Title": "Default",
       "PosOnCanvas": {
         "X": 0.0,
-        "Y": 0.0
+        "Y": -29.55056
       },
-      "ParameterSetsForChildIds": {
-        "00000000-0000-0000-0000-000000000000": {}
-      }
+      "ParameterSetsForChildIds": {}
     },
     {
       "Id": "226be803-e2db-41a4-9f88-8240e906ad5d",
@@ -21,7 +19,7 @@
       "Title": "Tent",
       "PosOnCanvas": {
         "X": 163.0,
-        "Y": 0.0
+        "Y": -29.55056
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -94,7 +92,7 @@
       "Title": "Peek a boo",
       "PosOnCanvas": {
         "X": 0.0,
-        "Y": 186.0
+        "Y": 215.55057
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -118,7 +116,7 @@
       "Title": "Bevel?",
       "PosOnCanvas": {
         "X": 163.0,
-        "Y": 186.0
+        "Y": 215.55057
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -141,7 +139,7 @@
       "Title": "Marquise",
       "PosOnCanvas": {
         "X": 326.0,
-        "Y": 186.0
+        "Y": 215.55057
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -165,7 +163,7 @@
       "Title": "Marquise Overlay",
       "PosOnCanvas": {
         "X": 0.0,
-        "Y": 279.0
+        "Y": 338.10114
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -188,7 +186,7 @@
       "Title": "Vertical Stripes",
       "PosOnCanvas": {
         "X": 326.0,
-        "Y": 0.0
+        "Y": -29.55056
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -210,7 +208,7 @@
       "Title": "Horizontal Stripes",
       "PosOnCanvas": {
         "X": 163.0,
-        "Y": 279.0
+        "Y": 338.10114
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -233,7 +231,7 @@
       "Title": "Copper Bars",
       "PosOnCanvas": {
         "X": 326.0,
-        "Y": 279.0
+        "Y": 338.10114
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {

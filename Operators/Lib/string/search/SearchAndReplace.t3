@@ -2,6 +2,10 @@
   "Id": "b7910fc6-c3b2-4daf-93cd-010dcfe22a57"/*SearchAndReplace*/,
   "Inputs": [
     {
+      "Id": "3c65f1d1-d535-4ed8-885d-78a3d1bf26bc"/*UseRegex*/,
+      "DefaultValue": false
+    },
+    {
       "Id": "3ca66cbd-a16a-479c-b858-84732e5023ad"/*OriginalString*/,
       "DefaultValue": ""
     },

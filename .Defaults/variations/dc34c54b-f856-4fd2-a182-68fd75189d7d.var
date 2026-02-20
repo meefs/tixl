@@ -28,7 +28,6 @@
           },
           "f5233be8-dfdf-463b-af49-029f3459bbeb": 7.04,
           "58ff3aee-7ced-4634-ac4a-871d67d96b57": 0.03,
-          "fe0bda00-1c88-45d6-88a7-bc955ef5db61": 1.55,
           "12d39fbe-cea2-44af-acf7-901df793e0c4": 3.27,
           "0b76c7f3-32b0-4aa0-a17d-16cb8bde5f80": 4.0,
           "35852bd6-be0a-4dae-b078-b6db734ca772": 1,
@@ -46,7 +45,7 @@
       "Title": "Cubism",
       "PosOnCanvas": {
         "X": -23.72124,
-        "Y": -131.21681
+        "Y": -160.76736
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -73,7 +72,7 @@
       "Title": "Wallpaper",
       "PosOnCanvas": {
         "X": -23.72124,
-        "Y": 54.783188
+        "Y": 84.33375
       },
       "ParameterSetsForChildIds": {
         "00000000-0000-0000-0000-000000000000": {
@@ -99,7 +98,6 @@
           },
           "f5233be8-dfdf-463b-af49-029f3459bbeb": 7.0,
           "58ff3aee-7ced-4634-ac4a-871d67d96b57": 0.9,
-          "fe0bda00-1c88-45d6-88a7-bc955ef5db61": 1.5,
           "12d39fbe-cea2-44af-acf7-901df793e0c4": 3.27,
           "0b76c7f3-32b0-4aa0-a17d-16cb8bde5f80": 1.0,
           "35852bd6-be0a-4dae-b078-b6db734ca772": 1,

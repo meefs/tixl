@@ -10,10 +10,17 @@
       }
     },
     {
-      "InputId": "1057313c-006a-4f12-8828-07447337898b"/*BrushSize*/,
+      "InputId": "1057313c-006a-4f12-8828-07447337898b"/*StrokeSize*/,
       "Position": {
         "X": -200.0,
         "Y": 180.0
+      }
+    },
+    {
+      "InputId": "37558056-88d8-4d2e-89e2-9f3460565bc8"/*ColorMode*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 390.0
       }
     },
     {
@@ -32,7 +39,7 @@
       }
     },
     {
-      "InputId": "ae7fb135-c216-4f34-b73f-5115417e916b"/*BrushColor*/,
+      "InputId": "ae7fb135-c216-4f34-b73f-5115417e916b"/*StrokeColor*/,
       "Position": {
         "X": -200.0,
         "Y": 315.0

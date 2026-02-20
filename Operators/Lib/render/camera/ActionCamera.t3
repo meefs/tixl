@@ -42,6 +42,10 @@
       "DefaultValue": 0.0
     },
     {
+      "Id": "cb55671f-a20d-42a3-b19c-7c8ee5d7f865"/*FOV*/,
+      "DefaultValue": 0.0
+    },
+    {
       "Id": "d46ee53d-887b-4e37-b5ba-4ee0ba50c711"/*ReferenceCamera*/,
       "DefaultValue": null
     }

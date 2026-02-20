@@ -98,6 +98,13 @@
       "Max": 1.0
     },
     {
+      "InputId": "cb55671f-a20d-42a3-b19c-7c8ee5d7f865"/*FOV*/,
+      "Position": {
+        "X": 0.0,
+        "Y": 525.0
+      }
+    },
+    {
       "InputId": "d46ee53d-887b-4e37-b5ba-4ee0ba50c711"/*ReferenceCamera*/,
       "Relevancy": "Required",
       "Position": {

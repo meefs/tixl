@@ -35,6 +35,40 @@
           "f1334f45-4335-4198-9b6e-ab9e8384aa32": 4.71
         }
       }
+    },
+    {
+      "Id": "042db29f-4432-4659-b0ee-50f611f264ab",
+      "IsPreset": true,
+      "ActivationIndex": 3,
+      "Title": "Color",
+      "PosOnCanvas": {
+        "X": 326.0,
+        "Y": 0.0
+      },
+      "ParameterSetsForChildIds": {
+        "00000000-0000-0000-0000-000000000000": {
+          "195da7e0-5279-4900-80cd-5635e96ab454": 0.35,
+          "903c0270-dc46-402e-8088-8db8368a6dfb": 1.0,
+          "d24cce46-dd3f-4047-a33f-50abbca89cc4": 0.3
+        }
+      }
+    },
+    {
+      "Id": "8da81503-bd72-4fa7-9b57-8f2f8d830ac3",
+      "IsPreset": true,
+      "ActivationIndex": 4,
+      "Title": "ColorSnow",
+      "PosOnCanvas": {
+        "X": 0.0,
+        "Y": 122.55056
+      },
+      "ParameterSetsForChildIds": {
+        "00000000-0000-0000-0000-000000000000": {
+          "195da7e0-5279-4900-80cd-5635e96ab454": 1.0,
+          "903c0270-dc46-402e-8088-8db8368a6dfb": 0.97,
+          "d24cce46-dd3f-4047-a33f-50abbca89cc4": 26.0
+        }
+      }
     }
   ]
 }

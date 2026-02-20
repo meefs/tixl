@@ -2,6 +2,10 @@
   "Id": "e8d94dd7-eb54-42fe-a7b1-b43543dd457e"/*LoadSvg*/,
   "Inputs": [
     {
+      "Id": "05e5aec4-35a7-48dd-8f79-91ef754d20e8"/*SelectSingleShape*/,
+      "DefaultValue": 0
+    },
+    {
       "Id": "221bf10c-b13e-40cf-80af-769c10a21c5b"/*ScaleToBounds*/,
       "DefaultValue": true
     },

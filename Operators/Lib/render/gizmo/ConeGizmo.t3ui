@@ -4,6 +4,16 @@
   "SymbolTags": "8",
   "InputUis": [
     {
+      "InputId": "a4b5c6d7-8e9f-0a1b-2c3d-4e5f6a7b8c9d"/*RayCount*/,
+      "Position": {
+        "X": 0.0,
+        "Y": 135.0
+      },
+      "Description": "Number of radial ray lines from apex to base (set to 0 for circle only).",
+      "Min": 0,
+      "Max": 32
+    },
+    {
       "InputId": "b9d5f3a7-4c8e-2f1b-9a6d-7e3c5b8f1a4d"/*Angle*/,
       "Position": {
         "X": 0.0,
@@ -31,16 +41,6 @@
       "Description": "Number of segments for the base circle.",
       "Min": 3,
       "Max": 64
-    },
-    {
-      "InputId": "a4b5c6d7-8e9f-0a1b-2c3d-4e5f6a7b8c9d"/*RayCount*/,
-      "Position": {
-        "X": 0.0,
-        "Y": 135.0
-      },
-      "Description": "Number of radial ray lines from apex to base (set to 0 for circle only).",
-      "Min": 0,
-      "Max": 32
     }
   ],
   "SymbolChildUis": [],
