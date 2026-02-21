@@ -527,10 +527,10 @@ public static class AssetRegistry
     private static readonly ConcurrentDictionary<string, Asset> _assetsByAddress = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, List<Asset>> _assetsMatchingFilenames = new(StringComparer.OrdinalIgnoreCase);
 
-    internal static ExternalAssetsPackage ExternalAssetsPackage = new();
+    public static readonly ExternalAssetsPackage ExternalAssetsPackage = new();
 }
 
-internal sealed class ExternalAssetsPackage : IResourcePackage
+public sealed class ExternalAssetsPackage : IResourcePackage
 {
     public string DisplayName => "ExternalFiles";
     public string Name => "ExternalFiles";

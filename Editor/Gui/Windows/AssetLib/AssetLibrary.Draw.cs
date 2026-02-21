@@ -281,7 +281,7 @@ internal sealed partial class AssetLibrary
         for (var index = 0; index < folder.FolderAssets.Count; index++)
         {
             var asset = folder.FolderAssets[index];
-            if (asset.IsDirectory)
+            if (asset.IsDirectory || asset.Package == AssetRegistry.ExternalAssetsPackage)
                 continue;
 
             DrawAssetItem(asset);
