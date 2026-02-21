@@ -24,18 +24,18 @@ internal static class ShaderLinter
         resourceFolderList.Add(package.AssetsFolder);
         if (package.Name != null)
         {
-            // Maps "/ProjectName" to ".../ProjectName/Assets"
-            virtualIncludeDirectories.Add('/' + package.Name, package.AssetsFolder);
+            // Maps "/ProjectName" to ".../ProjectName/Assets/Shaders"
+            virtualIncludeDirectories.Add('/' + package.Name, package.AssetsFolder + "/shaders/");
         }
 
         if (additionalPackages is not null)
         {
             foreach (var p in additionalPackages)
             {
-                resourceFolderList.Add(p.AssetsFolder);
+                resourceFolderList.Add(p.AssetsFolder + "/shaders/");
                 if (p.Name != null)
                 {
-                    virtualIncludeDirectories.TryAdd('/' + p.Name, p.AssetsFolder);
+                    virtualIncludeDirectories.TryAdd('/' + p.Name, p.AssetsFolder + "/shaders/");
                 }
             }
         }
