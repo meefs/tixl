@@ -10,8 +10,10 @@ using SharpDX.WIC;
 using T3.Core.Resource;
 using T3.Core.Resource.Assets;
 using T3.Core.UserData;
+using T3.Core.Utils;
 using T3.Editor.Gui.Windows.AssetLib;
 using T3.Editor.Gui.Windows.RenderExport;
+using Utilities = T3.Core.Utils.Utilities;
 using Vector2 = System.Numerics.Vector2;
 
 namespace T3.Editor.Gui.UiHelpers.Thumbnails;
@@ -45,6 +47,10 @@ internal static class ThumbnailManager
         lock (_uploadQueue)
         {
             var deviceContext = ResourceManager.Device.ImmediateContext;
+            if (EnableLogging && _uploadQueue.Count > 0)
+            {
+                Log.Debug($" Copy {_uploadQueue.Count} thumbs to atlas");
+            }
             while (_uploadQueue.Count > 0)
             {
                 var upload = _uploadQueue.Dequeue();
@@ -144,6 +150,9 @@ internal static class ThumbnailManager
     {
         try
         {
+            if(EnableLogging)
+                Log.Debug($"LoadThumb {path}  {guid.ShortenGuid()}...");
+            
             if (!_slots.TryGetValue(guid, out var slot)) return;
         
             slot.State = LoadingState.Loading;
@@ -271,12 +280,18 @@ internal static class ThumbnailManager
     #region GPU / Saving Methods
     internal static void SaveThumbnail(Guid guid, IResourcePackage package, T3.Core.DataTypes.Texture2D sourceTexture, Categories category, bool saveToFile = true)
     {
+
+        var isNew = false;
         if (!_slots.TryGetValue(guid, out var slot))
         {
             slot = new ThumbnailSlot { Guid = guid };
             _slots[guid] = slot;
+            isNew = true;
         }
 
+        if(EnableLogging)
+            Log.Debug($"Saving thumbs: {package} {slot}  asFile:{ saveToFile}  new:{isNew}");
+        
         slot.State = LoadingState.Loading;
         var targetSlot = AssignAtlasSlot(guid);
         
@@ -343,7 +358,16 @@ internal static class ThumbnailManager
         if (saveToFile) {
             var saveTexture = new T3.Core.DataTypes.Texture2D(tempTarget);
             ScreenshotWriter.StartSavingToFile(saveTexture, filePath, ScreenshotWriter.FileFormats.Png,
-                                               path => { if (!string.IsNullOrEmpty(path)) lock (_lockedPath) _lockedPath.Remove(path); }, 
+                                               path =>
+                                               {
+                                                   if (string.IsNullOrEmpty(path)) 
+                                                       return;
+
+                                                   lock (_lockedPath)
+                                                   {
+                                                       _lockedPath.Remove(path);
+                                                   }
+                                               }, 
                                                logErrors: false);
         }
     }
@@ -359,7 +383,10 @@ internal static class ThumbnailManager
             BindFlags = BindFlags.ShaderResource, CpuAccessFlags = CpuAccessFlags.None,
             SampleDescription = new SharpDX.DXGI.SampleDescription(1, 0)
         };
-
+        
+        Utilities.Dispose(ref _atlas);
+        AtlasSrv?.Dispose();
+        
         _atlas = new SharpDX.Direct3D11.Texture2D(device, desc);
         AtlasSrv = new ShaderResourceView(device, _atlas);
         _initialized = true;
@@ -384,6 +411,17 @@ internal static class ThumbnailManager
     }
     #endregion
 
+    public static void Reset()
+    {
+        Initialize();
+        _slots.Clear();
+        _atlasLru.Clear();
+        lock (_uploadQueue)
+        {
+            _uploadQueue.Clear();
+        }
+    }
+    
     private const int AtlasSize = 4096, Padding = 2, MaxSlots = 500;
     public const int SlotWidth = 178;
     public const int  SlotHeight = 133;
@@ -406,9 +444,15 @@ internal static class ThumbnailManager
         public LoadingState State = LoadingState.NotLoaded;
         public int X = -1, Y = -1;
         public DateTime LastUsed;
+
+        public override string ToString()
+        {
+            return $" {Guid.ShortenGuid()} [{X}:{Y}]  <{State}";
+        }
     }
 
     private static readonly HashSet<string> _lockedPath = [];
     public enum Categories { Temp, User, PackageMeta }
     private const string ThumbnailsSubFolder = "Thumbnails", MetaSubFolder = ".meta";
+    public static bool EnableLogging;
 }

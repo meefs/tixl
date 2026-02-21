@@ -101,7 +101,7 @@ internal sealed class SnapshotCanvas : VariationBaseCanvas
         PoolForBlendOperations.SaveVariationsToFile();
         CanvasElementSelection.SetSelection(newVariation);
         RequestResetView();
-        TriggerThumbnailUpdate();
+        TriggerThumbnailSave();
         VariationThumbnail.VariationForRenaming = newVariation;
     }
 }
