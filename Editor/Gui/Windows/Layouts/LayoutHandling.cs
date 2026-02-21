@@ -26,10 +26,16 @@ internal static class LayoutHandling
         for (var i = 0; i < _saveLayoutActions.Length; i++)
         {
             if (_saveLayoutActions[i].Triggered())
+            {
                 SaveLayout(i);
+                break;
+            }
 
             if (_loadLayoutActions[i].Triggered())
+            {
                 LoadAndApplyLayoutOrFocusMode((Layouts)i);
+                break;
+            }
         }
     }
 
@@ -80,6 +86,8 @@ internal static class LayoutHandling
                         });
     }
 
+    private static UiConfig.UiState? _uiStateBeforeFocusMode;
+    
     public static void LoadAndApplyLayoutOrFocusMode(Layouts layoutId)
     {
         var index = (int)layoutId;
@@ -96,16 +104,25 @@ internal static class LayoutHandling
             return;
         }
 
+        var switchingBackFromFocusMode = layoutId != Layouts.FocusMode && UserSettings.Config.FocusMode;
+        if (switchingBackFromFocusMode)
+        {
+            UiConfig.RestoreUiVisibilityAfterFocusMode();
+        }
+        
+        if(layoutId != Layouts.FocusMode) 
+        {
+            UserSettings.Config.WindowLayoutIndex = index;
+        }
+
         ApplyLayout(layout);
         foreach (var graphWindow in GraphWindow.GraphWindowInstances)
         {
             graphWindow.SetWindowToNormal();
         }
 
-        var isFocusMode = layoutId == Layouts.FocusMode;
-        UserSettings.Config.FocusMode = isFocusMode;
-        if (!isFocusMode)
-            UserSettings.Config.WindowLayoutIndex = index;
+        // var isFocusMode = layoutId == Layouts.FocusMode;
+        // UserSettings.Config.FocusMode = isFocusMode;
     }
 
     public static string GraphPrefix => "Graph View##";
@@ -166,6 +183,8 @@ internal static class LayoutHandling
         {
             Program.NewImGuiLayoutDefinition = layout.ImGuiSettings;
         }
+        
+        //UiConfig.RestoreUiVisibilityAfterFocusMode();
     }
 
     private static void SaveLayout(int index)
