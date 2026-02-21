@@ -263,11 +263,14 @@ internal static class RenderProcess
             }
         }
 
+        var totalFrameCount = RenderTiming.ComputeFrameCount(renderSettings);
+        renderSettings.FrameCount = totalFrameCount;
+
         // Start new session
         _activeSession = new ExportSession
                          {
                              Settings = renderSettings,
-                             FrameCount = RenderTiming.ComputeFrameCount(renderSettings),
+                             FrameCount = totalFrameCount,
                              ExportStartedTime = Playback.RunTimeInSecs,
                              FrameIndex = 0,
                          };
