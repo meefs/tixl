@@ -77,7 +77,7 @@ internal sealed class SymbolLibrary : Window
     }
 
     // Indicates if a refresh of the symbol library is needed
-    private static bool _refreshTriggered;
+    //private static bool _refreshTriggered;
 
     private static readonly TreeHandler _treeHandler = new();
 
@@ -113,10 +113,9 @@ internal sealed class SymbolLibrary : Window
 
         ImGui.SameLine();
         // Draw refresh button and handle refresh logic
-        if (CustomComponents.IconButton(Icon.Refresh, Vector2.Zero, CustomComponents.ButtonStates.Dimmed) || _refreshTriggered)
+        if (CustomComponents.IconButton(Icon.Refresh, Vector2.Zero, CustomComponents.ButtonStates.Dimmed) || NeedsRebuild)
         {
             UpdateSymbolLibraryState();
-            _refreshTriggered = false;
         }
 
         CustomComponents.TooltipForLastItem(
@@ -165,7 +164,13 @@ internal sealed class SymbolLibrary : Window
         ExampleSymbolLinking.UpdateExampleLinks();
         SymbolAnalysis.UpdateDetails();
         _wasScanned = true;
+        _lastUpdateVersion = EditorSymbolPackage.SymbolStructureVersionCounter;
+        
     }
+
+    private bool NeedsRebuild => _lastUpdateVersion < EditorSymbolPackage.SymbolStructureVersionCounter;
+
+    private int _lastUpdateVersion;
 
     /// <summary>
     /// Shows a list of usages for a referenced symbol if the "used by" indicator was clicked.
@@ -461,7 +466,7 @@ internal sealed class SymbolLibrary : Window
         if (!MoveSymbolToNamespace(symbolId, subtree.GetAsString(), out var reason))
             BlockingWindow.Instance.ShowMessageBox(reason, "Could not move symbol's namespace");
 
-        _refreshTriggered = true;
+        EditorSymbolPackage.NotifySymbolStructureChange();
     }
 
     /// <summary>
@@ -528,7 +533,7 @@ internal sealed class SymbolLibrary : Window
             }
         }
 
-        _refreshTriggered = true;
+        EditorSymbolPackage.NotifySymbolStructureChange();
     }
 
     /// <summary>

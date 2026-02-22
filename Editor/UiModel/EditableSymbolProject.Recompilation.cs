@@ -178,6 +178,7 @@ internal partial class EditableSymbolProject
 
             var substitutedNamespace = Regex.Replace(symbol.Namespace, sourceNamespace, newNamespace);
 
+            
             if (!ChangeNamespaceOf(symbol, substitutedNamespace, newDestinationProject, sourceNamespace, out var reason))
             {
                 Log.Error(reason);
@@ -202,6 +203,8 @@ internal partial class EditableSymbolProject
         var command = new ChangeSymbolNamespaceCommand(symbol, targetProject, newNamespace, ChangeNamespace, skipProjectReload);
         UndoRedoStack.AddAndExecute(command);
         reason = string.Empty;
+        NotifySymbolStructureChange();
+        
         return true;
 
         static string ChangeNamespace(Guid symbolId, string nameSpace, EditableSymbolProject sourceProject, EditableSymbolProject targetProject, bool skipProjectReload)
@@ -327,6 +330,7 @@ internal partial class EditableSymbolProject
 
         var symbolUi = SymbolUiDict[id];
         symbolUi.FlagAsModified();
+        NotifySymbolStructureChange();
 
         if (newDestinationProject != this)
         {
