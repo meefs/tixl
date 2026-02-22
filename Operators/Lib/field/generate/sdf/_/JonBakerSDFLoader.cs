@@ -1,4 +1,4 @@
-namespace Lib.field.generate.sdf;
+namespace Lib.field.generate.sdf._;
 
 [Guid("cea24093-69f0-4905-a695-a0da2e47abc9")]
 internal sealed class JonBakerSDFLoader : Instance<JonBakerSDFLoader>
