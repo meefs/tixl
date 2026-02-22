@@ -18,7 +18,28 @@
       "DefaultValue": {
         "Gradient": {
           "Interpolation": "Linear",
-          "Steps": []
+          "Steps": [
+            {
+              "Id": "1a4482cd-7deb-4fa2-af9e-7f4d5daf8032",
+              "NormalizedPosition": 0.0,
+              "Color": {
+                "R": 0.0,
+                "G": 0.0,
+                "B": 0.0,
+                "A": 1.0
+              }
+            },
+            {
+              "Id": "33f48194-c763-4094-9b4a-32587a9765f6",
+              "NormalizedPosition": 1.0,
+              "Color": {
+                "R": 1.0,
+                "G": 1.0,
+                "B": 1.0,
+                "A": 1.0
+              }
+            }
+          ]
         }
       }
     },

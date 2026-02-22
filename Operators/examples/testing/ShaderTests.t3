@@ -9,7 +9,7 @@
       "Outputs": []
     },
     {
-      "Id": "04426d9c-b039-4a92-9b1f-61186b4df2e5"/**/,
+      "Id": "04426d9c-b039-4a92-9b1f-61186b4df2e5"/*SphereSDF*/,
       "SymbolId": "fc2a33fc-d957-4113-8096-92d4dcbe14b5",
       "InputValues": [
         {
@@ -25,7 +25,7 @@
       "Outputs": []
     },
     {
-      "Id": "061bdba1-2a1f-421f-a419-b0b14e4fa529"/**/,
+      "Id": "061bdba1-2a1f-421f-a419-b0b14e4fa529"/*PrismSDF*/,
       "SymbolId": "1e1e65cd-3564-45e1-88f8-6cb4b4b18c5a",
       "InputValues": [
         {
@@ -67,19 +67,19 @@
       "Outputs": []
     },
     {
-      "Id": "0b45fffe-e36c-4872-be60-c1d6118429ea"/**/,
+      "Id": "0b45fffe-e36c-4872-be60-c1d6118429ea"/*DrawMesh*/,
       "SymbolId": "a3c5471e-079b-4d4b-886a-ec02d6428ff6",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "10e7bcba-c520-443e-8cfa-f706799d79fe"/**/,
+      "Id": "10e7bcba-c520-443e-8cfa-f706799d79fe"/*RenderTarget*/,
       "SymbolId": "f9fe78c5-43a6-48ae-8e8c-6cdbbc330dd1",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "15267093-50d6-4d01-9239-4a4d75162bbe"/**/,
+      "Id": "15267093-50d6-4d01-9239-4a4d75162bbe"/*Image2dSDF*/,
       "SymbolId": "2446df39-b455-428a-807d-73c0e6cbab79",
       "InputValues": [],
       "Outputs": []
@@ -115,7 +115,7 @@
       "Outputs": []
     },
     {
-      "Id": "170d419e-30f2-4dc2-8932-bec99e0ca849"/**/,
+      "Id": "170d419e-30f2-4dc2-8932-bec99e0ca849"/*DrawLines*/,
       "SymbolId": "836f211f-b387-417c-8316-658e0dc6e117",
       "InputValues": [
         {
@@ -137,7 +137,7 @@
       "Outputs": []
     },
     {
-      "Id": "17caec50-bbd8-4f14-aa67-d5565a8673f6"/**/,
+      "Id": "17caec50-bbd8-4f14-aa67-d5565a8673f6"/*RenderTarget*/,
       "SymbolId": "f9fe78c5-43a6-48ae-8e8c-6cdbbc330dd1",
       "InputValues": [
         {
@@ -149,7 +149,7 @@
       "Outputs": []
     },
     {
-      "Id": "187cbe36-a0e1-4e4b-ab11-37968f9be8b0"/**/,
+      "Id": "187cbe36-a0e1-4e4b-ab11-37968f9be8b0"/*CylinderSDF*/,
       "SymbolId": "67f21840-dc9a-4390-aa45-234ce81c8717",
       "InputValues": [
         {
@@ -165,19 +165,19 @@
       "Outputs": []
     },
     {
-      "Id": "1a6463b0-9448-474a-8d12-5a34e4d3f397"/**/,
+      "Id": "1a6463b0-9448-474a-8d12-5a34e4d3f397"/*SphereSDF*/,
       "SymbolId": "fc2a33fc-d957-4113-8096-92d4dcbe14b5",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "1c1f2bbc-3765-4a46-9ba4-ead32c79b8b8"/**/,
+      "Id": "1c1f2bbc-3765-4a46-9ba4-ead32c79b8b8"/*Bloom*/,
       "SymbolId": "f634e126-8834-46ea-bd6e-5ebfdc8b0733",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "1d8166cf-d12b-4af3-b81d-8f5c268ec69d"/**/,
+      "Id": "1d8166cf-d12b-4af3-b81d-8f5c268ec69d"/*Group*/,
       "SymbolId": "a3f64d34-1fab-4230-86b3-1c3deba3f90b",
       "InputValues": [],
       "Outputs": []
@@ -189,13 +189,13 @@
       "Outputs": []
     },
     {
-      "Id": "24c2eb2c-a2a6-4842-b8ee-a9fb2604b3fb"/**/,
+      "Id": "24c2eb2c-a2a6-4842-b8ee-a9fb2604b3fb"/*RaymarchField*/,
       "SymbolId": "9323e32f-078c-4156-941b-203f4c265ff5",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "27190173-0643-484f-a89a-d650eccf2ada"/**/,
+      "Id": "27190173-0643-484f-a89a-d650eccf2ada"/*Raster3dField*/,
       "SymbolId": "edfc71fc-2d54-4226-b819-0340bb1fdd65",
       "InputValues": [
         {
@@ -217,19 +217,19 @@
       "Outputs": []
     },
     {
-      "Id": "2840e0f2-ef4a-47e5-9d37-fef244c0efc4"/**/,
+      "Id": "2840e0f2-ef4a-47e5-9d37-fef244c0efc4"/*RenderTarget*/,
       "SymbolId": "f9fe78c5-43a6-48ae-8e8c-6cdbbc330dd1",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "29372473-af84-4dc1-ad6e-ea45cfcd48f1"/**/,
+      "Id": "29372473-af84-4dc1-ad6e-ea45cfcd48f1"/*Group*/,
       "SymbolId": "a3f64d34-1fab-4230-86b3-1c3deba3f90b",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "392ffdaf-be5f-4e2e-ac63-e0b4947d3268"/**/,
+      "Id": "392ffdaf-be5f-4e2e-ac63-e0b4947d3268"/*Camera*/,
       "SymbolId": "746d886c-5ab6-44b1-bb15-f3ce2fadf7e6",
       "InputValues": [
         {
@@ -254,7 +254,7 @@
       "Outputs": []
     },
     {
-      "Id": "398c8d4d-e529-4568-a65f-e059c55a1b3e"/**/,
+      "Id": "398c8d4d-e529-4568-a65f-e059c55a1b3e"/*RaymarchField*/,
       "SymbolId": "9323e32f-078c-4156-941b-203f4c265ff5",
       "InputValues": [
         {
@@ -266,7 +266,7 @@
       "Outputs": []
     },
     {
-      "Id": "3fd5ea05-5721-47fc-b18d-c13ed2a2b384"/**/,
+      "Id": "3fd5ea05-5721-47fc-b18d-c13ed2a2b384"/*BoxSDF*/,
       "SymbolId": "860da1cd-b341-4bc5-965a-4a9c295831f4",
       "InputValues": [
         {
@@ -282,13 +282,13 @@
       "Outputs": []
     },
     {
-      "Id": "42c13ec4-515a-4d55-9a06-655f7cbe4fae"/**/,
+      "Id": "42c13ec4-515a-4d55-9a06-655f7cbe4fae"/*RenderTarget*/,
       "SymbolId": "f9fe78c5-43a6-48ae-8e8c-6cdbbc330dd1",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "43614b03-d543-4ad6-8fa0-471cf179a462"/**/,
+      "Id": "43614b03-d543-4ad6-8fa0-471cf179a462"/*BoxSDF*/,
       "SymbolId": "860da1cd-b341-4bc5-965a-4a9c295831f4",
       "InputValues": [],
       "Outputs": []
@@ -300,7 +300,7 @@
       "Outputs": []
     },
     {
-      "Id": "55344a21-67a7-4bb1-a3bb-5fa2829af751"/**/,
+      "Id": "55344a21-67a7-4bb1-a3bb-5fa2829af751"/*Text*/,
       "SymbolId": "fd31d208-12fe-46bf-bfa3-101211f8f497",
       "InputValues": [
         {
@@ -325,7 +325,7 @@
       "Outputs": []
     },
     {
-      "Id": "567cc57f-6962-4332-9453-c26fb7bb7612"/**/,
+      "Id": "567cc57f-6962-4332-9453-c26fb7bb7612"/*PrismSDF*/,
       "SymbolId": "1e1e65cd-3564-45e1-88f8-6cb4b4b18c5a",
       "InputValues": [
         {
@@ -341,7 +341,7 @@
       "Outputs": []
     },
     {
-      "Id": "598fbcc6-7b6e-4e59-9c27-363b5e20f856"/**/,
+      "Id": "598fbcc6-7b6e-4e59-9c27-363b5e20f856"/*_SDFToColor_Old*/,
       "SymbolId": "eff96322-0e4e-42d6-93de-18451b56ae31",
       "InputValues": [
         {
@@ -407,7 +407,7 @@
       "Outputs": []
     },
     {
-      "Id": "5dbb6579-f414-45b7-ba6c-6c1c10dc5a4d"/**/,
+      "Id": "5dbb6579-f414-45b7-ba6c-6c1c10dc5a4d"/*CombineSDF*/,
       "SymbolId": "82270977-07b5-4d86-8544-5aebc638d46c",
       "InputValues": [
         {
@@ -419,7 +419,7 @@
       "Outputs": []
     },
     {
-      "Id": "673d8a43-deb1-4e53-8904-ab1897a04f4c"/**/,
+      "Id": "673d8a43-deb1-4e53-8904-ab1897a04f4c"/*RenderTarget*/,
       "SymbolId": "f9fe78c5-43a6-48ae-8e8c-6cdbbc330dd1",
       "InputValues": [
         {
@@ -444,7 +444,7 @@
       "Outputs": []
     },
     {
-      "Id": "68658aea-d5c0-4781-823b-f765307023c4"/**/,
+      "Id": "68658aea-d5c0-4781-823b-f765307023c4"/*OctahedronSDF*/,
       "SymbolId": "fdb85ece-201b-49dc-899b-f044a98ac414",
       "InputValues": [
         {
@@ -460,7 +460,7 @@
       "Outputs": []
     },
     {
-      "Id": "699d4562-e48a-4158-a8cd-cf8a5f86b082"/**/,
+      "Id": "699d4562-e48a-4158-a8cd-cf8a5f86b082"/*RaymarchField*/,
       "SymbolId": "9323e32f-078c-4156-941b-203f4c265ff5",
       "InputValues": [
         {
@@ -472,13 +472,13 @@
       "Outputs": []
     },
     {
-      "Id": "6abb97d2-b5af-4523-b723-752c82a673f3"/**/,
+      "Id": "6abb97d2-b5af-4523-b723-752c82a673f3"/*Bloom*/,
       "SymbolId": "f634e126-8834-46ea-bd6e-5ebfdc8b0733",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "6b52267c-29b7-4674-9aa7-3e4ed81813e7"/**/,
+      "Id": "6b52267c-29b7-4674-9aa7-3e4ed81813e7"/*Camera*/,
       "SymbolId": "746d886c-5ab6-44b1-bb15-f3ce2fadf7e6",
       "InputValues": [
         {
@@ -503,13 +503,13 @@
       "Outputs": []
     },
     {
-      "Id": "6fe77247-1c2b-453c-a82d-90f33d26878b"/**/,
+      "Id": "6fe77247-1c2b-453c-a82d-90f33d26878b"/*SetFog*/,
       "SymbolId": "74cbfce0-f8b8-46a1-b5d6-38477d4eec99",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "70009e64-70c4-4e91-a036-92e34b04ca88"/**/,
+      "Id": "70009e64-70c4-4e91-a036-92e34b04ca88"/*HasTimeChanged*/,
       "SymbolId": "2443b2fd-c397-4ea6-9588-b595f918cf01",
       "InputValues": [],
       "Outputs": []
@@ -528,7 +528,7 @@
       "Outputs": []
     },
     {
-      "Id": "740b5f43-299c-422b-9e03-b7c0fc99e3be"/**/,
+      "Id": "740b5f43-299c-422b-9e03-b7c0fc99e3be"/*RadialPoints*/,
       "SymbolId": "3352d3a1-ab04-4d0a-bb43-da69095b73fd",
       "InputValues": [
         {
@@ -577,7 +577,7 @@
       "Outputs": []
     },
     {
-      "Id": "763d70de-14a9-4253-8880-90451032882f"/**/,
+      "Id": "763d70de-14a9-4253-8880-90451032882f"/*TransformField*/,
       "SymbolId": "c44d23c7-bfac-403d-b49e-49d00001a316",
       "InputValues": [
         {
@@ -593,7 +593,7 @@
       "Outputs": []
     },
     {
-      "Id": "78f3b3f0-9db1-468a-98c7-3b9b3f5f3105"/**/,
+      "Id": "78f3b3f0-9db1-468a-98c7-3b9b3f5f3105"/*PyramidSDF*/,
       "SymbolId": "5b8604d0-65f4-45c9-9e85-4a044005a778",
       "InputValues": [
         {
@@ -637,7 +637,7 @@
       "Outputs": []
     },
     {
-      "Id": "7c2acc65-515c-40fc-a6e4-6fccdcf72d9f"/**/,
+      "Id": "7c2acc65-515c-40fc-a6e4-6fccdcf72d9f"/*CombineBuffers*/,
       "SymbolId": "4dd8a618-eb3b-40af-9851-89c50683d83e",
       "InputValues": [],
       "Outputs": []
@@ -661,7 +661,7 @@
       "Outputs": []
     },
     {
-      "Id": "8613ccf8-624e-424c-bc04-178e0dca57e0"/**/,
+      "Id": "8613ccf8-624e-424c-bc04-178e0dca57e0"/*DrawPoints*/,
       "SymbolId": "ffd94e5a-bc98-4e70-84d8-cce831e6925f",
       "InputValues": [
         {
@@ -678,7 +678,7 @@
       "Outputs": []
     },
     {
-      "Id": "8abf45c8-255a-47d1-b0ef-47f9903ac5b3"/**/,
+      "Id": "8abf45c8-255a-47d1-b0ef-47f9903ac5b3"/*Camera*/,
       "SymbolId": "746d886c-5ab6-44b1-bb15-f3ce2fadf7e6",
       "InputValues": [
         {
@@ -729,7 +729,7 @@
       "Outputs": []
     },
     {
-      "Id": "9d233319-1dac-45e5-8b2e-46fbb9f14154"/**/,
+      "Id": "9d233319-1dac-45e5-8b2e-46fbb9f14154"/*_GridPoints_Old*/,
       "SymbolId": "3ee8f66d-68df-43c1-b0eb-407259bf7e86",
       "InputValues": [
         {
@@ -760,7 +760,7 @@
       "Outputs": []
     },
     {
-      "Id": "9d45f648-de11-44e7-9f43-493c41595915"/**/,
+      "Id": "9d45f648-de11-44e7-9f43-493c41595915"/*Camera*/,
       "SymbolId": "746d886c-5ab6-44b1-bb15-f3ce2fadf7e6",
       "InputValues": [
         {
@@ -785,13 +785,13 @@
       "Outputs": []
     },
     {
-      "Id": "9ec3ba11-7a45-43ba-8c85-9df939fbbf56"/**/,
+      "Id": "9ec3ba11-7a45-43ba-8c85-9df939fbbf56"/*RaymarchField*/,
       "SymbolId": "9323e32f-078c-4156-941b-203f4c265ff5",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "9f3f0b99-becb-4207-b49c-7e8c7b5bf177"/**/,
+      "Id": "9f3f0b99-becb-4207-b49c-7e8c7b5bf177"/*RepeatFieldAtPoints*/,
       "SymbolId": "e77ac861-5003-4899-a5e0-83059cdde88d",
       "InputValues": [
         {
@@ -808,13 +808,13 @@
       "Outputs": []
     },
     {
-      "Id": "9f8d4a00-3b11-4b5e-a581-532330d112a1"/**/,
+      "Id": "9f8d4a00-3b11-4b5e-a581-532330d112a1"/*ParticleSystem*/,
       "SymbolId": "e44ae9b6-cd56-4224-8a5d-118eda4cd3f4",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "9f958e47-5ae1-4474-890e-524a14dc5486"/**/,
+      "Id": "9f958e47-5ae1-4474-890e-524a14dc5486"/*RadialPoints*/,
       "SymbolId": "3352d3a1-ab04-4d0a-bb43-da69095b73fd",
       "InputValues": [
         {
@@ -826,7 +826,7 @@
       "Outputs": []
     },
     {
-      "Id": "a1d9a4dd-8965-4903-b6d8-d9825f394511"/**/,
+      "Id": "a1d9a4dd-8965-4903-b6d8-d9825f394511"/*TorusSDF*/,
       "SymbolId": "a54e0946-71d0-4985-90bc-184cdb1b6b34",
       "InputValues": [
         {
@@ -857,7 +857,7 @@
       "Outputs": []
     },
     {
-      "Id": "a40284d6-e965-4b16-b34c-05c6042a4747"/**/,
+      "Id": "a40284d6-e965-4b16-b34c-05c6042a4747"/*RaymarchField*/,
       "SymbolId": "9323e32f-078c-4156-941b-203f4c265ff5",
       "InputValues": [
         {
@@ -874,7 +874,7 @@
       "Outputs": []
     },
     {
-      "Id": "a4f99b88-9c41-4e6c-9b70-d851c139111b"/**/,
+      "Id": "a4f99b88-9c41-4e6c-9b70-d851c139111b"/*RepeatPolar*/,
       "SymbolId": "1d9f133d-eba6-4b28-9dfd-08f6c5417ed6",
       "InputValues": [
         {
@@ -891,13 +891,13 @@
       "Outputs": []
     },
     {
-      "Id": "aec82a4b-ee91-4572-a0cb-3fb124697b6b"/**/,
+      "Id": "aec82a4b-ee91-4572-a0cb-3fb124697b6b"/*SphereSDF*/,
       "SymbolId": "fc2a33fc-d957-4113-8096-92d4dcbe14b5",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "af08913a-8445-4cbc-ae9c-c6b938917d5b"/**/,
+      "Id": "af08913a-8445-4cbc-ae9c-c6b938917d5b"/*SetSDFMaterial*/,
       "SymbolId": "88926602-4694-4632-9fd7-04c8d6ddd728",
       "InputValues": [
         {
@@ -914,19 +914,19 @@
       "Outputs": []
     },
     {
-      "Id": "b05df438-260c-4fde-8b5c-d06fbf2a5756"/**/,
+      "Id": "b05df438-260c-4fde-8b5c-d06fbf2a5756"/*RenderTarget*/,
       "SymbolId": "f9fe78c5-43a6-48ae-8e8c-6cdbbc330dd1",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "b281f89f-6501-4fb1-a6dc-77161679eaf4"/**/,
+      "Id": "b281f89f-6501-4fb1-a6dc-77161679eaf4"/*RenderTarget*/,
       "SymbolId": "f9fe78c5-43a6-48ae-8e8c-6cdbbc330dd1",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "b3eaf891-5261-43cb-bdf9-111df597ea9c"/**/,
+      "Id": "b3eaf891-5261-43cb-bdf9-111df597ea9c"/*SetSDFMaterial*/,
       "SymbolId": "88926602-4694-4632-9fd7-04c8d6ddd728",
       "InputValues": [
         {
@@ -943,7 +943,7 @@
       "Outputs": []
     },
     {
-      "Id": "b4063e65-b2a9-40bb-aea2-17c9cec41c59"/**/,
+      "Id": "b4063e65-b2a9-40bb-aea2-17c9cec41c59"/*CustomSDF*/,
       "SymbolId": "637d00e4-ab63-4fe3-8e63-1e206c728841",
       "InputValues": [
         {
@@ -970,7 +970,7 @@
       "Outputs": []
     },
     {
-      "Id": "b5e07cb0-c35e-4174-8458-a59b2851baaa"/**/,
+      "Id": "b5e07cb0-c35e-4174-8458-a59b2851baaa"/*Camera*/,
       "SymbolId": "746d886c-5ab6-44b1-bb15-f3ce2fadf7e6",
       "InputValues": [
         {
@@ -995,7 +995,7 @@
       "Outputs": []
     },
     {
-      "Id": "b623b741-51f5-4e67-a7fd-882d13161a7c"/**/,
+      "Id": "b623b741-51f5-4e67-a7fd-882d13161a7c"/*CappedTorusSDF*/,
       "SymbolId": "b85198a8-6475-45e1-b2d2-83ec8f59d6ed",
       "InputValues": [
         {
@@ -1021,7 +1021,7 @@
       "Outputs": []
     },
     {
-      "Id": "b6a6deda-3fc3-405d-91c3-4f4617ad03c9"/**/,
+      "Id": "b6a6deda-3fc3-405d-91c3-4f4617ad03c9"/*Camera*/,
       "SymbolId": "746d886c-5ab6-44b1-bb15-f3ce2fadf7e6",
       "InputValues": [
         {
@@ -1046,13 +1046,13 @@
       "Outputs": []
     },
     {
-      "Id": "b7847b8d-6949-4096-8191-5deb0ea005e8"/**/,
+      "Id": "b7847b8d-6949-4096-8191-5deb0ea005e8"/*SetMaterial*/,
       "SymbolId": "0ed2bee3-641f-4b08-8685-df1506e9af3c",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "bf5c7791-6845-4070-80fe-1980cb2bd970"/**/,
+      "Id": "bf5c7791-6845-4070-80fe-1980cb2bd970"/*CombineSDF*/,
       "SymbolId": "82270977-07b5-4d86-8544-5aebc638d46c",
       "InputValues": [
         {
@@ -1064,13 +1064,13 @@
       "Outputs": []
     },
     {
-      "Id": "ca86aaf1-476a-4ebe-8630-ee5d6ea84080"/**/,
+      "Id": "ca86aaf1-476a-4ebe-8630-ee5d6ea84080"/*RenderTarget*/,
       "SymbolId": "f9fe78c5-43a6-48ae-8e8c-6cdbbc330dd1",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "cac11d25-94ef-4a58-94c1-13b47d377671"/**/,
+      "Id": "cac11d25-94ef-4a58-94c1-13b47d377671"/*ChainLinkSDF*/,
       "SymbolId": "27c6aa52-7b3e-4a9a-b6e5-0359f7155cee",
       "InputValues": [
         {
@@ -1086,7 +1086,7 @@
       "Outputs": []
     },
     {
-      "Id": "cb981bb3-d72f-48b3-ad67-e4b98f2db2c8"/**/,
+      "Id": "cb981bb3-d72f-48b3-ad67-e4b98f2db2c8"/*MoveToSDF*/,
       "SymbolId": "983d8a34-e225-456b-9f12-806eede743e3",
       "InputValues": [
         {
@@ -1098,13 +1098,13 @@
       "Outputs": []
     },
     {
-      "Id": "cbab2a29-3f22-478e-ab1d-e2a4ec7de4d5"/**/,
+      "Id": "cbab2a29-3f22-478e-ab1d-e2a4ec7de4d5"/*RaymarchField*/,
       "SymbolId": "9323e32f-078c-4156-941b-203f4c265ff5",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "cbda0f59-5962-4723-8504-28d26ff5d61f"/**/,
+      "Id": "cbda0f59-5962-4723-8504-28d26ff5d61f"/*CombineSDF*/,
       "SymbolId": "82270977-07b5-4d86-8544-5aebc638d46c",
       "InputValues": [
         {
@@ -1116,7 +1116,7 @@
       "Outputs": []
     },
     {
-      "Id": "cd7ec7b2-7717-4c0c-b690-c7da723dcbf8"/**/,
+      "Id": "cd7ec7b2-7717-4c0c-b690-c7da723dcbf8"/*MapPointAttributes*/,
       "SymbolId": "191e5057-4da4-447e-b7cf-e9e0ed8c5dd8",
       "InputValues": [
         {
@@ -1154,7 +1154,7 @@
       "Outputs": []
     },
     {
-      "Id": "d0df09e3-a24e-4dde-96dc-db72d9f32765"/**/,
+      "Id": "d0df09e3-a24e-4dde-96dc-db72d9f32765"/*SphereSDF*/,
       "SymbolId": "fc2a33fc-d957-4113-8096-92d4dcbe14b5",
       "InputValues": [],
       "Outputs": []
@@ -1173,7 +1173,7 @@
       "Outputs": []
     },
     {
-      "Id": "d35da5d7-82e5-4676-9769-1938d79ef167"/**/,
+      "Id": "d35da5d7-82e5-4676-9769-1938d79ef167"/*CapsuleLineSDF*/,
       "SymbolId": "752e4358-05e0-4651-a147-f141138f5244",
       "InputValues": [
         {
@@ -1198,25 +1198,25 @@
       "Outputs": []
     },
     {
-      "Id": "d3e6ecd3-5608-4f2a-8d06-38dc5a5c8b77"/**/,
+      "Id": "d3e6ecd3-5608-4f2a-8d06-38dc5a5c8b77"/*PlaneSDF*/,
       "SymbolId": "883e01f5-44ee-4724-9e6e-f885255c17e5",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "d4e70578-0f40-4c12-9b11-dd19b0bdcfd6"/**/,
+      "Id": "d4e70578-0f40-4c12-9b11-dd19b0bdcfd6"/*VisualizeFieldDistance*/,
       "SymbolId": "89dd9ee0-8754-4e4c-abdc-74425c39dcc2",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "d5a68d38-95c9-4bf5-8dc2-981aca0307d5"/**/,
+      "Id": "d5a68d38-95c9-4bf5-8dc2-981aca0307d5"/*JumpFloodFill*/,
       "SymbolId": "e9b69525-4df8-40a6-86de-938597bd33a3",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "d71ad433-6bf4-4872-8521-47168de79803"/**/,
+      "Id": "d71ad433-6bf4-4872-8521-47168de79803"/*CubeMesh*/,
       "SymbolId": "c47ab830-aae7-4f8f-b67c-9119bcbaf7df",
       "InputValues": [
         {
@@ -1232,7 +1232,7 @@
       "Outputs": []
     },
     {
-      "Id": "d84ceb13-bce3-469c-ab27-19746e13ec18"/**/,
+      "Id": "d84ceb13-bce3-469c-ab27-19746e13ec18"/*Camera*/,
       "SymbolId": "746d886c-5ab6-44b1-bb15-f3ce2fadf7e6",
       "InputValues": [
         {
@@ -1248,25 +1248,25 @@
       "Outputs": []
     },
     {
-      "Id": "d9733b67-5ca6-43a4-9bb8-9877b227fd26"/**/,
+      "Id": "d9733b67-5ca6-43a4-9bb8-9877b227fd26"/*CombineSDF*/,
       "SymbolId": "82270977-07b5-4d86-8544-5aebc638d46c",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "de6876d1-f498-4525-a431-d50fc91e9cdb"/**/,
+      "Id": "de6876d1-f498-4525-a431-d50fc91e9cdb"/*CombineSDF*/,
       "SymbolId": "82270977-07b5-4d86-8544-5aebc638d46c",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "e22501de-2050-45fa-a309-2f0841c8c468"/**/,
+      "Id": "e22501de-2050-45fa-a309-2f0841c8c468"/*SetSDFMaterial*/,
       "SymbolId": "88926602-4694-4632-9fd7-04c8d6ddd728",
       "InputValues": [],
       "Outputs": []
     },
     {
-      "Id": "e48b3060-104c-4c61-9b3a-636f9ab6b3cc"/**/,
+      "Id": "e48b3060-104c-4c61-9b3a-636f9ab6b3cc"/*TorusSDF*/,
       "SymbolId": "a54e0946-71d0-4985-90bc-184cdb1b6b34",
       "InputValues": [
         {
@@ -1305,7 +1305,7 @@
       "Outputs": []
     },
     {
-      "Id": "eba58790-5ebf-42db-b313-889fc0f5db8d"/**/,
+      "Id": "eba58790-5ebf-42db-b313-889fc0f5db8d"/*LinearGradient*/,
       "SymbolId": "2c3d2c26-ac45-42e9-8f13-6ea338333568",
       "InputValues": [
         {
@@ -1379,7 +1379,7 @@
       "Outputs": []
     },
     {
-      "Id": "ebe94fad-249f-49e3-95c7-732ff87791a8"/**/,
+      "Id": "ebe94fad-249f-49e3-95c7-732ff87791a8"/*SetSDFMaterial*/,
       "SymbolId": "88926602-4694-4632-9fd7-04c8d6ddd728",
       "InputValues": [
         {
@@ -1396,7 +1396,7 @@
       "Outputs": []
     },
     {
-      "Id": "f3515cab-49de-45a0-a773-cfacbb3c4976"/**/,
+      "Id": "f3515cab-49de-45a0-a773-cfacbb3c4976"/*FieldVolumeForce*/,
       "SymbolId": "599ada75-b2ac-4f6c-ac98-f7b4bb6cf47d",
       "InputValues": [],
       "Outputs": []
@@ -1433,7 +1433,7 @@
       "Outputs": []
     },
     {
-      "Id": "f7bd6d27-61f2-49e6-ac12-b762c93e97a6"/**/,
+      "Id": "f7bd6d27-61f2-49e6-ac12-b762c93e97a6"/*FractalSDF*/,
       "SymbolId": "933aec2c-e7dd-44b4-a094-14d0195f9f7a",
       "InputValues": [],
       "Outputs": []
