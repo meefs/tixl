@@ -695,7 +695,7 @@
         {
           "Id": "754456d0-1ac8-4e31-8d0b-bf1b45db48de"/*RateFactor*/,
           "Type": "System.Single",
-          "Value": 4.0
+          "Value": 2.0
         },
         {
           "Id": "aad62703-647d-437b-879b-08793ac8802f"/*Amplitudes*/,
@@ -987,6 +987,14 @@
       "Id": "f8a3df30-1175-4dc4-bb49-1abbb5f40186"/*LinePoints*/,
       "SymbolId": "4ae9e2f5-7cb3-40b0-a662-0662e8cb7c68",
       "InputValues": [
+        {
+          "Id": "4ab30d37-dec7-4c7a-a44c-25baf18f25ae"/*Scale*/,
+          "Type": "System.Numerics.Vector2",
+          "Value": {
+            "X": 2.0,
+            "Y": -1.0
+          }
+        },
         {
           "Id": "4d45a633-ac00-4cbe-83a3-43c419c3da97"/*ColorB*/,
           "Type": "System.Numerics.Vector4",

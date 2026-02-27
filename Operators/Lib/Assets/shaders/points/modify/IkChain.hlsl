@@ -166,7 +166,7 @@ RWStructuredBuffer<Point> ResultPoints : u0;
                 p.Rotation = lerp(ResultPoints[globalIdx - 1].Rotation,TargetPoints[targetIdx].Rotation, Influence);
                 p.Scale.x = distance(pos[l], pos[l - 1]); // Update scale for end segment as well
             }
-            
+            p.Scale.yz = SourcePoints[globalIdx].Scale.yz;
             ResultPoints[globalIdx].Position = p.Position;
             ResultPoints[globalIdx].Rotation = p.Rotation;
             ResultPoints[globalIdx].Scale    = p.Scale;
