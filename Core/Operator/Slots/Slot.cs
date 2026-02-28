@@ -198,14 +198,15 @@ public class Slot<T> : ISlot
                     //compoundWithUpdate.RegisterOutputUpdateAction(this, ConnectedUpdate);
                     ArrayUtils.InsertAtIndexOrEnd(ref InputConnections, (Slot<T>)sourceSlot, index);
 
-                    _dirtyFlag.Target = sourceSlot.DirtyFlag.Target;
-                    _dirtyFlag.Reference = _dirtyFlag.Target - 1;
+                    _dirtyFlag.SourceVersion = sourceSlot.DirtyFlag.SourceVersion;
+                    _dirtyFlag.ValueVersion = _dirtyFlag.SourceVersion - 1;
                     return;
                 }
             }
             UpdateAction = ConnectedUpdate;
-            _dirtyFlag.Target = sourceSlot.DirtyFlag.Target;
-            _dirtyFlag.Reference = _dirtyFlag.Target - 1;
+            _dirtyFlag.SourceVersion = sourceSlot.DirtyFlag.SourceVersion;
+            //_dirtyFlag.ValueVersion = _dirtyFlag.SourceVersion - 1;
+            _dirtyFlag.ValueVersion = -1;
         }
             
         if (sourceSlot.ValueType != _valueType)
@@ -272,14 +273,14 @@ public class Slot<T> : ISlot
         if (refFrame == _dirtyFlag.InvalidatedWithRefFrame)
         {
             // do nothing
-            return _dirtyFlag.Target;
+            return _dirtyFlag.SourceVersion;
         }
 
         // MultiInputSlot, TimeClipSlot, TransformCallbackSlot, etc
         if (HasInvalidationOverride) 
         {
             var target = InvalidationOverride();
-            _dirtyFlag.Target = target;
+            _dirtyFlag.SourceVersion = target;
             _dirtyFlag.InvalidatedWithRefFrame = refFrame;
             return target;
         }
@@ -288,7 +289,7 @@ public class Slot<T> : ISlot
         if (InputConnections.Length > 0)
         {
             var target = InputConnections[0].Invalidate();
-            _dirtyFlag.Target = target;
+            _dirtyFlag.SourceVersion = target;
             _dirtyFlag.InvalidatedWithRefFrame = refFrame;
             return target;
         }
@@ -301,7 +302,7 @@ public class Slot<T> : ISlot
                 return _dirtyFlag.Invalidate();
             }
             _dirtyFlag.InvalidatedWithRefFrame = refFrame;
-            return _dirtyFlag.Target;
+            return _dirtyFlag.SourceVersion;
         }
 
         // unconnected output slots
@@ -322,7 +323,7 @@ public class Slot<T> : ISlot
         }
 
         _dirtyFlag.InvalidatedWithRefFrame = refFrame;
-        return _dirtyFlag.Target;
+        return _dirtyFlag.SourceVersion;
     }
         
     protected void SetVisited() => _dirtyFlag.InvalidatedWithRefFrame = DirtyFlag.InvalidationRefFrame;

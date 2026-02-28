@@ -69,7 +69,7 @@ public sealed class MultiInputSlot<T> : InputSlot<T>, IMultiInputSlot
         }
         else if (collectedCount == 0)
         {
-            target += _dirtyFlag.Target;
+            target += _dirtyFlag.SourceVersion;
         }
         else
         {

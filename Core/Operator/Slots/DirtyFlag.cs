@@ -3,15 +3,20 @@ using System.Runtime.CompilerServices;
 
 namespace T3.Core.Operator.Slots;
 
+/// <summary>
+/// Manages a version-chasing synchronization where SourceVersion tracks the latest available data state and
+/// ValueVersion tracks the version of the currently cached value. A slot is considered "dirty" whenever SourceVersion > ValueVersion,
+/// triggering an update that recalculates the logic and synchronizes the two counters. This mechanism allows the engine to skip redundant
+/// calculations by ensuring that work is only performed when a dependency has actually incremented its version.
+/// </summary>
 public sealed class DirtyFlag
 {
-
     public static void IncrementGlobalTicks()
     {
         _globalTickCount += GlobalTickDiffPerFrame;
     }
 
-    public bool IsDirty => TriggerIsEnabled || Reference != Target;
+    public bool IsDirty => TriggerIsEnabled || ValueVersion != SourceVersion;
 
     public static int InvalidationRefFrame = 0;
 
@@ -19,34 +24,33 @@ public sealed class DirtyFlag
     {
         // Returns the Target - should be no performance hit according to:
         // https://stackoverflow.com/questions/12200662/are-void-methods-at-their-most-basic-faster-less-of-an-overhead-than-methods-tha
-            
+
         // Debug.Assert(InvalidationRefFrame != InvalidatedWithRefFrame); // this should never happen and prevented on the calling side
 
         if (InvalidationRefFrame != InvalidatedWithRefFrame)
         {
             // the ref frame prevent double invalidation when outputs are connected several times
             InvalidatedWithRefFrame = InvalidationRefFrame;
-            Target++;
+            SourceVersion++;
         }
         //else
         //{
         //    Log.Error("Double invalidation of a slot. Please notify cynic about current setup.");
         //}
 
-        return Target;
+        return SourceVersion;
     }
-    
 
     public void ForceInvalidate()
     {
         InvalidatedWithRefFrame = InvalidationRefFrame;
-        Target++;
+        SourceVersion++;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Clear()
     {
-        Reference = Target;
+        ValueVersion = SourceVersion;
     }
 
     // editor-specific function
@@ -62,9 +66,9 @@ public sealed class DirtyFlag
         }
     }
 
-    public int Reference;
-    public int Target = 1; // initially dirty
-    
+    public int ValueVersion;
+    public int SourceVersion = 1; // initially dirty
+
     // editor-specific value
     public int FramesSinceLastUpdate => (_globalTickCount - 1 - _lastUpdateTick) / GlobalTickDiffPerFrame;
 
@@ -78,6 +82,7 @@ public sealed class DirtyFlag
             TriggerIsAnimated = value == DirtyFlagTrigger.Animated;
         }
     }
+
     private DirtyFlagTrigger _trigger;
     internal bool TriggerIsEnabled;
     internal bool TriggerIsAnimated;
@@ -93,7 +98,6 @@ public sealed class DirtyFlag
         }
     }
 
-        
     internal int InvalidatedWithRefFrame = -1;
     private const int GlobalTickDiffPerFrame = 100; // each frame differs with 100 ticks to last one
     private static int _globalTickCount;

@@ -142,7 +142,7 @@ public sealed class TimeClipSlot<T> : Slot<T>, ITimeClipProvider, IOutputDataUse
             var inputDirtyFlag = inputSlot.DirtyFlag;
             if (inputSlot.TryGetFirstConnection(out var inputSlotConnection))
             {
-                inputDirtyFlag.Target = inputSlotConnection.Invalidate();
+                inputDirtyFlag.SourceVersion = inputSlotConnection.Invalidate();
             }
             else if (inputDirtyFlag.TriggerIsAnimated)
             {
@@ -153,6 +153,6 @@ public sealed class TimeClipSlot<T> : Slot<T>, ITimeClipProvider, IOutputDataUse
             isOutputDirty |= inputDirtyFlag.IsDirty;
         }
 
-        return isOutputDirty ? _dirtyFlag.Invalidate() : _dirtyFlag.Target;
+        return isOutputDirty ? _dirtyFlag.Invalidate() : _dirtyFlag.SourceVersion;
     }
 }
