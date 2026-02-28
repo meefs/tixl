@@ -51,7 +51,7 @@ internal abstract class VariationBaseCanvas : ScalableCanvas, ISelectionContaine
         
         
         
-        if (RenderProcess.State == RenderProcess.States.WaitingForExport)
+        if (RenderProcess.State == RenderProcess.States.ReadyForExport)
         {
             var instanceForOutput = RenderProcess.OutputWindow?.ShownInstance;
             var instanceForBlending = InstanceForBlendOperations;
