@@ -28,7 +28,9 @@ internal sealed class VariationsWindow : Window
     private InteractionModes _interactionMode = InteractionModes.Presets;
 
     private int _selectedNodeCount = 0;
+    private int _lastSelectionChangeCounter; 
 
+    
     public void DrawWindowContent(bool hideHeader = false)
     {
         // Delete actions need be deferred to prevent collection modification during iteration
@@ -46,10 +48,11 @@ internal sealed class VariationsWindow : Window
 
         var compositionHasVariations = VariationHandling.ActivePoolForSnapshots != null && VariationHandling.ActivePoolForSnapshots.AllVariations.Count > 0;
         var oneChildSelected = nodeSelection.Selection.Count == 1;
-        var selectionChanged = nodeSelection.Selection.Count != _selectedNodeCount;
+        var selectionChanged = nodeSelection.ChangeCounter != _lastSelectionChangeCounter;
 
         if (selectionChanged)
         {
+            _lastSelectionChangeCounter = nodeSelection.ChangeCounter;
             _selectedNodeCount = nodeSelection.Selection.Count;
 
             if (oneChildSelected)
@@ -60,6 +63,9 @@ internal sealed class VariationsWindow : Window
             {
                 _interactionMode = InteractionModes.Snapshots;
             }
+            
+            _presetCanvas.RefreshView();
+            _snapshotCanvas.RefreshView();
         }
 
         var drawList = ImGui.GetWindowDrawList();
@@ -74,11 +80,7 @@ internal sealed class VariationsWindow : Window
                                  new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()),
                                  false,
                                  ImGuiWindowFlags.NoScrollbar);
-
-                // var viewModeIndex = (int)_interactionMode;
-
-                //if(CustomComponents.DrawSegmentedToggle())
-
+                
                 if (FormInputs.SegmentedButton(ref _interactionMode))
                 {
                     // _interactionMode = (InteractionModes)viewModeIndex;

@@ -34,6 +34,7 @@ internal abstract class VariationBaseCanvas : ScalableCanvas, ISelectionContaine
     private protected abstract SymbolVariationPool? PoolForBlendOperations { get; }
     protected abstract void DrawAdditionalContextMenuContent(Instance instanceForBlendOperations);
 
+    
     public void DrawBaseCanvas(ImDrawListPtr drawList, bool hideHeader = false)
     {
         if (PoolForBlendOperations == null || InstanceForBlendOperations == null)
@@ -51,19 +52,21 @@ internal abstract class VariationBaseCanvas : ScalableCanvas, ISelectionContaine
         
         
         
-        if (RenderProcess.State == RenderProcess.States.ReadyForExport)
+        if (RenderProcess.OutputWindow != null)
         {
             var instanceForOutput = RenderProcess.OutputWindow?.ShownInstance;
             var instanceForBlending = InstanceForBlendOperations;
 
-            if (instanceForOutput is { Outputs.Count: > 0 }  )
+            if (RenderProcess.State == RenderProcess.States.ReadyForExport)
             {
-                var primaryOutput = instanceForOutput?.Outputs[0];
-                if (primaryOutput is Slot<Texture2D> textureSlot2)
+                if (instanceForOutput is { Outputs.Count: > 0 }  )
                 {
-                    UpdateThumbnailRendering(instanceForBlending, textureSlot2);
+                    var primaryOutput = instanceForOutput?.Outputs[0];
+                    if (primaryOutput is Slot<Texture2D> textureSlot2)
+                    {
+                        UpdateThumbnailRendering(instanceForBlending, textureSlot2);
+                    }
                 }
-                
             }
 
             if (instanceForBlending != _currentRenderInstance)

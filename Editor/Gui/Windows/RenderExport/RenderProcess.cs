@@ -20,7 +20,7 @@ internal static class RenderProcess
     public static OutputWindow? OutputWindow;
     public static Type? MainOutputType { get; private set; }
     public static Texture2D? MainOutputTexture;
-    
+
     public static bool IsExporting => State == States.Exporting;
     public static States State;
 
@@ -36,14 +36,13 @@ internal static class RenderProcess
 
     public static string LastHelpString { get; private set; } = string.Empty;
     public static string LastTargetDirectory { get; private set; } = string.Empty;
-    
+
     public static double Progress => (_activeExportSession == null || _activeExportSession.FrameCount <= 1)
                                          ? 0.0
                                          : (_activeExportSession.FrameIndex / (double)(_activeExportSession.FrameCount - 1));
 
     public static double ExportStartedTimeLocal => _activeExportSession?.ExportStartTimeLocal ?? 0;
-    
-    
+
     #region main API methods
     public static void TryRenderScreenShot()
     {
@@ -62,7 +61,7 @@ internal static class RenderProcess
         ScreenshotWriter.StartSavingToFile(RenderProcess.MainOutputTexture, filename, ScreenshotWriter.FileFormats.Png);
         Log.Debug("Screenshot saved in: " + folder);
     }
-    
+
     public static bool TryStartVideoExport()
     {
         if (MainOutputTexture == null || MainOutputTexture.IsDisposed)
@@ -90,7 +89,7 @@ internal static class RenderProcess
 
         if (!RenderPaths.ValidateOrCreateTargetFolder(targetFilePath))
             return false;
-        
+
         TryGetRenderResolution(settings, out var requestedResolution);
 
         var newSession = new ExportSession
@@ -113,13 +112,13 @@ internal static class RenderProcess
                     {
                         File.Delete(targetFilePath);
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         Log.Warning($"Can't write {targetFilePath}:" + e.Message);
                         return false;
                     }
                 }
-                
+
                 Log.Gated.VideoRender($"""
                                        Initializing Mp4VideoWriter with: path={targetFilePath}
                                        renderedSize={newSession.RenderToFileResolution.Width}x{newSession.RenderToFileResolution.Height}
@@ -159,7 +158,6 @@ internal static class RenderProcess
         LastHelpString = reason ?? $"Render cancelled after {StringUtils.HumanReadableDurationFromSeconds(duration)}";
         CleanupSession();
     }
-    
     #endregion
 
     private static bool TryInitVideoWriterWithFinalResolution(ExportSession session)
@@ -167,7 +165,7 @@ internal static class RenderProcess
         try
         {
             session.VideoWriter = new Mp4VideoWriter(session);
-            
+
             Log.Gated.VideoRender($"Mp4VideoWriter initialized: " +
                                   $"Codec=H.264" +
                                   $"FileFormat=mp4" +
@@ -187,8 +185,6 @@ internal static class RenderProcess
 
         return true;
     }
-    
-
 
     /// <summary>
     /// Needs to be called once per frame
@@ -222,20 +218,18 @@ internal static class RenderProcess
 
         HandleRenderShortCuts();
 
-        if (!IsExporting) 
+        if (!IsExporting)
             return;
-        
+
         if (_activeExportSession == null)
         {
             Log.Warning("Reverting inconsistent render export state");
             State = States.Undefined;
             return;
         }
-            
+
         ExportOutputTexture(MainOutputTexture, _activeExportSession);
     }
-
-
 
     private static void ExportOutputTexture(Texture2D mainOutputTexture, ExportSession session)
     {
@@ -260,7 +254,7 @@ internal static class RenderProcess
 
         if (session.VideoWriter == null)
         {
-            if (!TryInitVideoWriterWithFinalResolution(session)) 
+            if (!TryInitVideoWriterWithFinalResolution(session))
                 return;
         }
 
@@ -285,11 +279,11 @@ internal static class RenderProcess
 
         // Update stats
         var effectiveFrameCount = settings.RenderMode == RenderSettings.RenderModes.Video ? session.FrameCount : session.FrameCount + 2;
-        
+
         var exportedFrameIndex = session.FrameIndex - MfVideoWriter.SkipImages;
-        
-        var currentFrame = settings.RenderMode == RenderSettings.RenderModes.Video 
-                               ? exportedFrameIndex 
+
+        var currentFrame = settings.RenderMode == RenderSettings.RenderModes.Video
+                               ? exportedFrameIndex
                                : session.FrameIndex + 1;
 
         var completed = currentFrame >= effectiveFrameCount || !savingSuccessful;
@@ -414,11 +408,8 @@ internal static class RenderProcess
         }
     }
 
-    
-
     private static string GetTargetFilePath(RenderSettings.RenderModes renderMode) => RenderPaths.GetTargetFilePath(renderMode);
 
-    
     private static void CleanupSession()
     {
         if (_activeExportSession == null)
@@ -521,7 +512,7 @@ internal static class RenderProcess
     {
         return $"{resolution.Width}×{resolution.Height}";
     }
-    
+
     internal sealed class ExportSession
     {
         public Mp4VideoWriter? VideoWriter;
@@ -537,8 +528,6 @@ internal static class RenderProcess
 
         public int ResolutionMismatchCount;
     }
-    
+
     private static ExportSession? _activeExportSession;
-
-
 }
