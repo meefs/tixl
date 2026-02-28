@@ -18,32 +18,24 @@ public sealed class DirtyFlag
 
     public bool IsDirty => TriggerIsEnabled || ValueVersion != SourceVersion;
 
-    public static int InvalidationRefFrame = 0;
+    public static int GlobalInvalidationTick = 0;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Invalidate()
     {
-        // Returns the Target - should be no performance hit according to:
-        // https://stackoverflow.com/questions/12200662/are-void-methods-at-their-most-basic-faster-less-of-an-overhead-than-methods-tha
-
-        // Debug.Assert(InvalidationRefFrame != InvalidatedWithRefFrame); // this should never happen and prevented on the calling side
-
-        if (InvalidationRefFrame != InvalidatedWithRefFrame)
-        {
-            // the ref frame prevent double invalidation when outputs are connected several times
-            InvalidatedWithRefFrame = InvalidationRefFrame;
-            SourceVersion++;
-        }
-        //else
-        //{
-        //    Log.Error("Double invalidation of a slot. Please notify cynic about current setup.");
-        //}
+        // If we already visited this slot during the current Invalidation Pass, stop.
+        if (InvalidationTick == GlobalInvalidationTick) 
+            return SourceVersion;
+        
+        InvalidationTick = GlobalInvalidationTick;
+        SourceVersion++;
 
         return SourceVersion;
     }
 
     public void ForceInvalidate()
     {
-        InvalidatedWithRefFrame = InvalidationRefFrame;
+        InvalidationTick = GlobalInvalidationTick;
         SourceVersion++;
     }
 
@@ -98,7 +90,7 @@ public sealed class DirtyFlag
         }
     }
 
-    internal int InvalidatedWithRefFrame = -1;
+    internal int InvalidationTick = -1;
     private const int GlobalTickDiffPerFrame = 100; // each frame differs with 100 ticks to last one
     private static int _globalTickCount;
     private int _lastUpdateTick;

@@ -267,10 +267,10 @@ public class Slot<T> : ISlot
 
     protected Slot<T>[] InputConnections = [];
 
-    public int Invalidate()
+    public int InvalidateGraph()
     {
-        var refFrame = DirtyFlag.InvalidationRefFrame;
-        if (refFrame == _dirtyFlag.InvalidatedWithRefFrame)
+        var globalTick = DirtyFlag.GlobalInvalidationTick;
+        if (globalTick == _dirtyFlag.InvalidationTick)
         {
             // do nothing
             return _dirtyFlag.SourceVersion;
@@ -281,16 +281,16 @@ public class Slot<T> : ISlot
         {
             var target = InvalidationOverride();
             _dirtyFlag.SourceVersion = target;
-            _dirtyFlag.InvalidatedWithRefFrame = refFrame;
+            _dirtyFlag.InvalidationTick = globalTick;
             return target;
         }
 
         // connected
         if (InputConnections.Length > 0)
         {
-            var target = InputConnections[0].Invalidate();
+            var target = InputConnections[0].InvalidateGraph();
             _dirtyFlag.SourceVersion = target;
-            _dirtyFlag.InvalidatedWithRefFrame = refFrame;
+            _dirtyFlag.InvalidationTick = globalTick;
             return target;
         }
  
@@ -301,7 +301,7 @@ public class Slot<T> : ISlot
             {
                 return _dirtyFlag.Invalidate();
             }
-            _dirtyFlag.InvalidatedWithRefFrame = refFrame;
+            _dirtyFlag.InvalidationTick = globalTick;
             return _dirtyFlag.SourceVersion;
         }
 
@@ -313,7 +313,7 @@ public class Slot<T> : ISlot
         for (var i = 0; i < parentInputCount; i++)
         {
             var input = parentInputs[i];
-            input.Invalidate();
+            input.InvalidateGraph();
             outputDirty |= input.IsDirty;
         }
 
@@ -322,11 +322,11 @@ public class Slot<T> : ISlot
             return _dirtyFlag.Invalidate();
         }
 
-        _dirtyFlag.InvalidatedWithRefFrame = refFrame;
+        _dirtyFlag.InvalidationTick = globalTick;
         return _dirtyFlag.SourceVersion;
     }
         
-    protected void SetVisited() => _dirtyFlag.InvalidatedWithRefFrame = DirtyFlag.InvalidationRefFrame;
+    protected void SetVisited() => _dirtyFlag.InvalidationTick = DirtyFlag.GlobalInvalidationTick;
         
     protected virtual int InvalidationOverride() => 0;
 

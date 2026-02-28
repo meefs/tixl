@@ -126,8 +126,8 @@ internal sealed class VisualTest : Instance<VisualTest>
             context.LocalFxTime = time;
             context.RequestedResolution = _defaultResolution;
 
-            DirtyFlag.InvalidationRefFrame++;
-            Image.Invalidate();
+            DirtyFlag.GlobalInvalidationTick++;
+            Image.InvalidateGraph();
             Image.DirtyFlag.ForceInvalidate();
 
             image = Image.GetValue(context);

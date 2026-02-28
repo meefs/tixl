@@ -86,8 +86,6 @@ internal static class LayoutHandling
                         });
     }
 
-    private static UiConfig.UiState? _uiStateBeforeFocusMode;
-    
     public static void LoadAndApplyLayoutOrFocusMode(Layouts layoutId)
     {
         var index = (int)layoutId;

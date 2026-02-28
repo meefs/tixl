@@ -64,7 +64,7 @@ public sealed class MultiInputSlot<T> : InputSlot<T>, IMultiInputSlot
                 if (index >= collectedCount)
                     continue;
 
-                target += collectedInputs[index].Invalidate();
+                target += collectedInputs[index].InvalidateGraph();
             }
         }
         else if (collectedCount == 0)
@@ -75,7 +75,7 @@ public sealed class MultiInputSlot<T> : InputSlot<T>, IMultiInputSlot
         {
             for (int i = 0; i < collectedCount; i++)
             {
-                target += collectedInputs[i].Invalidate();
+                target += collectedInputs[i].InvalidateGraph();
             }
         }
 

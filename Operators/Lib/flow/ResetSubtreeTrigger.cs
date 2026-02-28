@@ -15,7 +15,7 @@ internal sealed class ResetSubtreeTrigger : Instance<ResetSubtreeTrigger>
     {
         if (Trigger.GetValue(context))
         {
-            DirtyFlag.InvalidationRefFrame++;
+            DirtyFlag.GlobalInvalidationTick++;
             Invalidate(Command);
             Trigger.TypedInputValue.Value = false;
             Trigger.Value = false;
