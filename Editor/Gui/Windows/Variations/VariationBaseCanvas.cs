@@ -613,7 +613,8 @@ internal abstract class VariationBaseCanvas : ScalableCanvas, ISelectionContaine
     {
         TriggerThumbnailUpdate();
         CanvasElementSelection.Clear();
-        ResetView();
+        //ResetView();
+        _resetViewRequested = true;
     }
 
     private static bool TryToGetBoundingBox(IEnumerable<Variation>? variations, float extend, out ImRect area)

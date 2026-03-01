@@ -181,7 +181,8 @@ internal static class LayoutHandling
         {
             Program.NewImGuiLayoutDefinition = layout.ImGuiSettings;
         }
-        
+
+        ChangeCounter++;
         //UiConfig.RestoreUiVisibilityAfterFocusMode();
     }
 
@@ -270,4 +271,5 @@ internal static class LayoutHandling
     private const string LayoutFileNameFormat = "layout{0}.json";
     private static string LayoutSubfolder => "Layouts";
     public static string LayoutFolder => Path.Combine(FileLocations.SettingsDirectory, LayoutSubfolder);
+    public static int ChangeCounter { get; private set; }
 }
