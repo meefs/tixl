@@ -1,0 +1,102 @@
+{
+  "Id": "e179e0da-f2cd-4cae-a39f-f89957440e74"/*PointToMatrix*/,
+  "Description": "Converts a point to transform matrix.",
+  "InputUis": [
+    {
+      "InputId": "26b8e9e8-c979-4c48-92db-297a3e48139f"/*CamPointBuffer*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 0.0
+      }
+    },
+    {
+      "InputId": "4bf817b4-c35c-4584-8fbd-9bc3f7544f11"/*SamplePos*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 75.0
+      },
+      "Scale": 0.01
+    },
+    {
+      "InputId": "5063bf72-2165-45e9-9fae-e830cefdade6"/*FieldOfView*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 150.0
+      },
+      "Scale": 0.01
+    },
+    {
+      "InputId": "7e3d5a80-feeb-45ea-bf42-c7f83dadff46"/*Roll*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 225.0
+      },
+      "Scale": 0.01
+    },
+    {
+      "InputId": "87be4b7e-d82a-4650-9f9b-21520191a947"/*RotationOffset*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 450.0
+      },
+      "Scale": 0.01
+    },
+    {
+      "InputId": "a4428561-c0be-49e9-88ac-f7b48e924622"/*ClipPlanes*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 600.0
+      },
+      "Scale": 0.01
+    },
+    {
+      "InputId": "b1c695e9-08ec-46e2-a611-51774658fdd5"/*AlsoOffsetTarget*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 375.0
+      }
+    },
+    {
+      "InputId": "b213b4f0-b377-4921-9172-abca9d422a21"/*PositionOffset*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 300.0
+      },
+      "Scale": 0.01
+    },
+    {
+      "InputId": "b73edfbf-f3dc-4f4d-87a8-3207b8f0c97c"/*AspectRatio*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 675.0
+      },
+      "Scale": 0.01
+    },
+    {
+      "InputId": "c67e5515-c1ae-4a02-889a-1f0aae2f2de8"/*Up*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 750.0
+      },
+      "Scale": 0.01
+    },
+    {
+      "InputId": "cbc24615-d78d-499f-8fbc-46335bdd85cf"/*LensShift*/,
+      "Position": {
+        "X": -200.0,
+        "Y": 525.0
+      },
+      "Scale": 0.01
+    }
+  ],
+  "SymbolChildUis": [],
+  "OutputUis": [
+    {
+      "OutputId": "c5467d95-1864-4d92-b8fb-a5d011a3de11"/*CamReference*/,
+      "Position": {
+        "X": 300.0,
+        "Y": 200.0
+      }
+    }
+  ]
+}

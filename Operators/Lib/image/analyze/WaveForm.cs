@@ -30,5 +30,8 @@ internal sealed class WaveForm : Instance<WaveForm>
         [Input(Guid = "3a226812-98bf-4fe9-b435-f84b154a41e8")]
         public readonly InputSlot<T3.Core.DataTypes.Vector.Int2> OverrideSize = new InputSlot<T3.Core.DataTypes.Vector.Int2>();
 
+        [Input(Guid = "9fb0f6f6-4a86-4c43-90e7-14cef7d46e87")]
+        public readonly InputSlot<System.Numerics.Vector2> VectorScopePosition = new InputSlot<System.Numerics.Vector2>();
+
 
 }

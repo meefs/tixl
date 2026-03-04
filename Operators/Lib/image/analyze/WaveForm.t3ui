@@ -41,6 +41,16 @@
       }
     },
     {
+      "InputId": "9fb0f6f6-4a86-4c43-90e7-14cef7d46e87"/*VectorScopePosition*/,
+      "Position": {
+        "X": -1638.7063,
+        "Y": 1071.2782
+      },
+      "Min": -2.0,
+      "Max": 2.0,
+      "UseVec2Control": "Position"
+    },
+    {
       "InputId": "c3eb1998-3bbf-436c-bde8-9fbbf4f56e54"/*ShowVectorscope*/,
       "Position": {
         "X": -4423.415,
@@ -181,6 +191,13 @@
       "Position": {
         "X": -4273.415,
         "Y": 372.96057
+      }
+    },
+    {
+      "ChildId": "46315669-3280-4f79-972c-e7460841313d"/*Vec2ToVec3*/,
+      "Position": {
+        "X": -1498.7063,
+        "Y": 1071.2782
       }
     },
     {
