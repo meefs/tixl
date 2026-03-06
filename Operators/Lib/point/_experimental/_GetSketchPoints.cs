@@ -45,7 +45,7 @@ internal sealed class _GetSketchPoints : Instance<_GetSketchPoints>
             for (var index = 0; index < orderedPages.Count; index++)
             {
                 var p = orderedPages[index];
-                if (p.Time > context.LocalTime - 0.05f)
+                if (p.Time > context.LocalTime - 0.002f)
                 {
                     if (pageIndexOffset < 0)
                     {
@@ -53,7 +53,7 @@ internal sealed class _GetSketchPoints : Instance<_GetSketchPoints>
                     }
                     else
                     {
-                        var index1 = (p.Time > context.LocalTime + 0.05f) ? 1 : 0;
+                        var index1 = (p.Time > context.LocalTime + 0.002f) ? 1 : 0;
                         pageIndex = index + pageIndexOffset- index1;
                     }
 
