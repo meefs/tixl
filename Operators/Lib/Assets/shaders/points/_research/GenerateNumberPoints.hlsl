@@ -15,6 +15,7 @@ cbuffer IntParams : register(b1)
     int NumericValuesCount;
 
     int NumberMode;
+    int FloatDigits;
 }
 
 StructuredBuffer<Point> TargetPoints : register(t0); 
@@ -62,6 +63,22 @@ int GetDigitOrSymbol(int v, int n)
     return 10;
 }
 
+int GetDigitOrSymbolFloat(float v, int n)
+{
+    int sg=v<0?-1:1;
+    int absValue = (floor(abs(v)));
+    int absValue2 = (round(frac(abs(v))*pow(10,FloatDigits)));
+    if(n==FloatDigits)return 10;
+    int cf=GetDigitOrSymbol(absValue2,n);
+    if(cf==10)cf=0;
+    return n>FloatDigits?
+    (absValue==0&&sg<0)?(n==FloatDigits+1?0:(n>FloatDigits+2?10:11)):(GetDigitOrSymbol(absValue*sg,n-FloatDigits-1))
+    :cf;
+}
+
+
+
+
 [numthreads(64, 1, 1)] void main(uint3 i : SV_DispatchThreadID)
 {
     uint idx = i.x;
@@ -74,31 +91,31 @@ int GetDigitOrSymbol(int v, int n)
     
     int digitIndex = indexInTarget / PointsPerChar;
 
-    int number = 0;
+    float fnumber = 0;
     
     if(NumberMode == 0) 
     {
-        number = IntValues[targetIndex % NumericValuesCount];
+        fnumber = IntValues[targetIndex % NumericValuesCount];
     }
     else if(NumberMode== 1) 
     {
-        number = TargetPoints[targetIndex].FX1;
+        fnumber = TargetPoints[targetIndex].FX1;
     }
     else if(NumberMode == 2)
     {
-        number = TargetPoints[targetIndex].FX2;
+        fnumber = TargetPoints[targetIndex].FX2;
     }
     else 
     {
-        number = targetIndex;
+        fnumber = targetIndex;
     }
-
+    int number=int(fnumber);
     //number = TargetPoints[targetIndex].Position.y * 1000;
     //int number = targetIndex;
 
     int digitCharIndex = digitIndex%10; // hack to test.
     
-    int char = GetDigitOrSymbol(number, digitIndex);
+    int char = GetDigitOrSymbolFloat(fnumber, digitIndex);
 
     int charPointStart = char * PointsPerChar;
     int indexInChar = idx % PointsPerChar;

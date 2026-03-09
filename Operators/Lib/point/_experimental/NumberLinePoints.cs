@@ -24,6 +24,9 @@ internal sealed class NumberLinePoints :Instance<NumberLinePoints>{
         [Input(Guid = "eb4007f8-247d-487a-bad7-f136eba821ea", MappedType = typeof(NumberModes))]
         public readonly InputSlot<int> NumberMode = new InputSlot<int>();
 
+        [Input(Guid = "56482ceb-ae0e-4d32-a6a4-2568a166a2d9")]
+        public readonly InputSlot<int> FloatPrecision = new InputSlot<int>();
+
 
     private enum NumberModes
     {

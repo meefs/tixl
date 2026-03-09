@@ -34,7 +34,7 @@ StructuredBuffer<Point> SourcePoints : register(t0);
 Texture2D<float4> Image : register(t1);
 Texture2D<float4> Gradient : register(t2);
 
-RWStructuredBuffer<Point> ResultPoints : u0;
+RWStructuredBuffer<Point> ResultPoints : register(u0);
 sampler Sampler : register(s0);
 sampler ClampedSampler : register(s1);
 

@@ -1,7 +1,14 @@
 {
-  "Id": "b0981921-8e3d-4010-8b67-d7dcecca7758"/*GenerateNumberLinePoints*/,
+  "Id": "b0981921-8e3d-4010-8b67-d7dcecca7758"/*NumberLinePoints*/,
   "Description": "Generates a buffer with line points to render multidigit integer numbers.",
   "InputUis": [
+    {
+      "InputId": "56482ceb-ae0e-4d32-a6a4-2568a166a2d9"/*FloatPrecision*/,
+      "Position": {
+        "X": 227.68942,
+        "Y": 1217.4928
+      }
+    },
     {
       "InputId": "65d4a758-fc55-4b8f-9e87-7fa5a1a00cb8"/*NumericValues*/,
       "Position": {
@@ -12,8 +19,8 @@
     {
       "InputId": "7b55d494-26bc-4fa5-9476-b4c12c503972"/*Spacing*/,
       "Position": {
-        "X": 227.68942,
-        "Y": 1296.1896
+        "X": 291.74838,
+        "Y": 1355.9779
       }
     },
     {
@@ -35,8 +42,8 @@
     {
       "InputId": "d5bb30ae-6368-464b-b7db-ee30b9c3c394"/*Scale*/,
       "Position": {
-        "X": 227.68942,
-        "Y": 1261.1896
+        "X": 291.74838,
+        "Y": 1320.9779
       },
       "AddPadding": "True",
       "Scale": 0.01
@@ -151,8 +158,8 @@
     {
       "ChildId": "55ff2ec0-b413-4e64-beed-617ba7dfad9b"/*FloatsToBuffer*/,
       "Position": {
-        "X": 367.68942,
-        "Y": 1226.1896
+        "X": 431.74838,
+        "Y": 1285.9779
       }
     },
     {

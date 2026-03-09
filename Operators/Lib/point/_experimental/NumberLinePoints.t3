@@ -1,6 +1,10 @@
 {
-  "Id": "b0981921-8e3d-4010-8b67-d7dcecca7758"/*GenerateNumberLinePoints*/,
+  "Id": "b0981921-8e3d-4010-8b67-d7dcecca7758"/*NumberLinePoints*/,
   "Inputs": [
+    {
+      "Id": "56482ceb-ae0e-4d32-a6a4-2568a166a2d9"/*FloatPrecision*/,
+      "DefaultValue": 3
+    },
     {
       "Id": "65d4a758-fc55-4b8f-9e87-7fa5a1a00cb8"/*NumericValues*/,
       "DefaultValue": {
@@ -554,6 +558,12 @@
     {
       "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
       "SourceSlotId": "eb4007f8-247d-487a-bad7-f136eba821ea",
+      "TargetParentOrChildId": "d3b960e5-2c96-490b-ac17-fe727adc18c6",
+      "TargetSlotId": "49556d12-4cd1-4341-b9d8-c356668d296c"
+    },
+    {
+      "SourceParentOrChildId": "00000000-0000-0000-0000-000000000000",
+      "SourceSlotId": "56482ceb-ae0e-4d32-a6a4-2568a166a2d9",
       "TargetParentOrChildId": "d3b960e5-2c96-490b-ac17-fe727adc18c6",
       "TargetSlotId": "49556d12-4cd1-4341-b9d8-c356668d296c"
     },
