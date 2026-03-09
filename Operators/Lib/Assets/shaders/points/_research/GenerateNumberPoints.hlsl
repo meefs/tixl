@@ -11,16 +11,17 @@ cbuffer IntParams : register(b1)
 {
     int DigitCount;
     int PointsPerChar;
-
     int TargetPointCount;
     int NumericValuesCount;
+
+    int NumberMode;
 }
 
 StructuredBuffer<Point> TargetPoints : register(t0); 
 StructuredBuffer<Point> DigitCharPoints : register(t1);   
 StructuredBuffer<int> IntValues : register(t2);   
 
-RWStructuredBuffer<Point> ResultPoints : u0; 
+RWStructuredBuffer<Point> ResultPoints : register(u0); 
 
 static const int Pow10Table[10] =
 {
@@ -73,7 +74,26 @@ int GetDigitOrSymbol(int v, int n)
     
     int digitIndex = indexInTarget / PointsPerChar;
 
-    int number = IntValues[targetIndex % NumericValuesCount];
+    int number = 0;
+    
+    if(NumberMode == 0) 
+    {
+        number = IntValues[targetIndex % NumericValuesCount];
+    }
+    else if(NumberMode== 1) 
+    {
+        number = TargetPoints[targetIndex].FX1;
+    }
+    else if(NumberMode == 2)
+    {
+        number = TargetPoints[targetIndex].FX2;
+    }
+    else 
+    {
+        number = targetIndex;
+    }
+
+    //number = TargetPoints[targetIndex].Position.y * 1000;
     //int number = targetIndex;
 
     int digitCharIndex = digitIndex%10; // hack to test.

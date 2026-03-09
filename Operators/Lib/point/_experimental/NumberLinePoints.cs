@@ -1,7 +1,7 @@
 namespace Lib.point._experimental;
 
 [Guid("b0981921-8e3d-4010-8b67-d7dcecca7758")]
-internal sealed class GenerateNumberLinePoints :Instance<GenerateNumberLinePoints>{
+internal sealed class NumberLinePoints :Instance<NumberLinePoints>{
 
     [Output(Guid = "55d34be3-784c-4f77-afbb-d75b036fcdbd")]
     public readonly Slot<BufferWithViews> OutBuffer = new();
@@ -21,29 +21,14 @@ internal sealed class GenerateNumberLinePoints :Instance<GenerateNumberLinePoint
         [Input(Guid = "7b55d494-26bc-4fa5-9476-b4c12c503972")]
         public readonly InputSlot<float> Spacing = new InputSlot<float>();
 
+        [Input(Guid = "eb4007f8-247d-487a-bad7-f136eba821ea", MappedType = typeof(NumberModes))]
+        public readonly InputSlot<int> NumberMode = new InputSlot<int>();
 
-    private enum ConnectionModes
+
+    private enum NumberModes
     {
-        Linear,
-        Interwoven,
-    }
-    
-    private enum UseFModes
-    {
-        None,
-        F1,
-        F2,
-        F1xF2
-    }
-    
-    private enum UseFSources
-    {
-        None,
-        Target_F1,
-        Target_F2,
-        Source_F1,
-        Source_F2,
-        Multiplied_F1,
-        Multiplied_F2,
+        UseValueList,
+        UseFx1,
+        UseFx2,
     }
 }

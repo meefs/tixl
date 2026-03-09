@@ -40,14 +40,21 @@
       },
       "AddPadding": "True",
       "Scale": 0.01
+    },
+    {
+      "InputId": "eb4007f8-247d-487a-bad7-f136eba821ea"/*NumberMode*/,
+      "Position": {
+        "X": 227.68942,
+        "Y": 1182.4928
+      }
     }
   ],
   "SymbolChildUis": [
     {
       "ChildId": "01b8ab1e-148e-4b09-9378-5b490ca1ede8"/*GetBufferComponents*/,
       "Position": {
-        "X": 525.8715,
-        "Y": 1414.6045
+        "X": 570.3347,
+        "Y": 1470.878
       }
     },
     {
