@@ -210,7 +210,6 @@ internal sealed class CommandOutputUi : OutputUi<Command>
         catch (Exception e)
         {
             Log.Warning("Failed to generate texture: " + e.Message);
-            return;
         }
     }
 
@@ -240,10 +239,8 @@ internal sealed class CommandOutputUi : OutputUi<Command>
                                                                                };
     private Texture2D? _colorBuffer;
     private ShaderResourceView? _colorBufferSrv;
-        
     private RenderTargetView? _colorBufferRtv;
     private Texture2D? _depthBuffer;
-        
     private DepthStencilView? _depthBufferDsv;
         
     // instance management
