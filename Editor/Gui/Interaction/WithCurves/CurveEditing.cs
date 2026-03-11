@@ -147,13 +147,22 @@ internal abstract class CurveEditing
 
                     ImGui.EndMenu();
                 }
-                
+
                 if (ImGui.MenuItem("Copy keyframes", SelectedKeyframes.Count > 0))
                 {
                     CopySelectedKeyframes();
                     changed = true;
                 }
-                
+            }
+            
+            if (ImGui.MenuItem("Paste keyframes", "", false,KeyframeCopyAndPasting.HasValidClipboard))
+            {
+                PasteKeyframes();
+                changed = true;
+            }
+            
+            if (SelectedKeyframes.Count > 0)
+            {
                 if (ImGui.MenuItem("Delete keyframes", SelectedKeyframes.Count > 0))
                 {
                     DeleteSelectedKeyframes(composition);
@@ -206,11 +215,7 @@ internal abstract class CurveEditing
                 }
             }
             
-            if (ImGui.MenuItem("Paste keyframes", "", false,KeyframeCopyAndPasting.HasValidClipboard))
-            {
-                PasteKeyframes();
-                changed = true;
-            }
+
             
             if (ImGui.MenuItem(SelectedKeyframes.Count > 0 ? "View Selected" : "View All", UserActions.FocusSelection.ListShortcuts()))
                 ViewAllOrSelectedKeys();
