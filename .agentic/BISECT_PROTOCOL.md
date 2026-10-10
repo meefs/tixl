@@ -111,7 +111,8 @@ Never commit the probe. Remove it before returning to `main`.
 | Old editor logs `Registry already contains id …`, then crashes (`Requested value 'X' was not found`) | Ignored `Operators/*/.temp/bin/<cfg>/SourceCode/*.t3` copies from newer builds survive checkouts and are scanned as symbols | `git clean -fdx` every round, never a plain checkout |
 | Packages loaded that don't exist at that commit | Fully ignored leftover folders (`Operators/Io`, `Video`, …) | Same clean |
 | Folder casing differs from git (`examples` vs `Examples`) | Windows checkouts do not apply case-only renames | Rename via a temporary name; retry, a watcher may hold the folder |
-| `fatal: unable to write new index file`, thousands of changes, HEAD unchanged | Another process held `.git/index` mid-checkout | Retry `git checkout -f`; the forced retry repairs the tree |
+| `fatal: unable to write new index file`, thousands of changes, HEAD unchanged | Another process (a git poller, indexer or virus scanner) briefly held `.git/index` or a file mid-checkout | Retry `git checkout -f`; the forced retry repairs the tree. `prepare.ps1` and `finish.ps1` retry three times and check HEAD |
+| Script aborts on `warning: unable to unlink '…'` | Same transient lock; Windows PowerShell turns git's stderr warning into a terminating error | Run git with `ErrorActionPreference = 'Continue'` and judge success by exit code and HEAD, as the scripts do |
 | `Unable to create '.git/index.lock': File exists` | A crashed or killed git call left the lock behind | Only if no `git` process is running: delete `.git/index.lock`, retry |
 | Project unreadable after going back in time | Newer editors migrate projects one way (e.g. the 2026-08 `Symbols/` folder format) | Recreate the test project in the older version, or keep a pre-migration copy |
 | Op renders nothing or errors | Slots or ops changed between versions | Human fixes it in place; the next forced checkout discards the fix |
@@ -120,7 +121,10 @@ Never commit the probe. Remove it before returning to `main`.
 
 ## Finishing
 
-1. `finish.ps1`: back on `main`, probe removed, tree clean.
+1. `finish.ps1`: back on `main`, probe removed, tree clean. Then restore and build the **whole solution**
+   (`dotnet restore t3.sln`, `dotnet build t3.sln -c Debug`): the last bisect step cleaned every build
+   output, and building only `Editor.csproj` leaves operator packages without their references, so Lib
+   and Video fail to compile inside the editor.
 2. Human restores the profile folders.
 3. Verify the fix with the same probe: apply it on `main`, run `inject-probe.ps1 -Label "fix1 …"`, build,
    measure, and compare against the last good commit. Remove the injection by reverting

@@ -13,6 +13,15 @@ namespace T3.Editor.Gui.Windows.Analyze;
 
 internal static class T3Metrics
 {
+    /// <summary>
+    /// Records the interval since the previous frame. Call once per frame after ImGui's delta time was set, independent
+    /// of whether any metrics UI is drawn.
+    /// </summary>
+    public static void RecordFrameInterval()
+    {
+        PerformanceMetrics.RecordFrame(ImGui.GetIO().DeltaTime * 1000);
+    }
+
     public static void UiRenderingStarted()
     {
         _watchImgRenderTime.Restart();
@@ -69,7 +78,6 @@ internal static class T3Metrics
                                       : _uiRenderDurationMs;
 
         var deltaTimeMs = ImGui.GetIO().DeltaTime * 1000;
-        PerformanceMetrics.RecordFrame(deltaTimeMs);
 
         _peakDeltaTimeMs = _peakDeltaTimeMs > deltaTimeMs
                                ? MathUtils.Lerp(_peakDeltaTimeMs, deltaTimeMs, 0.05f)
@@ -149,30 +157,33 @@ internal static class T3Metrics
         CustomComponents.TooltipForLastItem("Copy current performance window to clipboard as CSV.");
     }
 
-    /// <summary>Builds a CSV snapshot of the current performance window across all three metrics.</summary>
+    /// <summary>Builds a CSV snapshot of the current performance window across all metrics.</summary>
     private static string BuildCsvExport()
     {
         var frameScratch = new float[PerformanceMetrics.WindowSize];
         var drawScratch = new float[PerformanceMetrics.WindowSize];
+        var presentScratch = new float[PerformanceMetrics.WindowSize];
         var allocScratch = new float[PerformanceMetrics.WindowSize];
 
         var frames = PerformanceMetrics.FrameDuration.AsOrderedSpan(frameScratch);
         var draws = PerformanceMetrics.UiRenderDuration.AsOrderedSpan(drawScratch);
+        var presents = PerformanceMetrics.PresentDuration.AsOrderedSpan(presentScratch);
         var allocs = PerformanceMetrics.GcAllocationsKb.AsOrderedSpan(allocScratch);
 
-        var count = Math.Min(Math.Min(frames.Length, draws.Length), allocs.Length);
+        var count = Math.Min(Math.Min(frames.Length, draws.Length), Math.Min(presents.Length, allocs.Length));
 
-        var sb = new System.Text.StringBuilder(count * 32 + 256);
+        var sb = new System.Text.StringBuilder(count * 40 + 256);
         sb.Append("# TiXL Performance Export  ").AppendLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         sb.Append("# Window: ").Append(PerformanceMetrics.WindowSize).Append(" samples  Total frames: ").AppendLine(PerformanceMetrics.TotalFrameCount.ToString());
-        sb.AppendLine("# Columns: frame_index, frame_ms, draw_ms, alloc_kB");
-        sb.AppendLine("frame_index,frame_ms,draw_ms,alloc_kB");
+        sb.AppendLine("# Columns: frame_index, frame_ms, draw_ms, present_ms, alloc_kB");
+        sb.AppendLine("frame_index,frame_ms,draw_ms,present_ms,alloc_kB");
 
         for (var i = 0; i < count; i++)
         {
             sb.Append(i).Append(',')
               .Append(frames[i].ToString("0.##", CultureInfo.InvariantCulture)).Append(',')
               .Append(draws[i].ToString("0.##", CultureInfo.InvariantCulture)).Append(',')
+              .Append(presents[i].ToString("0.##", CultureInfo.InvariantCulture)).Append(',')
               .AppendLine(allocs[i].ToString("0.#", CultureInfo.InvariantCulture));
         }
         return sb.ToString();

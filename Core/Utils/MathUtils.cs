@@ -708,31 +708,63 @@ public static class DampFunctions
 
     public static float SpringDampFloat(float inputValue, float previousValue, float damping, ref float velocity)
     {
-        return MathUtils.SpringDamp(inputValue, previousValue, ref velocity, 0.5f / (damping + 0.001f), (float)(Playback.LastFrameDuration).Clamp(0, 1 / 60f));
+        var stepCount = GetSpringSteps(out var step);
+        return IntegrateSpring(inputValue, previousValue, ref velocity, SpringConstant(damping), stepCount, step);
     }
 
-    private static float LinearDamp(float targetValue, float currentValue, float damping)
-    {
-        // TODO: Fix damping factor from framerate 
-        return MathUtils.Lerp(targetValue, currentValue, damping);
-    }
-        
     public static Vector2 SpringDampVec2(Vector2 targetVec, Vector2 currentValue, float damping, ref Vector2 velocity)
     {
-        var dt = (float)(Playback.LastFrameDuration).Clamp(0, 1 / 60f);
+        var stepCount = GetSpringSteps(out var step);
+        var springConstant = SpringConstant(damping);
         return new Vector2(
-                           MathUtils.SpringDamp(targetVec.X, currentValue.X, ref velocity.X, 0.5f / (damping + 0.001f), dt),
-                           MathUtils.SpringDamp(targetVec.Y, currentValue.Y, ref velocity.Y, 0.5f / (damping + 0.001f), dt));
+                           IntegrateSpring(targetVec.X, currentValue.X, ref velocity.X, springConstant, stepCount, step),
+                           IntegrateSpring(targetVec.Y, currentValue.Y, ref velocity.Y, springConstant, stepCount, step));
     }
 
     public static Vector3 SpringDampVec3(Vector3 targetVec, Vector3 currentValue, float damping, ref Vector3 velocity)
     {
-        var dt = (float)(Playback.LastFrameDuration).Clamp(0, 1 / 60f);
+        var stepCount = GetSpringSteps(out var step);
+        var springConstant = SpringConstant(damping);
         return new Vector3(
-                           MathUtils.SpringDamp(targetVec.X, currentValue.X, ref velocity.X, 0.5f / (damping + 0.001f), dt),
-                           MathUtils.SpringDamp(targetVec.Y, currentValue.Y, ref velocity.Y, 0.5f / (damping + 0.001f), dt),
-                           MathUtils.SpringDamp(targetVec.Z, currentValue.Z, ref velocity.Z, 0.5f / (damping + 0.001f), dt));
+                           IntegrateSpring(targetVec.X, currentValue.X, ref velocity.X, springConstant, stepCount, step),
+                           IntegrateSpring(targetVec.Y, currentValue.Y, ref velocity.Y, springConstant, stepCount, step),
+                           IntegrateSpring(targetVec.Z, currentValue.Z, ref velocity.Z, springConstant, stepCount, step));
     }
 
+    private static float LinearDamp(float targetValue, float currentValue, float damping)
+    {
+        // TODO: Fix damping factor from framerate
+        return MathUtils.Lerp(targetValue, currentValue, damping);
+    }
 
+    private static float SpringConstant(float damping) => 0.5f / (damping + 0.001f);
+
+    /// <summary>
+    /// Splits the last frame into equal steps no longer than <see cref="MaxSpringStepSec"/>. The explicit integrator
+    /// becomes unstable for stiff springs at longer steps, and a single clamped step would run springs in slow motion
+    /// below 60 fps (including 24, 25 and 30 fps exports).
+    /// </summary>
+    private static int GetSpringSteps(out float step)
+    {
+        var frameDuration = (float)Playback.LastFrameDuration.Clamp(0, MaxSpringFrameSec);
+        var stepCount = Math.Max(1, (int)MathF.Ceiling(frameDuration / MaxSpringStepSec));
+        step = frameDuration / stepCount;
+        return stepCount;
+    }
+
+    private static float IntegrateSpring(float target, float current, ref float velocity, float springConstant, int stepCount, float step)
+    {
+        for (var stepIndex = 0; stepIndex < stepCount; stepIndex++)
+        {
+            current = MathUtils.SpringDamp(target, current, ref velocity, springConstant, step);
+        }
+
+        return current;
+    }
+
+    /** One 60 Hz frame plus slack, so ordinary jitter around 60 Hz stays a single step. */
+    private const float MaxSpringStepSec = 1.1f / 60f;
+
+    /** Longer gaps (hitches, breakpoints) are integrated as if this much time had passed. */
+    private const float MaxSpringFrameSec = 0.25f;
 }

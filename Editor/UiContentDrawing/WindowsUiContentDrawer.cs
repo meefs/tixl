@@ -131,6 +131,7 @@ internal sealed class WindowsUiContentDrawer : IUiContentDrawer<Device>
             }
 
             UiContentUpdate.TakeMeasurement();
+            T3Metrics.RecordFrameInterval();
             ImGui.GetIO().DisplaySize = ProgramWindows.Main.Size;
 
             ProgramWindows.HandleFullscreenToggle();

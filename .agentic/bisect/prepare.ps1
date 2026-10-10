@@ -19,12 +19,27 @@ try {
     if (Get-Process TiXL -ErrorAction SilentlyContinue) { throw 'TiXL is running - close it first.' }
 
     Step "hard checkout $Commit"
-    git -c core.safecrlf=false checkout -q -f --detach $Commit 2>$null
-    if ($LASTEXITCODE -ne 0) { throw "checkout failed (exit $LASTEXITCODE) - retry; a locked .git\index is the usual cause" }
+    # Background git pollers, indexers or virus scanners briefly lock .git\index or files; git then fails part-way
+    # (HEAD unchanged, tree half-switched). A forced retry repairs that. Git warnings on stderr are not failures.
+    $target = (git rev-parse "$Commit^{commit}").Trim()
+    $checkedOut = $false
+    for ($attempt = 1; $attempt -le 3 -and -not $checkedOut; $attempt++) {
+        $ErrorActionPreference = 'Continue'
+        $gitOutput = git -c core.safecrlf=false checkout -q -f --detach $target 2>&1
+        $ErrorActionPreference = 'Stop'
+        $checkedOut = $LASTEXITCODE -eq 0 -and (git rev-parse HEAD).Trim() -eq $target
+        if (-not $checkedOut) {
+            Write-Warning "checkout attempt $attempt failed: $(($gitOutput | ForEach-Object { "$_" }) -join ' | ')"
+            Start-Sleep -Seconds 3
+        }
+    }
+    if (-not $checkedOut) { throw "checkout of $Commit failed 3 times" }
     git log -1 --format='%h %cs %s'
 
     Step 'clean (keeps Installer/, .claude/, .idea/, .vs/)'
-    $removed = git clean -fdx -e Installer/ -e .claude/ -e .idea/ -e .vs/ 2>$null
+    $ErrorActionPreference = 'Continue'
+    $removed = git clean -fdx -e Installer/ -e .claude/ -e .idea/ -e .vs/ 2>&1 | Where-Object { "$_" -like 'Removing*' }
+    $ErrorActionPreference = 'Stop'
     "removed $(@($removed).Count) entries"
 
     Step 'fix folder casing to match git (case-only renames are not applied on Windows)'

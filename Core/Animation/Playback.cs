@@ -63,14 +63,17 @@ public class Playback
         get => _isRenderingToFile;
         set {
             _isRenderingToFile = value;
+
+            // Update() measures from the clock it is about to switch to, so the next frame duration starts at 0
+            // instead of the gap between file time and the app's runtime.
             if (value)
             {
                 PlaybackSpeed = 0;
-                _lastFrameStart = RunTimeInSecs;
+                _lastFrameStart = TimeInSecs;
             }
             else
             {
-                _lastFrameStart = TimeInSecs;
+                _lastFrameStart = RunTimeInSecs;
             }
         }
     }
