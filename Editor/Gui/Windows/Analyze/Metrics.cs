@@ -75,14 +75,15 @@ internal static class T3Metrics
         var refreshPeriodMs = (float)(FrameTiming.RefreshPeriodSec * 1000);
         float frameTimingScaleFactor = barWidth / normalFramerateLevelAt / (float)FrameTiming.RefreshRate;
 
+        var peakDecay = MathUtils.BlendForFrame(0.05f, FrameTiming.VisualDeltaSec);
         _peakCpuFrameDurationMs = _peakCpuFrameDurationMs > _cpuFrameDurationMs
-                                      ? MathUtils.Lerp(_peakCpuFrameDurationMs, _cpuFrameDurationMs, 0.05f)
+                                      ? MathUtils.Lerp(_peakCpuFrameDurationMs, _cpuFrameDurationMs, peakDecay)
                                       : _cpuFrameDurationMs;
 
         var deltaTimeMs = ImGui.GetIO().DeltaTime * 1000;
 
         _peakDeltaTimeMs = _peakDeltaTimeMs > deltaTimeMs
-                               ? MathUtils.Lerp(_peakDeltaTimeMs, deltaTimeMs, 0.05f)
+                               ? MathUtils.Lerp(_peakDeltaTimeMs, deltaTimeMs, peakDecay)
                                : deltaTimeMs;
 
         var drawList = ImGui.GetWindowDrawList();

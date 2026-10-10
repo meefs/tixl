@@ -175,7 +175,19 @@ internal static class BeatTiming
         {
             var config = playbackSettings.Playback;
             if (!config.EnableAudioBeatLocking)
+            {
+                _isBeatLockActive = false;
                 return false;
+            }
+
+            // A lock carried over from another source would be slewed off gradually, which plays time back
+            // and forth. Relocking from scratch switches hard at the next bar start.
+            if (!_isBeatLockActive || config.BeatLockSource != _activeBeatLockSource)
+            {
+                DanceAiPhaseTracker.Reset();
+                _activeBeatLockSource = config.BeatLockSource;
+                _isBeatLockActive = true;
+            }
 
             if (config.BeatLockSource != CompositionSettings.BeatLockSources.OnsetDetection)
                 DanceAiPhaseTracker.Smoothing = config.BeatLockSmoothing;
@@ -255,4 +267,7 @@ internal static class BeatTiming
     private static bool _tapTriggeredLastFrame;
 
     private const double Threshold = 0.3;
+
+    private static bool _isBeatLockActive;
+    private static CompositionSettings.BeatLockSources _activeBeatLockSource;
 }

@@ -444,7 +444,27 @@ public static class MathUtils
     }
 
     /// <summary>
-    /// Slowly lerps the parameter in place towards the target. 
+    /// Converts a per-frame damping factor tuned at 60 fps — the share of the current value kept each frame, as in
+    /// <c>Lerp(target, current, damping)</c> — into the factor for a frame of <paramref name="frameDurationSec"/>.
+    /// Identical at 60 fps; at other frame rates the smoothing takes the same time instead of the same number of frames.
+    /// </summary>
+    public static float DampingForFrame(float dampingAt60Fps, double frameDurationSec)
+    {
+        return (float)Math.Pow(Math.Clamp(dampingAt60Fps, 0f, 1f), Math.Max(0, frameDurationSec) * 60);
+    }
+
+    /// <summary>
+    /// Converts a per-frame blend factor tuned at 60 fps — the share moved towards the target each frame, as in
+    /// <c>Lerp(current, target, blend)</c> — into the factor for a frame of <paramref name="frameDurationSec"/>.
+    /// Identical at 60 fps; at other frame rates the smoothing takes the same time instead of the same number of frames.
+    /// </summary>
+    public static float BlendForFrame(float blendAt60Fps, double frameDurationSec)
+    {
+        return 1 - DampingForFrame(1 - blendAt60Fps, frameDurationSec);
+    }
+
+    /// <summary>
+    /// Slowly lerps the parameter in place towards the target.
     /// </summary>
     /// <returns>Also returns the new parameter for convenience.</returns>
     public static float DampTowards(this ref float value, float target, float damping = 0.9f)
@@ -733,8 +753,7 @@ public static class DampFunctions
 
     private static float LinearDamp(float targetValue, float currentValue, float damping)
     {
-        // TODO: Fix damping factor from framerate
-        return MathUtils.Lerp(targetValue, currentValue, damping);
+        return MathUtils.Lerp(targetValue, currentValue, MathUtils.DampingForFrame(damping, Playback.LastFrameDuration));
     }
 
     private static float SpringConstant(float damping) => 0.5f / (damping + 0.001f);

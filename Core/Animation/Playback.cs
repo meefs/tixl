@@ -98,7 +98,22 @@ public class Playback
         
     public static double RunTimeInSecs => RunTimeWatch.Elapsed.TotalSeconds;
     public static int FrameCount;
-    public static double LastFrameDuration { get; protected set; }
+    /// <summary>
+    /// Duration of the current frame in seconds: the visual frame duration live, the file time step while rendering
+    /// to file, or <see cref="FixedFrameDurationSec"/> while that is set.
+    /// </summary>
+    public static double LastFrameDuration
+    {
+        get => FixedFrameDurationSec ?? _lastFrameDuration;
+        protected set => _lastFrameDuration = value;
+    }
+
+    /// <summary>
+    /// While set, <see cref="LastFrameDuration"/> returns this instead of a measured duration, so frame-duration
+    /// dependent ops (damping, springs, simulations) step identically on every machine and display. Set by export
+    /// (one frame of the export rate) and by visual reference tests (1/60 s per evaluation step).
+    /// </summary>
+    public static double? FixedFrameDurationSec { get; set; }
     public double LastFrameDurationInBars => BarsFromSeconds(LastFrameDuration);
         
     public virtual void Update(bool idleMotionEnabled = false)
@@ -176,6 +191,7 @@ public class Playback
     }
 
     private static double _lastFrameStart;
+    private static double _lastFrameDuration;
     private static long _lastUsedTimingFrame = -1;
     private double _frameSpeedFactorForFileRendering = 1;
     private double _previousTimeInBars;
