@@ -100,12 +100,19 @@ internal static class GpuFrameTimer
             if (disjoint.Disjoint || disjoint.Frequency == 0 || endTicks < startTicks)
                 continue;
 
-            PerformanceMetrics.RecordGpuFrame((float)((endTicks - startTicks) * 1000.0 / disjoint.Frequency));
+            // A stall on the main thread (loading, compiling) lands between the two timestamps as GPU idle time.
+            var gpuMs = (endTicks - startTicks) * 1000.0 / disjoint.Frequency;
+            if (gpuMs > MaxPlausibleGpuFrameMs)
+                continue;
+
+            PerformanceMetrics.RecordGpuFrame((float)gpuMs);
         }
     }
 
     /** Enough for the GPU to finish a frame before its slot is reused at frame latency 1–3. */
     private const int QuerySetCount = 4;
+
+    private const double MaxPlausibleGpuFrameMs = 250;
 
     private static DeviceContext? _context;
     private static QuerySet[]? _querySets;

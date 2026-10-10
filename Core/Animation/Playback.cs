@@ -108,8 +108,9 @@ public class Playback
         Current = this;
         var currentRuntime = IsRenderingToFile ?   TimeInSecs : RunTimeInSecs;
 
-        LastFrameDuration = currentRuntime - _lastFrameStart;
+        var wallClockDuration = currentRuntime - _lastFrameStart;
         _lastFrameStart = currentRuntime;
+        LastFrameDuration = IsRenderingToFile ? wallClockDuration : GetLiveFrameDuration(wallClockDuration);
 
         var timeSinceLastFrameInSecs = LastFrameDuration;
         var isPlaying = Math.Abs(PlaybackSpeed) > 0.001;
@@ -160,8 +161,22 @@ public class Playback
     {
         return bars * 240.0 / Bpm;
     }
-        
+
+    /// <summary>
+    /// The time animations advance by in live playback: the visual frame duration when the host recorded this frame
+    /// with <see cref="FrameTiming"/> (whole refresh periods under vsync), otherwise the wall-clock duration.
+    /// </summary>
+    protected static double GetLiveFrameDuration(double wallClockDuration)
+    {
+        if (FrameTiming.RecordedFrameCount == _lastUsedTimingFrame)
+            return wallClockDuration;
+
+        _lastUsedTimingFrame = FrameTiming.RecordedFrameCount;
+        return FrameTiming.VisualDeltaSec;
+    }
+
     private static double _lastFrameStart;
+    private static long _lastUsedTimingFrame = -1;
     private double _frameSpeedFactorForFileRendering = 1;
     private double _previousTimeInBars;
     private static readonly Stopwatch RunTimeWatch = Stopwatch.StartNew();

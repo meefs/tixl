@@ -26,9 +26,22 @@ public static class FrameTiming
     /// </summary>
     public static double FrameRateRelativeTo60 => DefaultRefreshPeriodSec / FramePeriodSec;
 
-    /// <summary>Call once per frame with the time since the previous frame.</summary>
+    /// <summary>
+    /// How far animations should advance this frame, in seconds. With vsync and a measured refresh period this is
+    /// whole refresh periods — how long the previous frame stayed on screen — instead of the interval between frame
+    /// starts, which jitters with CPU work. Otherwise it is that interval.
+    /// </summary>
+    public static double VisualDeltaSec { get; private set; } = DefaultRefreshPeriodSec;
+
+    /// <summary>Counts calls of <see cref="RecordFrameInterval"/>, so consumers can tell whether this frame was recorded.</summary>
+    public static long RecordedFrameCount { get; private set; }
+
+    /// <summary>Call once per frame at its start, with the wall-clock time since the previous frame's start.</summary>
     public static void RecordFrameInterval(double intervalSec, bool isVsynced)
     {
+        RecordedFrameCount++;
+        VisualDeltaSec = AdvanceVisualClock(intervalSec, isVsynced);
+
         // Pauses (breakpoints, minimized windows, hitches while loading) say nothing about the cadence.
         if (intervalSec <= 0 || intervalSec > MaxPlausibleIntervalSec)
             return;
@@ -78,6 +91,37 @@ public static class FrameTiming
         }
 
         RefreshPeriodSec = sum / (WindowSize - 2 * trimmedCount);
+        _hasMeasuredRefreshPeriod = true;
+    }
+
+    /// <summary>
+    /// With vsync every frame stays on screen for whole refresh periods, so the visual clock advances one period per
+    /// frame and only catches up in whole periods once it is a full period behind the wall clock (a missed vblank)
+    /// or ahead of it. Jitter in when frames start stays below that and never reaches the animation.
+    /// </summary>
+    private static double AdvanceVisualClock(double intervalSec, bool isVsynced)
+    {
+        var canPaceByRefresh = isVsynced
+                               && _hasMeasuredRefreshPeriod
+                               && intervalSec > 0
+                               && intervalSec <= MaxPlausibleIntervalSec;
+        if (!canPaceByRefresh)
+        {
+            _visualClockLagSec = 0;
+            return Math.Max(0, intervalSec);
+        }
+
+        var period = RefreshPeriodSec;
+        var visualDelta = period;
+        _visualClockLagSec += intervalSec - period;
+        if (Math.Abs(_visualClockLagSec) >= period)
+        {
+            var wholePeriods = Math.Truncate(_visualClockLagSec / period);
+            visualDelta += wholePeriods * period;
+            _visualClockLagSec -= wholePeriods * period;
+        }
+
+        return Math.Max(0, visualDelta);
     }
 
     private const double DefaultRefreshPeriodSec = 1.0 / 60.0;
@@ -96,4 +140,8 @@ public static class FrameTiming
     private static double _intervalSum;
     private static int _vsyncedFramesInWindow;
     private static int _framesSinceRefreshEstimate;
+    private static bool _hasMeasuredRefreshPeriod;
+
+    /** Wall-clock time minus visual time; stays within one refresh period. */
+    private static double _visualClockLagSec;
 }

@@ -254,9 +254,13 @@ what consoles do and avoids the 1-2-1-2 cadence that reads as stutter.
   and composed by DWM otherwise. Attempt (4), the vblank drain only in overlay mode, also failed: in overlay mode
   2 queued can be a steady state without any stall (the drain fired every frame for seconds, the count returned to
   2 after each present). Conclusion: the queued count from frame statistics is a diagnostic, not a control signal.
-  **Next idea:** reset the swap chain's presentation state once when a stall ends (the watchdog knows when its
-  overlay was shown) — e.g. `ResizeBuffers` to the same size, which flushes the flip queue the way minimising does —
-  or present the stall overlay without touching Main's flip queue (a separate topmost window). The stall overlay's own presents (from the watchdog thread, without a frame-latency
+  Attempt (5), parked 2026-10-10: `ResizeBuffers` to the same size on the first frame after the stall overlay
+  presented (`StallWatchdog.NotifyRenderingBackBuffer`). After a 3 s stall the queue read 2 instead of 2–3, but never
+  returned to 1 — unclear whether the reset only partly empties the queue or 2 is a second steady state in overlay
+  mode (seen before without any stall). To resume: log the reset with the queued count before and after, and record
+  PresentMon right after the stall to see whether "2 queued" really means ~30 ms to screen. Untried alternative:
+  present the stall overlay without touching Main's flip queue (a separate topmost window).
+  **Parked** in favour of the visual clock (Cluster B), which removes the visible animation jitter in any queue state. The stall overlay's own presents (from the watchdog thread, without a frame-latency
   wait) are the likely trigger in overlay mode; Vulkan will need the same care for presents outside the frame loop.
 - The Performance window and `getMetrics` show the presentation mode (composed / hardware overlay /
   independent flip) and queued frames; mode changes are logged.
@@ -438,7 +442,7 @@ mode, when to use half rate).
 |---|---|---|
 | **0 — Quick wins** | Done 2026-10-10: frame-profiling channel capped; frame metric recorded from the frame loop; Present in CSV; `IsRenderingToFile` clock switch fixed; springs sub-stepped instead of clamped. Vsync-off cap confirmed (parent of FlipDiscard: 4.63 ms, FlipDiscard: 8.42 ms). Open: PresentMon check of latency 2 | Neutral |
 | **1 — Know the display** | Done: `Core/Stats/FrameTiming` measures frame and refresh period (Editor + Player); app-bar graph and its marker use the measured rate; `FrameSpeedFactor` is measured live (exporter's value only while rendering to file); refresh rate in the Performance window and `getMetrics`. Open: built-in "Measure 10 s" (UI design pending); `PerformanceMetrics` window in seconds and buckets relative to the period | Neutral |
-| **2 — Stable time** | Visual clock with drift correction; `Playback` fixed-step mode shared by export and visual tests; `DampFactor` sweep (editor first, then ops); time-based shader sims, then recreate reference images once; A/V offsets in seconds; latency setting; `DetectBpm` time-based; export without vsync + async readback + encoder thread | Neutral |
+| **2 — Stable time** | First slice done 2026-10-11: visual clock in `FrameTiming` (one refresh period per frame under vsync, catch-up in whole periods once a full period off the wall clock); live `Playback` and `LastFrameDuration` use it; the Player measures at frame start. Replay of the bisect recordings: wall std ~10 ms → visual std 0–0.96 ms, drift < 1 period. Not yet: beat-timing playback's own clock, OS refresh query. Remaining:  `Playback` fixed-step mode shared by export and visual tests; `DampFactor` sweep (editor first, then ops); time-based shader sims, then recreate reference images once; A/V offsets in seconds; latency setting; `DetectBpm` time-based; export without vsync + async readback + encoder thread | Neutral |
 | **3 — Merge (after 4.3)** | Record the 4.3 probe baseline before merging; after the merge probe D3D11-through-facade and Vulkan against it; GPU queries on both backends | Facade |
 | **3b — 4.4 gate** | Latency-1/2 equivalent on Vulkan (`present_wait`); one pacing swapchain, non-blocking secondaries; present timing incl. acquire; Vulkan probe results match the 4.3 baseline | Vulkan |
 | **4 — Vulkan era** | Present-mode and target-rate settings, including uncapped "vsync off" (`ALLOW_TEARING` swap chain only while vsync is off, recreated on toggle — decided 2026-10-10 to do it with the other presentation controls, see C1); half-rate via `present_wait`; Tracy behind a build flag; per-op profiling; present timing for multi-machine; VRR | Vulkan-later |

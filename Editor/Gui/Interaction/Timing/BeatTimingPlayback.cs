@@ -14,7 +14,8 @@ internal sealed class BeatTimingPlayback : Playback
 
         var currentRuntimeInSecs = IsRenderingToFile ?   TimeInSecs : RunTimeInSecs;
 
-        LastFrameDuration = (float)(currentRuntimeInSecs - _lastFrameStart);
+        var wallClockDuration = currentRuntimeInSecs - _lastFrameStart;
+        LastFrameDuration = IsRenderingToFile ? wallClockDuration : GetLiveFrameDuration(wallClockDuration);
         _lastFrameStart = currentRuntimeInSecs;
             
         // Beat time never stops in tapping mode. Audio gates on PlaybackSpeed and would stay paused at 0.
