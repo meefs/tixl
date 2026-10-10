@@ -13,6 +13,8 @@ using ImGuiNET;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using T3.Core.Animation;
+using T3.Core.Stats;
+using T3.Editor.Gui.Windows.Analyze;
 using T3.Core.Logging;
 using T3.Core.Model;
 using T3.Core.Operator;
@@ -983,6 +985,12 @@ internal static class DebugServer
                          {
                              ["frameDeltaSeconds"] = io.DeltaTime,
                              ["fps"] = io.DeltaTime > 0 ? Math.Round(1f / io.DeltaTime, 1) : 0,
+                             ["framePeriodMs"] = Math.Round(FrameTiming.FramePeriodSec * 1000, 3),
+                             ["refreshRateHz"] = Math.Round(FrameTiming.RefreshRate, 3),
+                             ["frameSpeedFactor"] = Math.Round(Playback.Current?.FrameSpeedFactor ?? 1, 3),
+                             ["gpuFrameMs"] = Math.Round(PerformanceMetrics.GpuFrameDuration.Average, 3),
+                             ["presentationMode"] = PresentationDiagnostics.Describe(PresentationDiagnostics.CompositionMode),
+                             ["queuedFrames"] = PresentationDiagnostics.QueuedFrames,
                              ["gcTotalMemoryMb"] = Math.Round(GC.GetTotalMemory(false) / (1024.0 * 1024.0), 2),
                          };
 

@@ -75,6 +75,7 @@ internal static partial class Program
         PresentOutputWindows();
 
         PerformanceMetrics.RecordFrame((float)(Playback.LastFrameDuration * 1000.0));
+        FrameTiming.RecordFrameInterval(Playback.LastFrameDuration, _vsyncInterval > 0);
     }
     
     private class TimelineEndedException : Exception

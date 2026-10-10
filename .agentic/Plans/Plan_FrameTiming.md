@@ -239,6 +239,28 @@ what consoles do and avoids the 1-2-1-2 cadence that reads as stutter.
 
 ### C4. Other presentation findings on main
 
+- **Present queue fills up after stalls (found 2026-10-10, not fixed).** After a stall (startup loading,
+  compiling; reproduced with the bridge's `stallMainThread`, 1 → 2–3 queued, persistent) the main window's
+  flip queue stays full. PresentMon, both states "Hardware Composed: Independent Flip": good state 1 frame queued,
+  12.9 ms present-to-display, even present cadence; bad state 2–3 queued, 53.3 ms, present intervals std 9.7 ms —
+  while the display itself stayed even (std 0.02 ms). So the visible jitter is animation time sampled at uneven
+  frame starts (Cluster B) plus ~40 ms extra latency. Minimising and restoring empties the queue.
+  The frame-latency waitable does not prevent this: it counts frames the GPU finished, not frames shown.
+  Attempts that failed: (1) an extra blocking wait while more than one frame is queued — blocked ~170 ms per frame,
+  which triggered the stall overlay in a loop; (2) draining surplus waitable signals without blocking — no effect,
+  there is no surplus; (3) waiting for vblanks until one frame is queued — fired on almost every frame, because
+  Windows sometimes picks "composed by DWM", where two queued frames are normal, and the statistics occasionally
+  report stale counts. Windows presents the editor as a hardware overlay while it is the foreground window
+  and composed by DWM otherwise. Attempt (4), the vblank drain only in overlay mode, also failed: in overlay mode
+  2 queued can be a steady state without any stall (the drain fired every frame for seconds, the count returned to
+  2 after each present). Conclusion: the queued count from frame statistics is a diagnostic, not a control signal.
+  **Next idea:** reset the swap chain's presentation state once when a stall ends (the watchdog knows when its
+  overlay was shown) — e.g. `ResizeBuffers` to the same size, which flushes the flip queue the way minimising does —
+  or present the stall overlay without touching Main's flip queue (a separate topmost window). The stall overlay's own presents (from the watchdog thread, without a frame-latency
+  wait) are the likely trigger in overlay mode; Vulkan will need the same care for presents outside the frame loop.
+- The Performance window and `getMetrics` show the presentation mode (composed / hardware overlay /
+  independent flip) and queued frames; mode changes are logged.
+
 - `CaptureUiFrame` copies the full back buffer every frame for the stall overlay's background (the flip model
   discards the back buffer, and the watchdog only notices a stall after it started, so the copy must exist
   beforehand). A periodic copy (every 100 ms) was tried and rejected: a potential hitch every sixth frame is
@@ -415,7 +437,7 @@ mode, when to use half rate).
 | Phase | Items | Backend |
 |---|---|---|
 | **0 — Quick wins** | Done 2026-10-10: frame-profiling channel capped; frame metric recorded from the frame loop; Present in CSV; `IsRenderingToFile` clock switch fixed; springs sub-stepped instead of clamped. Vsync-off cap confirmed (parent of FlipDiscard: 4.63 ms, FlipDiscard: 8.42 ms). Open: PresentMon check of latency 2 | Neutral |
-| **1 — Know the display** | Frame-timing service with measured `RefreshPeriodSec`; perf bars, metric windows and `FrameSpeedFactor` from it; built-in "Measure 10 s" | Neutral |
+| **1 — Know the display** | Done: `Core/Stats/FrameTiming` measures frame and refresh period (Editor + Player); app-bar graph and its marker use the measured rate; `FrameSpeedFactor` is measured live (exporter's value only while rendering to file); refresh rate in the Performance window and `getMetrics`. Open: built-in "Measure 10 s" (UI design pending); `PerformanceMetrics` window in seconds and buckets relative to the period | Neutral |
 | **2 — Stable time** | Visual clock with drift correction; `Playback` fixed-step mode shared by export and visual tests; `DampFactor` sweep (editor first, then ops); time-based shader sims, then recreate reference images once; A/V offsets in seconds; latency setting; `DetectBpm` time-based; export without vsync + async readback + encoder thread | Neutral |
 | **3 — Merge (after 4.3)** | Record the 4.3 probe baseline before merging; after the merge probe D3D11-through-facade and Vulkan against it; GPU queries on both backends | Facade |
 | **3b — 4.4 gate** | Latency-1/2 equivalent on Vulkan (`present_wait`); one pacing swapchain, non-blocking secondaries; present timing incl. acquire; Vulkan probe results match the 4.3 baseline | Vulkan |

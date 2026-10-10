@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using T3.Core.Settings;
+using T3.Core.Stats;
 
 namespace T3.Core.Animation;
 
@@ -81,14 +82,17 @@ public class Playback
     public double PlaybackSpeed { get; set; }
         
     /// <summary>
-    /// This is set when rendering updates not at 60fps. This can happen for...
-    /// 
-    /// - high framerate displays -> e.g. 2 for 120hz displays
-    /// - when rendering low fps image sequences -> e.g. 25/60 for 25fps
-    ///    
+    /// The frame rate relative to 60 fps, e.g. 2 on a 120 Hz display or 25/60 when exporting at 25 fps.
+    /// Live it is measured (<see cref="FrameTiming.FrameRateRelativeTo60"/>); while rendering to file it is the value
+    /// set here by the exporter.
+    ///
     /// If possible simulation operators like [ParticleSystem] or [FeedbackEffect] should apply this factor to their overall speed factor.
     /// </summary>
-    public double FrameSpeedFactor { get; set; } = 1;
+    public double FrameSpeedFactor
+    {
+        get => IsRenderingToFile ? _frameSpeedFactorForFileRendering : FrameTiming.FrameRateRelativeTo60;
+        set => _frameSpeedFactorForFileRendering = value;
+    }
     public bool IsLooping = false;
     public static bool OpNotReady;
         
@@ -158,6 +162,7 @@ public class Playback
     }
         
     private static double _lastFrameStart;
+    private double _frameSpeedFactorForFileRendering = 1;
     private double _previousTimeInBars;
     private static readonly Stopwatch RunTimeWatch = Stopwatch.StartNew();
     private bool _isRenderingToFile;

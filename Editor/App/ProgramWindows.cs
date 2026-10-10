@@ -12,6 +12,7 @@ using T3.Core.SystemUi;
 using T3.Editor.Gui;
 // for ReleaseMode
 using T3.Editor.Gui.UiHelpers;
+using T3.Editor.Gui.Windows.Analyze;
 using T3.Editor.UiModel;
 using Device = SharpDX.Direct3D11.Device;
 using PixelShader = T3.Core.DataTypes.PixelShader;
@@ -191,6 +192,7 @@ internal static class ProgramWindows
             _factory = swapchain.GetParent<Factory>();
 
             Main.SetDevice(device, _deviceContext, swapchain);
+            GpuFrameTimer.Initialize(device, _deviceContext);
             var windowState = Program.WindowSizeOverride == null ? FormWindowState.Maximized : FormWindowState.Normal;
             Main.InitializeWindow(windowState, OnCloseMainWindow, true);
             if (Program.WindowSizeOverride is { } windowSize)
@@ -278,6 +280,7 @@ internal static class ProgramWindows
     public static void Release()
     {
         OutputWindowHandling.Release();
+        GpuFrameTimer.Release();
         Main.Release();
         Viewer.Release();
         _device.ImmediateContext.ClearState();
@@ -312,9 +315,11 @@ internal static class ProgramWindows
     public static void Present(bool useVSync)
     {
         var startTimestamp = Stopwatch.GetTimestamp();
+        GpuFrameTimer.EndFrame();
         try
         {
             Main.SwapChain.Present(useVSync ? 1 : 0, PresentFlags.None);
+            PresentationDiagnostics.Update(Main.SwapChain);
 
             // Only while its window is actually shown. Presenting a hidden flip-model swap chain is not the
             // cheap no-op it looks like: DWM throttles presents to a window it isn't displaying, and with an
