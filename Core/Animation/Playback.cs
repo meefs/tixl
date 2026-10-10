@@ -164,7 +164,7 @@ public class Playback
 
     /// <summary>
     /// The time animations advance by in live playback: the visual frame duration when the host recorded this frame
-    /// with <see cref="FrameTiming"/> (whole refresh periods under vsync), otherwise the wall-clock duration.
+    /// with <see cref="FrameTiming.RecordFrameStart"/> (whole refresh periods under vsync), otherwise the wall-clock duration.
     /// </summary>
     protected static double GetLiveFrameDuration(double wallClockDuration)
     {

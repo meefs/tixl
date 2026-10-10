@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using ImGuiNET;
 using T3.Core.DataTypes.Vector;
+using T3.Core.Animation;
 using T3.Core.Stats;
 using T3.Core.Utils;
 using T3.Editor.Gui.Styling;
@@ -19,9 +20,8 @@ internal static class T3Metrics
     /// </summary>
     public static void RecordFrameInterval()
     {
-        var deltaTime = ImGui.GetIO().DeltaTime;
-        PerformanceMetrics.RecordFrame(deltaTime * 1000);
-        FrameTiming.RecordFrameInterval(deltaTime, T3Ui.UseVSync);
+        PerformanceMetrics.RecordFrame(ImGui.GetIO().DeltaTime * 1000);
+        FrameTiming.RecordFrameStart(Playback.RunTimeInSecs, T3Ui.UseVSync);
     }
 
     /// <summary>Starts timing the main thread's work for this frame.</summary>

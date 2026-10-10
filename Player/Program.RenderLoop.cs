@@ -22,13 +22,8 @@ internal static partial class Program
     // todo - share this function with the editor ? is that possible? it could have delegate arguments
     private static void RenderCallback()
     {
-        // Measured at the frame's start, before playback advances by the resulting visual frame duration.
-        var frameStartTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
-        var frameIntervalSec = _lastFrameStartTimestamp == 0
-                                   ? 0
-                                   : (frameStartTimestamp - _lastFrameStartTimestamp) / (double)System.Diagnostics.Stopwatch.Frequency;
-        _lastFrameStartTimestamp = frameStartTimestamp;
-        FrameTiming.RecordFrameInterval(frameIntervalSec, _vsyncInterval > 0);
+        // Recorded at the frame's start, before playback advances by the resulting visual frame duration.
+        FrameTiming.RecordFrameStart(Playback.RunTimeInSecs, _vsyncInterval > 0);
 
         EnsureBackBufferSize();
         WasapiAudioInput.StartFrame(_playback.Settings);
@@ -82,7 +77,7 @@ internal static partial class Program
         _swapChain.Present(_vsyncInterval, PresentFlags.None);
         PresentOutputWindows();
 
-        PerformanceMetrics.RecordFrame((float)(frameIntervalSec * 1000.0));
+        PerformanceMetrics.RecordFrame((float)(FrameTiming.FrameIntervalSec * 1000.0));
     }
     
     private class TimelineEndedException : Exception
@@ -188,6 +183,4 @@ internal static partial class Program
         Log.Debug("Creating new srv...");
         _outputTextureSrv = new ShaderResourceView(_device, _outputTexture);
     }
-
-    private static long _lastFrameStartTimestamp;
 }

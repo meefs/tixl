@@ -33,14 +33,29 @@ public static class FrameTiming
     /// </summary>
     public static double VisualDeltaSec { get; private set; } = DefaultRefreshPeriodSec;
 
-    /// <summary>Counts calls of <see cref="RecordFrameInterval"/>, so consumers can tell whether this frame was recorded.</summary>
+    /// <summary>
+    /// The current frame's time on the visual clock, in the time base of <c>Playback.RunTimeInSecs</c>. Advances by
+    /// <see cref="VisualDeltaSec"/> each frame and stays within one refresh period of the frame's actual start, so
+    /// anything derived from the clock (beat time, extrapolated phases) moves as evenly as the display.
+    /// </summary>
+    public static double VisualFrameTimeSec { get; private set; }
+
+    /// <summary>Wall-clock time between the starts of the previous and the current frame, in seconds.</summary>
+    public static double FrameIntervalSec { get; private set; }
+
+    /// <summary>Counts calls of <see cref="RecordFrameStart"/>, so consumers can tell whether this frame was recorded.</summary>
     public static long RecordedFrameCount { get; private set; }
 
-    /// <summary>Call once per frame at its start, with the wall-clock time since the previous frame's start.</summary>
-    public static void RecordFrameInterval(double intervalSec, bool isVsynced)
+    /// <summary>Call once per frame at its start with the current <c>Playback.RunTimeInSecs</c>.</summary>
+    public static void RecordFrameStart(double frameStartSec, bool isVsynced)
     {
+        var intervalSec = RecordedFrameCount == 0 ? 0 : frameStartSec - _lastFrameStartSec;
+        _lastFrameStartSec = frameStartSec;
+        FrameIntervalSec = intervalSec;
+
         RecordedFrameCount++;
         VisualDeltaSec = AdvanceVisualClock(intervalSec, isVsynced);
+        VisualFrameTimeSec = frameStartSec - _visualClockLagSec;
 
         // Pauses (breakpoints, minimized windows, hitches while loading) say nothing about the cadence.
         if (intervalSec <= 0 || intervalSec > MaxPlausibleIntervalSec)
@@ -141,6 +156,7 @@ public static class FrameTiming
     private static int _vsyncedFramesInWindow;
     private static int _framesSinceRefreshEstimate;
     private static bool _hasMeasuredRefreshPeriod;
+    private static double _lastFrameStartSec;
 
     /** Wall-clock time minus visual time; stays within one refresh period. */
     private static double _visualClockLagSec;
